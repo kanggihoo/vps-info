@@ -12,3 +12,6 @@ dependencies = [
 
 [project.scripts]
 signal-archive = "signal_archive.cli:main"
+
+[tool.uv]
+package = true
