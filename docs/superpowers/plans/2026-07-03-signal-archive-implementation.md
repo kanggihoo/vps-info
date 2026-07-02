@@ -45,7 +45,9 @@
 - Create: `tests/test_cli.py`
   - CLI smoke tests.
 - Modify: `README.md`
-  - Replace “planned” wording with real install/test/run commands.
+  - Replace “planned” wording with Korean install/test/run commands.
+- Create: `docs/implementation.md`
+  - Korean implementation notes for structure, DB behavior, channels, and manual checks.
 
 ---
 
@@ -1176,38 +1178,39 @@ git commit -m "feat: add signal archive cli"
 
 ---
 
-### Task 5: README And Live Smoke Check
+### Task 5: Korean Documentation And Live Smoke Check
 
 **Files:**
 - Modify: `README.md`
+- Create: `docs/implementation.md`
 
-- [ ] **Step 1: Update README**
+- [ ] **Step 1: Update Korean README**
 
 Replace `README.md` with:
 
-```markdown
+````markdown
 # Signal Archive
 
-Signal Archive archives links and metadata from tech/news channels into SQLite.
+Signal Archive는 기술/뉴스 채널에서 링크와 메타데이터를 가져와 SQLite에 저장하는 수집 도구입니다.
 
-The repository directory may still be named `vps-info`, but the project and CLI are `signal-archive`.
+현재 저장소 디렉토리 이름은 `vps-info`일 수 있지만, 프로젝트 이름과 CLI 이름은 `signal-archive`입니다.
 
-## Channels
+## 수집 채널
 
-- GeekNews: official RSS
-- Product Hunt: public feed
-- Indie Hackers: unofficial RSS, `https://feed.indiehackers.world/posts.rss`
-- Hacker News: official Firebase API
+- GeekNews: 공식 RSS
+- Product Hunt: 공개 feed
+- Indie Hackers: 비공식 RSS, `https://feed.indiehackers.world/posts.rss`
+- Hacker News: 공식 Firebase API
 
-X/Twitter, Reddit, cloud scheduling, dashboards, Postgres, and full article scraping are out of scope for the first version.
+첫 버전에서는 X/Twitter, Reddit, cloud scheduling, dashboard, Postgres, 본문 scraping을 다루지 않습니다.
 
-## Setup
+## 설치
 
 ```bash
 uv sync
 ```
 
-## Commands
+## 명령어
 
 ```bash
 uv run signal-archive init-db
@@ -1217,30 +1220,113 @@ uv run signal-archive fetch-all --limit 20
 uv run signal-archive list --channel geeknews --limit 20
 ```
 
-Use a custom SQLite path:
+명령어 역할:
+
+- `init-db`: SQLite DB와 table 생성
+- `channels`: 등록된 수집 채널 목록 출력
+- `fetch`: 한 채널 수집 후 저장
+- `fetch-all`: 모든 채널 수집 후 저장
+- `list`: 저장된 item 조회
+
+SQLite 경로를 직접 지정:
 
 ```bash
 uv run signal-archive --db data/dev.sqlite3 fetch-all --limit 5
 ```
 
-Or with an environment variable:
+환경변수로 SQLite 경로 지정:
 
 ```bash
 SIGNAL_ARCHIVE_DB_PATH=data/dev.sqlite3 uv run signal-archive fetch-all --limit 5
 ```
 
-## Test
+## 테스트
 
 ```bash
 uv run python -m unittest discover -s tests
 ```
 
-## Design
+## 문서
 
-See `docs/superpowers/specs/2026-07-03-signal-archive-design.md`.
+- 설계: `docs/superpowers/specs/2026-07-03-signal-archive-design.md`
+- 구현 메모: `docs/implementation.md`
+````
+
+- [ ] **Step 2: Add Korean implementation notes**
+
+Create `docs/implementation.md`:
+
+````markdown
+# Signal Archive 구현 메모
+
+## 목적
+
+Signal Archive는 여러 기술/뉴스 채널의 목록 메타데이터를 공통 형태로 정규화한 뒤 SQLite에 저장합니다.
+
+첫 버전의 목표는 cloud 배포가 아니라 로컬에서 수집 방식과 저장 구조를 검증하는 것입니다.
+
+## 구조
+
+```text
+signal_archive/
+  cli.py          # argparse 기반 CLI
+  core.py         # fetch orchestration
+  schemas.py      # Pydantic NewsItem
+  store.py        # SQLite init/upsert/list
+  channels/       # 채널별 수집기
 ```
 
-- [ ] **Step 2: Run all tests**
+`cli.py`는 사용자 명령만 처리합니다. 실제 수집 흐름은 `core.py`, DB 작업은 `store.py`, 외부 사이트별 로직은 `channels/`에 둡니다.
+
+## 데이터 흐름
+
+```text
+CLI -> core -> channel fetch -> NewsItem -> store.upsert_items -> SQLite
+```
+
+각 채널은 서로 다른 RSS/API 구조를 갖지만, 저장 전에는 모두 `NewsItem`으로 변환합니다.
+
+## 저장 규칙
+
+- 공통 table 이름은 `items`입니다.
+- source별로 없는 scalar 값은 `NULL`로 저장합니다.
+- 태그가 없으면 `[]`로 저장합니다.
+- 원본 확인에 필요한 작은 payload는 `raw_json`에 저장합니다.
+- 중복 제거는 `source + dedup_key`로 처리합니다.
+- `external_id`가 있으면 `external:{external_id}`를 사용합니다.
+- `external_id`가 없으면 정규화한 URL hash로 `url:{url_hash}`를 사용합니다.
+
+## 채널별 수집 방식
+
+- GeekNews: `https://news.hada.io/rss/news`
+- Product Hunt: `https://www.producthunt.com/feed`
+- Indie Hackers: `https://feed.indiehackers.world/posts.rss`
+- Hacker News: `https://hacker-news.firebaseio.com/v0/topstories.json`
+
+Indie Hackers feed는 공식 RSS가 아니므로 DB의 `source_method`는 `unofficial_rss`로 저장합니다.
+
+## 수동 확인
+
+```bash
+uv run signal-archive channels
+uv run signal-archive fetch --channel geeknews --limit 3
+uv run signal-archive fetch --channel hackernews --limit 3
+uv run signal-archive fetch-all --limit 3
+uv run signal-archive list --limit 10
+```
+
+`fetch-all`은 일부 채널이 실패해도 나머지 채널 수집을 계속합니다.
+
+## 다음 단계 후보
+
+- SQLite 데이터가 충분히 쌓인 뒤 schema 수정 여부 확인
+- X/Twitter, Reddit은 Agent Reach 로그인 세션 기반으로 별도 설계
+- 검색 품질이 부족하면 SQLite FTS5 검토
+- 운영 필요가 생기면 cloud scheduling과 CI/CD 설계
+- dashboard가 필요해지면 별도 app 또는 API로 분리
+````
+
+- [ ] **Step 3: Run all tests**
 
 Run:
 
@@ -1250,7 +1336,7 @@ uv run python -m unittest discover -s tests
 
 Expected: all tests PASS.
 
-- [ ] **Step 3: Run local CLI smoke checks**
+- [ ] **Step 4: Run local CLI smoke checks**
 
 Run:
 
@@ -1266,7 +1352,7 @@ Expected:
 - `init-db` prints `initialized`.
 - `list` exits successfully even with no saved items.
 
-- [ ] **Step 4: Run live fetch checks**
+- [ ] **Step 5: Run live fetch checks**
 
 Run:
 
@@ -1283,13 +1369,13 @@ Expected:
 - If Product Hunt or Indie Hackers fails due to feed/network behavior, `fetch-all` prints that channel failure and continues.
 - `list` prints saved rows.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 Run:
 
 ```bash
-git add README.md
-git commit -m "docs: add signal archive usage"
+git add README.md docs/implementation.md
+git commit -m "docs: add korean signal archive usage"
 ```
 
 ---
@@ -1302,7 +1388,7 @@ Spec coverage:
 - SQLite schema, dedup, nullable fields covered by Task 2.
 - Pydantic model covered by Task 1.
 - CLI commands covered by Task 4.
-- README covered by Task 5.
+- Korean README and implementation notes covered by Task 5.
 - X/Twitter, Reddit, dashboard, Postgres, scheduling intentionally excluded.
 
 Ponytail cuts:
@@ -1320,4 +1406,4 @@ Execution order:
 2. Task 2 stores normalized items.
 3. Task 3 fetches normalized items.
 4. Task 4 wires CLI to core/store/channels.
-5. Task 5 verifies and documents usage.
+5. Task 5 verifies usage and documents implementation in Korean.
