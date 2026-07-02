@@ -1,0 +1,14 @@
+[project]
+name = "signal-archive"
+version = "0.1.0"
+description = "Archive links and metadata from tech/news channels."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "feedparser>=6.0.11",
+    "httpx>=0.27.0",
+    "pydantic>=2.0.0",
+]
+
+[project.scripts]
+signal-archive = "signal_archive.cli:main"
