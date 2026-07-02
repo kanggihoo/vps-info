@@ -1,6 +1,7 @@
 from unittest import mock
 import unittest
 
+from signal_archive.channels import CHANNELS
 from signal_archive.channels.feed import fetch_feed
 from signal_archive.channels.hackernews import fetch as fetch_hackernews
 
@@ -18,6 +19,11 @@ class FakeResponse:
 
 
 class ChannelTests(unittest.TestCase):
+    def test_rss_channels_use_shared_fetcher(self):
+        self.assertIs(CHANNELS["geeknews"]["fetch"], fetch_feed)
+        self.assertIs(CHANNELS["producthunt"]["fetch"], fetch_feed)
+        self.assertIs(CHANNELS["indiehackers"]["fetch"], fetch_feed)
+
     def test_fetch_feed_normalizes_entries(self):
         xml = b"""<?xml version="1.0"?>
         <rss version="2.0">

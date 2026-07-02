@@ -19,7 +19,6 @@ DEFAULT_DB_PATH = Path("data/signal-archive.sqlite3")
 class UpsertResult:
     saved: int = 0
     updated: int = 0
-    skipped: int = 0
 
 
 def get_db_path(value: str | Path | None = None) -> Path:
@@ -47,7 +46,6 @@ def init_db(db_path: str | Path | None = None) -> None:
                 external_id TEXT,
                 title TEXT NOT NULL,
                 url TEXT NOT NULL,
-                url_hash TEXT NOT NULL,
                 dedup_key TEXT NOT NULL,
                 author TEXT,
                 published_at TEXT,
@@ -61,6 +59,9 @@ def init_db(db_path: str | Path | None = None) -> None:
             )
             """
         )
+        columns = [row["name"] for row in conn.execute("PRAGMA table_info(items)")]
+        if "url_hash" in columns:
+            conn.execute("ALTER TABLE items DROP COLUMN url_hash")
 
 
 def normalize_url(url: str) -> str:
@@ -91,78 +92,66 @@ def upsert_items(db_path: str | Path | None, items: list[NewsItem]) -> UpsertRes
     init_db(db_path)
     saved = 0
     updated = 0
-    skipped = 0
-    now = datetime.now(UTC).isoformat()
 
     with connect(db_path) as conn:
         for item in items:
-            try:
-                url_hash = hash_url(item.url)
-                dedup_key = make_dedup_key(item)
-                existing = conn.execute(
-                    "SELECT id FROM items WHERE source = ? AND dedup_key = ?",
-                    (item.source, dedup_key),
-                ).fetchone()
-                values = {
-                    "source": item.source,
-                    "source_method": item.source_method,
-                    "external_id": item.external_id,
-                    "title": item.title,
-                    "url": item.url,
-                    "url_hash": url_hash,
-                    "dedup_key": dedup_key,
-                    "author": item.author,
-                    "published_at": _dt(item.published_at),
-                    "score": item.score,
-                    "comments_count": item.comments_count,
-                    "tags_json": json.dumps(item.tags, ensure_ascii=False),
-                    "raw_json": json.dumps(item.raw, ensure_ascii=False),
-                    "last_seen_at": now,
-                }
-                if existing:
-                    conn.execute(
-                        """
-                        UPDATE items
-                        SET source_method = :source_method,
-                            external_id = :external_id,
-                            title = :title,
-                            url = :url,
-                            url_hash = :url_hash,
-                            author = :author,
-                            published_at = :published_at,
-                            score = :score,
-                            comments_count = :comments_count,
-                            tags_json = :tags_json,
-                            raw_json = :raw_json,
-                            last_seen_at = :last_seen_at
-                        WHERE source = :source AND dedup_key = :dedup_key
-                        """,
-                        values,
-                    )
-                    updated += 1
-                else:
-                    conn.execute(
-                        """
-                        INSERT INTO items (
-                            source, source_method, external_id, title, url,
-                            url_hash, dedup_key, author, published_at, score,
-                            comments_count, tags_json, raw_json, first_seen_at,
-                            last_seen_at
-                        )
-                        VALUES (
-                            :source, :source_method, :external_id, :title, :url,
-                            :url_hash, :dedup_key, :author, :published_at, :score,
-                            :comments_count, :tags_json, :raw_json, :first_seen_at,
-                            :last_seen_at
-                        )
-                        """,
-                        values | {"first_seen_at": now},
-                    )
-                    saved += 1
-            except (sqlite3.Error, TypeError, ValueError):
-                skipped += 1
+            now = datetime.now(UTC).isoformat()
+            values = {
+                "source": item.source,
+                "source_method": item.source_method,
+                "external_id": item.external_id,
+                "title": item.title,
+                "url": item.url,
+                "dedup_key": make_dedup_key(item),
+                "author": item.author,
+                "published_at": _dt(item.published_at),
+                "score": item.score,
+                "comments_count": item.comments_count,
+                "tags_json": json.dumps(item.tags, ensure_ascii=False),
+                "raw_json": json.dumps(item.raw, ensure_ascii=False),
+                "last_seen_at": now,
+            }
+            cursor = conn.execute(
+                """
+                INSERT INTO items (
+                    source, source_method, external_id, title, url,
+                    dedup_key, author, published_at, score, comments_count,
+                    tags_json, raw_json, first_seen_at, last_seen_at
+                )
+                VALUES (
+                    :source, :source_method, :external_id, :title, :url,
+                    :dedup_key, :author, :published_at, :score, :comments_count,
+                    :tags_json, :raw_json, :first_seen_at, :last_seen_at
+                )
+                ON CONFLICT(source, dedup_key) DO NOTHING
+                """,
+                values | {"first_seen_at": now},
+            )
+            if cursor.rowcount:
+                saved += 1
+                continue
 
-    return UpsertResult(saved=saved, updated=updated, skipped=skipped)
+            conn.execute(
+                """
+                UPDATE items
+                SET source_method = :source_method,
+                    external_id = :external_id,
+                    title = :title,
+                    url = :url,
+                    author = :author,
+                    published_at = :published_at,
+                    score = :score,
+                    comments_count = :comments_count,
+                    tags_json = :tags_json,
+                    raw_json = :raw_json,
+                    last_seen_at = :last_seen_at
+                WHERE source = :source AND dedup_key = :dedup_key
+                """,
+                values,
+            )
+            updated += 1
+
+    return UpsertResult(saved=saved, updated=updated)
 
 
 def list_items(

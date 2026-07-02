@@ -1,8 +1,6 @@
 from datetime import datetime, timezone
 import unittest
 
-from pydantic import ValidationError
-
 from signal_archive.schemas import NewsItem
 
 
@@ -24,7 +22,7 @@ class NewsItemTests(unittest.TestCase):
         self.assertEqual(item.raw, {})
 
     def test_news_item_rejects_bad_url(self):
-        with self.assertRaises(ValidationError) as ctx:
+        with self.assertRaises(ValueError) as ctx:
             NewsItem(
                 source="geeknews",
                 source_method="official_rss",

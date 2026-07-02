@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
+import sqlite3
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from dataclasses import replace
 
 from signal_archive.schemas import NewsItem
 from signal_archive.store import init_db, list_items, upsert_items
@@ -24,7 +26,7 @@ class StoreTests(unittest.TestCase):
             )
             first = upsert_items(db_path, [item])
 
-            changed = item.model_copy(update={"title": "Changed title", "score": 2})
+            changed = replace(item, title="Changed title", score=2)
             second = upsert_items(db_path, [changed])
             rows = list_items(db_path)
 
@@ -86,6 +88,78 @@ class StoreTests(unittest.TestCase):
 
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0]["source"], "geeknews")
+
+    def test_schema_does_not_store_unused_url_hash_column(self):
+        with TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "archive.sqlite3"
+            init_db(db_path)
+
+            with sqlite3.connect(db_path) as conn:
+                columns = [row[1] for row in conn.execute("PRAGMA table_info(items)")]
+
+            self.assertNotIn("url_hash", columns)
+
+    def test_init_db_drops_legacy_url_hash_column(self):
+        with TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "archive.sqlite3"
+            with sqlite3.connect(db_path) as conn:
+                conn.execute(
+                    """
+                    CREATE TABLE items (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        source TEXT NOT NULL,
+                        source_method TEXT NOT NULL,
+                        external_id TEXT,
+                        title TEXT NOT NULL,
+                        url TEXT NOT NULL,
+                        url_hash TEXT NOT NULL,
+                        dedup_key TEXT NOT NULL,
+                        author TEXT,
+                        published_at TEXT,
+                        score INTEGER,
+                        comments_count INTEGER,
+                        tags_json TEXT NOT NULL DEFAULT '[]',
+                        raw_json TEXT NOT NULL DEFAULT '{}',
+                        first_seen_at TEXT NOT NULL,
+                        last_seen_at TEXT NOT NULL,
+                        UNIQUE(source, dedup_key)
+                    )
+                    """
+                )
+
+            init_db(db_path)
+            upsert_items(
+                db_path,
+                [
+                    NewsItem(
+                        source="geeknews",
+                        source_method="official_rss",
+                        title="Migrated",
+                        url="https://example.com/migrated",
+                    )
+                ],
+            )
+
+            with sqlite3.connect(db_path) as conn:
+                columns = [row[1] for row in conn.execute("PRAGMA table_info(items)")]
+                count = conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+
+            self.assertNotIn("url_hash", columns)
+            self.assertEqual(count, 1)
+
+    def test_upsert_does_not_silently_skip_bad_payloads(self):
+        with TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "archive.sqlite3"
+            item = NewsItem(
+                source="geeknews",
+                source_method="official_rss",
+                title="Bad raw",
+                url="https://example.com/bad",
+                raw={"bad": {1, 2}},
+            )
+
+            with self.assertRaises(TypeError):
+                upsert_items(db_path, [item])
 
 
 if __name__ == "__main__":

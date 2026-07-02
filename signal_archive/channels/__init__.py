@@ -1,43 +1,33 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Callable
+from typing import Any
 
-from signal_archive.channels import geeknews, hackernews, indiehackers, producthunt
+from signal_archive.channels import hackernews
+from signal_archive.channels.feed import fetch_feed
 from signal_archive.schemas import NewsItem
 
 
-FetchFn = Callable[[int], list[NewsItem]]
+Channel = dict[str, Any]
 
 
-@dataclass(frozen=True)
-class Channel:
-    name: str
-    method: str
-    target: str
-    fetch: FetchFn
+def _rss_channel(name: str, method: str, target: str) -> Channel:
+    return {"name": name, "method": method, "target": target, "fetch": fetch_feed}
 
 
 CHANNELS: dict[str, Channel] = {
-    geeknews.NAME: Channel(geeknews.NAME, geeknews.METHOD, geeknews.TARGET, geeknews.fetch),
-    producthunt.NAME: Channel(
-        producthunt.NAME,
-        producthunt.METHOD,
-        producthunt.TARGET,
-        producthunt.fetch,
+    "geeknews": _rss_channel("geeknews", "official_rss", "https://news.hada.io/rss/news"),
+    "producthunt": _rss_channel("producthunt", "official_rss", "https://www.producthunt.com/feed"),
+    "indiehackers": _rss_channel(
+        "indiehackers",
+        "unofficial_rss",
+        "https://feed.indiehackers.world/posts.rss",
     ),
-    indiehackers.NAME: Channel(
-        indiehackers.NAME,
-        indiehackers.METHOD,
-        indiehackers.TARGET,
-        indiehackers.fetch,
-    ),
-    hackernews.NAME: Channel(
-        hackernews.NAME,
-        hackernews.METHOD,
-        hackernews.TARGET,
-        hackernews.fetch,
-    ),
+    hackernews.NAME: {
+        "name": hackernews.NAME,
+        "method": hackernews.METHOD,
+        "target": hackernews.TARGET,
+        "fetch": hackernews.fetch,
+    },
 }
 
 

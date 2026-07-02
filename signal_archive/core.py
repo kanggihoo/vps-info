@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from signal_archive.channels import CHANNELS, get_channel
+from signal_archive.channels.feed import fetch_feed
 from signal_archive.store import UpsertResult, upsert_items
 
 
@@ -22,11 +23,19 @@ class FetchReport:
 def fetch_channel(channel_name: str, *, limit: int, db_path: str | Path | None = None) -> FetchReport:
     channel = get_channel(channel_name)
     try:
-        items = channel.fetch(limit)
+        if channel["fetch"] is fetch_feed:
+            items = channel["fetch"](
+                source=channel["name"],
+                source_method=channel["method"],
+                url=channel["target"],
+                limit=limit,
+            )
+        else:
+            items = channel["fetch"](limit)
         result = upsert_items(db_path, items)
-        return FetchReport(channel=channel.name, fetched=len(items), result=result)
+        return FetchReport(channel=channel["name"], fetched=len(items), result=result)
     except Exception as exc:
-        return FetchReport(channel=channel.name, fetched=0, error=str(exc))
+        return FetchReport(channel=channel["name"], fetched=0, error=str(exc))
 
 
 def fetch_all_channels(*, limit: int, db_path: str | Path | None = None) -> list[FetchReport]:

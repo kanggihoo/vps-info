@@ -1,41 +1,34 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
 from urllib.parse import urlparse
-
-from pydantic import BaseModel, Field, field_validator
 
 
 SourceMethod = Literal["official_api", "official_rss", "unofficial_rss"]
 
 
-class NewsItem(BaseModel):
+@dataclass
+class NewsItem:
     source: str
     source_method: SourceMethod
-    external_id: str | None = None
     title: str
     url: str
+    external_id: str | None = None
     author: str | None = None
     published_at: datetime | None = None
     score: int | None = None
     comments_count: int | None = None
-    tags: list[str] = Field(default_factory=list)
-    raw: dict[str, Any] = Field(default_factory=dict)
+    tags: list[str] = field(default_factory=list)
+    raw: dict[str, Any] = field(default_factory=dict)
 
-    @field_validator("source", "title")
-    @classmethod
-    def require_non_empty(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
+    def __post_init__(self) -> None:
+        self.source = self.source.strip()
+        self.title = self.title.strip()
+        self.url = self.url.strip()
+        if not self.source or not self.title:
             raise ValueError("must not be empty")
-        return value
-
-    @field_validator("url")
-    @classmethod
-    def require_http_url(cls, value: str) -> str:
-        value = value.strip()
-        parsed = urlparse(value)
+        parsed = urlparse(self.url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-            raise ValueError("must be an http(s) URL")
-        return value
+            raise ValueError("url must be an http(s) URL")

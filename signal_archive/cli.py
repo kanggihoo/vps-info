@@ -16,8 +16,7 @@ def _print_report(report: FetchReport) -> None:
     print(
         f"{report.channel}: fetched={report.fetched} "
         f"saved={report.result.saved} "
-        f"updated={report.result.updated} "
-        f"skipped={report.result.skipped}"
+        f"updated={report.result.updated}"
     )
 
 
@@ -53,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "channels":
         for channel in CHANNELS.values():
-            print(f"{channel.name}\t{channel.method}\t{channel.target}")
+            print(f"{channel['name']}\t{channel['method']}\t{channel['target']}")
         return 0
 
     if args.command == "fetch":

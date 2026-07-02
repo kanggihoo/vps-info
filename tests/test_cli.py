@@ -23,7 +23,7 @@ class CliTests(unittest.TestCase):
         report = FetchReport(
             channel="geeknews",
             fetched=2,
-            result=UpsertResult(saved=1, updated=1, skipped=0),
+            result=UpsertResult(saved=1, updated=1),
         )
 
         with mock.patch("signal_archive.cli.fetch_channel", return_value=report):
@@ -31,7 +31,8 @@ class CliTests(unittest.TestCase):
                 exit_code = cli.main(["fetch", "--channel", "geeknews", "--limit", "2"])
 
         self.assertEqual(exit_code, 0)
-        self.assertIn("geeknews: fetched=2 saved=1 updated=1 skipped=0", stdout.getvalue())
+        self.assertIn("geeknews: fetched=2 saved=1 updated=1", stdout.getvalue())
+        self.assertNotIn("skipped", stdout.getvalue())
 
     def test_fetch_all_continues_after_failed_channel(self):
         stdout = StringIO()
@@ -39,7 +40,7 @@ class CliTests(unittest.TestCase):
             FetchReport(
                 channel="geeknews",
                 fetched=1,
-                result=UpsertResult(saved=1, updated=0, skipped=0),
+                result=UpsertResult(saved=1, updated=0),
             ),
             FetchReport(channel="indiehackers", fetched=0, error="timeout"),
         ]
@@ -49,8 +50,9 @@ class CliTests(unittest.TestCase):
                 exit_code = cli.main(["fetch-all", "--limit", "1"])
 
         self.assertEqual(exit_code, 1)
-        self.assertIn("geeknews: fetched=1 saved=1 updated=0 skipped=0", stdout.getvalue())
+        self.assertIn("geeknews: fetched=1 saved=1 updated=0", stdout.getvalue())
         self.assertIn("indiehackers: failed timeout", stdout.getvalue())
+        self.assertNotIn("skipped", stdout.getvalue())
 
 
 if __name__ == "__main__":
