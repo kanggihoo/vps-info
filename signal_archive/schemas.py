@@ -22,6 +22,7 @@ class NewsItem:
     comments_count: int | None = None
     tags: list[str] = field(default_factory=list)
     raw: dict[str, Any] = field(default_factory=dict)
+    feed: str | None = None
 
     def __post_init__(self) -> None:
         self.source = self.source.strip()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from time import struct_time
 from typing import Any
@@ -69,3 +70,25 @@ def fetch_feed(
             )
         )
     return items
+
+
+def fetch_feed_raw(*, url: str, limit: int) -> list[dict[str, Any]]:
+    """Fetch a feed and return each entry as its raw parsed dict.
+
+    Unlike ``fetch_feed``, this does not normalize entries into ``NewsItem``
+    and preserves every feedparser field (summary, content, media_*, tags with
+    nested structs, etc.) so the original payload can be inspected.
+    """
+    response = httpx.get(url, timeout=TIMEOUT_SECONDS)
+    response.raise_for_status()
+    parsed = feedparser.parse(response.content)
+    if parsed.bozo and not parsed.entries:
+        raise ValueError(f"failed to parse feed: {url}")
+
+    raw_entries: list[dict[str, Any]] = []
+    for entry in parsed.entries[:limit]:
+        # feedparser entries (FeedParserDict) carry non-JSON-serializable
+        # values such as time.struct_time. Round-trip through json to coerce
+        # those to strings while keeping the full nested structure.
+        raw_entries.append(json.loads(json.dumps(entry, default=str)))
+    return raw_entries

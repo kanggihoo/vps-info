@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from signal_archive.channels import hackernews
-from signal_archive.channels.feed import fetch_feed
+from signal_archive.channels.feed import fetch_feed, fetch_feed_raw
 from signal_archive.schemas import NewsItem
 
 
@@ -11,7 +11,13 @@ Channel = dict[str, Any]
 
 
 def _rss_channel(name: str, method: str, target: str) -> Channel:
-    return {"name": name, "method": method, "target": target, "fetch": fetch_feed}
+    return {
+        "name": name,
+        "method": method,
+        "target": target,
+        "fetch": fetch_feed,
+        "fetch_raw": lambda limit, feed=None: fetch_feed_raw(url=target, limit=limit),
+    }
 
 
 CHANNELS: dict[str, Channel] = {
@@ -25,8 +31,11 @@ CHANNELS: dict[str, Channel] = {
     hackernews.NAME: {
         "name": hackernews.NAME,
         "method": hackernews.METHOD,
-        "target": hackernews.TARGET,
+        "target": hackernews.STORY_ENDPOINTS[hackernews.DEFAULT_FEED],
         "fetch": hackernews.fetch,
+        "fetch_raw": hackernews.fetch_raw,
+        "feeds": list(hackernews.STORY_ENDPOINTS),
+        "default_feed": hackernews.DEFAULT_FEED,
     },
 }
 
