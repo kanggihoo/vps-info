@@ -1,7 +1,10 @@
+"""뉴스 수집 오케스트레이션 및 채널별 파이프라인 제어 모듈."""
+
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -12,8 +15,21 @@ from signal_archive.schemas import NewsItem
 from signal_archive.store import UpsertResult, get_existing_ids, upsert_items
 
 
+logger = logging.getLogger(__name__)
+
+
 @dataclass(frozen=True)
 class FetchReport:
+    """채널 수집 실행 결과를 담는 데이터 클래스.
+
+    Attributes:
+        channel: 수집 대상 채널명.
+        fetched: 네트워크로부터 수집된 아이템 수.
+        result: DB 저장 및 갱신 결과(UpsertResult).
+        error: 수집 실패 시 오류 메시지 (성공 시 None).
+        feed: 세부 피드 이름 (선택 사항).
+    """
+
     channel: str
     fetched: int
     result: UpsertResult = UpsertResult()
@@ -22,6 +38,7 @@ class FetchReport:
 
     @property
     def ok(self) -> bool:
+        """수집 성공 여부를 반환합니다."""
         return self.error is None
 
 
@@ -32,11 +49,16 @@ def _fetch_hackernews_items(
     feed: str,
     db_path: str | Path | None,
 ) -> list[NewsItem]:
-    """HN-specific fetch: pre-filter via DB, then async-fetch only new ids.
+    """Hacker News 아이템을 DB 중복 필터링 후 비동기로 가져옵니다.
 
-    Avoids re-fetching items already stored. Step 1 (id list) is cheap; step 2
-    (per-item payload) is the expensive N+1, so we skip ids already in the DB.
-    Read-only: callers are responsible for writing the returned items.
+    Args:
+        channel: 채널 메타데이터 딕셔너리.
+        limit: 가져올 최대 아이템 수.
+        feed: HN 피드 종류 ('best', 'show').
+        db_path: 중복 확인용 DB 경로.
+
+    Returns:
+        수집 및 정규화된 NewsItem 목록.
     """
     ids = hackernews._fetch_ids(feed)
     existing = get_existing_ids(
@@ -56,10 +78,16 @@ def fetch_channel_items(
     feed: str | None = None,
     db_path: str | Path | None = None,
 ) -> list[NewsItem]:
-    """Fetch-only: return NewsItems without writing to the DB.
+    """단일 채널의 아이템을 DB 저장 없이 네트워크에서 수집합니다.
 
-    Split from ``fetch_channel`` so ``fetch_all_channels`` can parallelize the
-    network-bound fetch phase and batch the DB writes in a single transaction.
+    Args:
+        channel_name: 채널 식별자 이름.
+        limit: 수집할 아이템 수.
+        feed: 세부 피드 이름 (선택 사항).
+        db_path: 중복 확인용 DB 경로 (선택 사항).
+
+    Returns:
+        수집된 NewsItem 객체 목록.
     """
     channel = get_channel(channel_name)
     if channel["fetch"] is fetch_feed:
@@ -82,7 +110,17 @@ def fetch_channel(
     feed: str | None = None,
     db_path: str | Path | None = None,
 ) -> FetchReport:
-    """Fetch a single channel and write its items. Convenience wrapper."""
+    """단일 채널의 아이템을 수집하고 DB에 저장한 뒤 보고서를 반환합니다.
+
+    Args:
+        channel_name: 수집할 채널 식별자 이름.
+        limit: 수집할 아이템 수.
+        feed: 세부 피드 이름 (선택 사항).
+        db_path: 데이터베이스 파일 경로 (선택 사항).
+
+    Returns:
+        수집 통계 및 성공 여부를 담은 FetchReport 객체.
+    """
     try:
         items = fetch_channel_items(
             channel_name, limit=limit, feed=feed, db_path=db_path
@@ -102,7 +140,7 @@ def fetch_channel(
 
 
 def _all_jobs() -> list[tuple[str, str | None]]:
-    """Build the fetch job list: one job per RSS channel, one per HN feed."""
+    """전체 채널에 대해 실행할 (채널명, 피드명) 수집 작업 목록을 생성합니다."""
     jobs: list[tuple[str, str | None]] = []
     for name in CHANNELS:
         channel = CHANNELS[name]
@@ -114,13 +152,14 @@ def _all_jobs() -> list[tuple[str, str | None]]:
 
 
 def fetch_all_channels(*, limit: int, db_path: str | Path | None = None) -> list[FetchReport]:
-    """Fetch every channel in parallel, then batch-write in one transaction.
+    """모든 채널을 병렬로 수집한 후 단일 트랜잭션으로 DB에 일괄 저장합니다.
 
-    Network-bound fetches run concurrently in a thread pool (HN already uses
-    async internally; the others block on httpx). All successful NewsItems are
-    accumulated and passed to a single ``upsert_items`` call so SQLite only
-    opens one write connection. Per-job saved/updated counts are not tracked;
-    the batch aggregates them. Use ``fetch_channel`` for exact per-channel stats.
+    Args:
+        limit: 채널/피드당 수집할 최대 아이템 수.
+        db_path: 데이터베이스 파일 경로 (선택 사항).
+
+    Returns:
+        각 채널별 수집 결과 보고서(FetchReport) 리스트.
     """
     jobs = _all_jobs()
 
@@ -168,7 +207,16 @@ def fetch_all_channels(*, limit: int, db_path: str | Path | None = None) -> list
 
 
 def inspect_channel(channel_name: str, *, limit: int, feed: str | None = None) -> Any:
-    """Return the raw payload of a single channel without touching the DB."""
+    """단일 채널의 원시(Raw) 페이로드를 DB 저장 없이 가져옵니다.
+
+    Args:
+        channel_name: 조회할 채널 이름.
+        limit: 조회할 항목 수.
+        feed: 세부 피드 이름 (선택 사항).
+
+    Returns:
+        파싱 전후의 원시 응답 데이터.
+    """
     channel = get_channel(channel_name)
     fetch_raw = channel["fetch_raw"]
     if feed is not None:
@@ -177,10 +225,13 @@ def inspect_channel(channel_name: str, *, limit: int, feed: str | None = None) -
 
 
 def inspect_all(*, limit: int) -> dict[str, Any]:
-    """Return raw payloads for every channel.
+    """등록된 모든 채널의 원시(Raw) 페이로드를 조회합니다.
 
-    A channel that raises is reported as ``{"error": "..."}`` so one failure
-    does not abort the rest, mirroring ``fetch_all_channels``.
+    Args:
+        limit: 채널당 조회할 항목 수.
+
+    Returns:
+        채널명을 키로 하고 원시 페이로드를 값으로 갖는 딕셔너리.
     """
     results: dict[str, Any] = {}
     for name in CHANNELS:

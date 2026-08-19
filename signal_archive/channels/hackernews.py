@@ -1,3 +1,5 @@
+"""Firebase API를 활용한 Hacker News 데이터 수집 모듈."""
+
 from __future__ import annotations
 
 import asyncio
@@ -28,6 +30,7 @@ ITEM_URL = f"{BASE}/item/{{item_id}}.json"
 
 
 def _feed_url(feed: str) -> str:
+    """피드 종류에 대응하는 Firebase API 엔드포인트 URL을 반환합니다."""
     try:
         return STORY_ENDPOINTS[feed]
     except KeyError as exc:
@@ -37,10 +40,12 @@ def _feed_url(feed: str) -> str:
 
 
 def _hn_url(item_id: int) -> str:
+    """Hacker News 아이템의 공식 웹 상세 페이지 URL을 생성합니다."""
     return f"https://news.ycombinator.com/item?id={item_id}"
 
 
 def _normalize(payload: dict[str, Any], feed: str) -> NewsItem | None:
+    """Hacker News API 원시 페이로드를 NewsItem 객체로 변환합니다."""
     item_id = payload.get("id")
     title = payload.get("title")
     if item_id is None or not title or payload.get("dead") or payload.get("deleted"):
@@ -76,7 +81,7 @@ async def _fetch_item_payloads(
     client: httpx.AsyncClient,
     ids: list[int],
 ) -> list[dict[str, Any]]:
-    """Fetch item payloads concurrently, bounded by a semaphore."""
+    """동시 요청 수를 Semaphore로 제한하며 아이템 페이로드를 비동기 조회합니다."""
     semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
 
     async def fetch_one(item_id: int) -> dict[str, Any]:
@@ -95,11 +100,15 @@ def fetch(
     feed: str = DEFAULT_FEED,
     payloads: list[dict[str, Any]] | None = None,
 ) -> list[NewsItem]:
-    """Fetch a HN feed and normalize to NewsItem.
+    """Hacker News 피드의 아이템들을 수집하여 NewsItem 목록으로 반환합니다.
 
-    ``payloads`` lets the caller pass already-fetched item payloads (e.g. from
-    ``fetch_raw`` after pre-filtering) to avoid double-fetching. When omitted,
-    the feed list and each item are fetched here.
+    Args:
+        limit: 반환할 최대 아이템 수.
+        feed: 수집할 피드 종류 ('best', 'show', 기본값: 'best').
+        payloads: 이미 수집된 원시 페이로드 목록 (선택 사항).
+
+    Returns:
+        정규화된 NewsItem 객체 목록.
     """
     if payloads is None:
         ids = _fetch_ids(feed)
@@ -116,7 +125,7 @@ def fetch(
 
 
 def _fetch_ids(feed: str) -> list[int]:
-    """Step 1: fetch the feed's id list (synchronous)."""
+    """지정된 피드의 아이템 ID 목록을 동기 HTTP 요청으로 가져옵니다."""
     with httpx.Client(timeout=TIMEOUT_SECONDS) as client:
         response = client.get(_feed_url(feed))
         response.raise_for_status()
@@ -124,20 +133,32 @@ def _fetch_ids(feed: str) -> list[int]:
 
 
 async def _fetch_payloads_async(ids: list[int]) -> list[dict[str, Any]]:
-    """Step 2: fetch each item payload concurrently."""
+    """주어진 ID 목록의 세부 페이로드를 비동기 병렬로 가져옵니다."""
     async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
         return await _fetch_item_payloads(client, ids)
 
 
 def fetch_payloads(ids: list[int]) -> list[dict[str, Any]]:
-    """Concurrently fetch raw item payloads for given ids (pre-filtered)."""
+    """주어진 ID 목록에 대한 원시 페이로드를 병렬 수집하여 반환합니다.
+
+    Args:
+        ids: 조회할 Hacker News 아이템 ID 목록.
+
+    Returns:
+        각 아이템의 원시 API 페이로드 딕셔너리 목록.
+    """
     return asyncio.run(_fetch_payloads_async(ids))
 
 
 def fetch_raw(limit: int, *, feed: str = DEFAULT_FEED) -> list[dict[str, Any]]:
-    """Fetch a HN feed and return each item's raw API payload.
+    """Hacker News 피드의 상위 아이템들에 대한 원시 API 페이로드를 수집합니다.
 
-    Skips normalization. Useful for inspecting fields not stored on NewsItem.
+    Args:
+        limit: 수집할 최대 아이템 수.
+        feed: 피드 종류 ('best', 'show', 기본값: 'best').
+
+    Returns:
+        원시 API 페이로드 딕셔너리 목록.
     """
     ids = _fetch_ids(feed)[:limit]
     return fetch_payloads(ids)

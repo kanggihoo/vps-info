@@ -1,3 +1,5 @@
+"""지원하는 뉴스 및 피드 채널 레지스트리."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -11,6 +13,16 @@ Channel = dict[str, Any]
 
 
 def _rss_channel(name: str, method: str, target: str) -> Channel:
+    """표준 RSS 채널 구성 딕셔너리를 생성합니다.
+
+    Args:
+        name: 채널 식별자 이름.
+        method: 수집 방식 식별자 (예: 'official_rss', 'unofficial_rss').
+        target: RSS 피드 URL.
+
+    Returns:
+        채널 구성 정보가 담긴 Channel 딕셔너리.
+    """
     return {
         "name": name,
         "method": method,
@@ -41,6 +53,17 @@ CHANNELS: dict[str, Channel] = {
 
 
 def get_channel(name: str) -> Channel:
+    """채널 이름으로 등록된 채널 구성을 조회합니다.
+
+    Args:
+        name: 조회할 채널 식별자 이름.
+
+    Returns:
+        해당 채널의 Channel 딕셔너리.
+
+    Raises:
+        ValueError: 등록되지 않은 채널 이름일 경우.
+    """
     try:
         return CHANNELS[name]
     except KeyError as exc:

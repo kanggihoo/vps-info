@@ -1,3 +1,5 @@
+"""RSS 및 Atom 피드 수집 및 정규화 모듈."""
+
 from __future__ import annotations
 
 import json
@@ -15,6 +17,7 @@ TIMEOUT_SECONDS = 15
 
 
 def _published(entry: Any) -> datetime | None:
+    """피드 엔트리에서 발행/수정 일시를 추출하여 UTC datetime 객체로 변환합니다."""
     value: struct_time | None = getattr(entry, "published_parsed", None) or getattr(
         entry, "updated_parsed", None
     )
@@ -24,6 +27,7 @@ def _published(entry: Any) -> datetime | None:
 
 
 def _tags(entry: Any) -> list[str]:
+    """피드 엔트리에서 태그 문자열 목록을 추출합니다."""
     return [
         tag.get("term")
         for tag in getattr(entry, "tags", [])
@@ -38,6 +42,21 @@ def fetch_feed(
     url: str,
     limit: int,
 ) -> list[NewsItem]:
+    """RSS/Atom 피드를 요청 및 파싱하여 표준 NewsItem 목록으로 변환합니다.
+
+    Args:
+        source: 데이터 출처 채널 식별자.
+        source_method: 수집 방식 식별자 ('official_rss' 등).
+        url: 피드 XML 엔드포인트 URL.
+        limit: 변환할 최대 아이템 수.
+
+    Returns:
+        정규화된 NewsItem 객체 목록.
+
+    Raises:
+        httpx.HTTPError: 네트워크 요청 실패 시.
+        ValueError: XML 파싱에 실패한 경우.
+    """
     response = httpx.get(url, timeout=TIMEOUT_SECONDS)
     response.raise_for_status()
     parsed = feedparser.parse(response.content)
@@ -73,11 +92,18 @@ def fetch_feed(
 
 
 def fetch_feed_raw(*, url: str, limit: int) -> list[dict[str, Any]]:
-    """Fetch a feed and return each entry as its raw parsed dict.
+    """RSS/Atom 피드를 요청하여 정규화되지 않은 원본 엔트리 딕셔너리 목록을 반환합니다.
 
-    Unlike ``fetch_feed``, this does not normalize entries into ``NewsItem``
-    and preserves every feedparser field (summary, content, media_*, tags with
-    nested structs, etc.) so the original payload can be inspected.
+    Args:
+        url: 피드 XML 엔드포인트 URL.
+        limit: 반환할 최대 엔트리 수.
+
+    Returns:
+        JSON 직렬화가 완료된 원시 엔트리 딕셔너리 목록.
+
+    Raises:
+        httpx.HTTPError: 네트워크 요청 실패 시.
+        ValueError: XML 파싱에 실패한 경우.
     """
     response = httpx.get(url, timeout=TIMEOUT_SECONDS)
     response.raise_for_status()
