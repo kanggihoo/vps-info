@@ -47,7 +47,7 @@ Collector는 `vps_data`에만 연결한다. Frontend는 `vps_proxy`에만 연결
 
 로컬에서는 `vps-info/.env`를 사용한다. 실제 `.env`는 Git에 넣지 않고 `.env.example`만 저장한다. 운영 비밀값을 Jenkins Credentials에서 어떤 영속 경로 또는 systemd 환경 파일로 전달할지는 8장의 로컬 통합 검증이 끝난 뒤 배포 단계에서 확정한다. systemd timer는 Jenkins 실행과 별개로 나중에 실행되므로, 일회성 Jenkins 환경변수에만 의존할 수는 없다.
 
-PostgreSQL 접속 정보는 URL 하나가 아니라 아래의 개별 변수로 관리한다.
+PostgreSQL 접속 정보는 URL 하나가 아니라 아래의 개별 변수로 관리한다. `pydantic-settings`의 `BaseSettings` 모델이 이 값을 읽고, 누락된 값·빈 문자열·숫자가 아닌 port를 앱 시작 전에 검증한다.
 
 ```text
 POSTGRES_HOST=postgres
@@ -69,7 +69,7 @@ Alembic은 Python 프로젝트 의존성으로 포함한다. 개발자는 migrat
 
 ### 4.1 `items`
 
-`items`는 콘텐츠 자체를 한 번만 저장한다. 네 채널은 원본 형식은 다르지만 모두 제목·URL·작성자·발행 시각 같은 뉴스/링크 메타데이터를 `NewsItem`으로 정규화한 뒤 저장한다. 채널별로 없는 값은 `NULL`이며, 원본별 보조 정보는 `raw_json`에 보존한다. 따라서 채널별 테이블을 만들 필요가 없다.
+`items`는 콘텐츠 자체를 한 번만 저장한다. 네 채널은 원본 형식은 다르지만 모두 제목·URL·작성자·발행 시각 같은 뉴스/링크 메타데이터를 Pydantic v2 `NewsItem` 모델로 정규화·검증한 뒤 저장한다. `source`와 `title`은 공백 제거 후 비어 있으면 거부하고, `url`은 HTTP/HTTPS URL만 허용하며, 정수·datetime·tags·raw JSON의 타입도 모델에서 검증한다. 채널별로 없는 값은 `NULL`이며, 원본별 보조 정보는 `raw_json`에 보존한다. 따라서 채널별 테이블을 만들 필요가 없다.
 
 HN은 `best`만 수집하므로 `feed` 컬럼이나 feed membership 테이블은 만들지 않는다. HN `show`처럼 동일 콘텐츠가 서로 다른 목록에 동시에 속하는 요구가 생길 때만 membership 모델을 추가한다.
 
@@ -176,7 +176,7 @@ Collector 종료 규칙은 다음과 같다.
 
 ## 6. Backend API
 
-Backend는 기존 Python 코드와 같은 저장소에 추가하는 FastAPI 기반 ASGI 서비스로 한다. 공개 API는 만들지 않으며, Nginx와 Basic Auth 뒤의 웹 화면만 사용한다.
+Backend는 기존 Python 코드와 같은 저장소에 추가하는 FastAPI 기반 ASGI 서비스로 한다. 공개 API는 만들지 않으며, Nginx와 Basic Auth 뒤의 웹 화면만 사용한다. 요청 query와 응답 본문은 Pydantic 모델로 선언해 필터 범위와 응답 타입을 검증·문서화한다.
 
 초기 API 범위는 다음으로 제한한다.
 

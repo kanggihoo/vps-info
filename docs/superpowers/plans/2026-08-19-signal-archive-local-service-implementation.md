@@ -6,7 +6,7 @@
 
 **Architecture:** Python 패키지의 채널 수집과 `NewsItem` 정규화 로직을 유지하고, SQLite 저장소를 PostgreSQL repository와 Alembic migration으로 교체한다. Collector는 네 채널을 한 번 수집하고 `job_run` 부모·자식 기록을 남긴 뒤 종료한다. Backend와 Frontend는 같은 도메인의 상대 경로 `/api`를 전제로 구성하되, 로컬에서는 Vite 개발 proxy를 사용한다.
 
-**Tech Stack:** Python 3.12, uv, psycopg, Alembic, Tenacity, FastAPI, Uvicorn, pytest, PostgreSQL 16, React, TypeScript, Vite, Vitest, Docker Compose.
+**Tech Stack:** Python 3.12, uv, Pydantic v2, pydantic-settings, psycopg, Alembic, Tenacity, FastAPI, Uvicorn, pytest, PostgreSQL 16, React, TypeScript, Vite, Vitest, Docker Compose.
 
 **Spec:** `docs/superpowers/specs/2026-08-19-signal-archive-service-transition-design.md`
 
@@ -14,7 +14,8 @@
 
 - 구현 범위는 GeekNews, Product Hunt, Indie Hackers, Hacker News `best` 네 채널이다.
 - 기존 SQLite 데이터는 이관하지 않으며, SQLite 저장소와 `feed` 모델은 PostgreSQL 서비스 경로에서 제거한다.
-- PostgreSQL 연결 값은 `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`로만 받으며 URL 환경변수는 만들지 않는다.
+- PostgreSQL 연결 값은 `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`로만 받으며 URL 환경변수는 만들지 않는다. `pydantic-settings`가 누락값·빈 문자열·port 타입을 앱 시작 전에 거부한다.
+- 채널 원본을 저장하기 전에는 Pydantic v2 `NewsItem` 모델로 URL, 필수 문자열, datetime, 정수, tags, raw JSON을 검증한다.
 - 첫 버전은 DB 계정 하나를 Collector, Backend, Alembic이 공유한다.
 - 모든 아이템 중복 제거는 PostgreSQL의 `UNIQUE(source, dedup_key)`와 UPSERT가 담당한다.
 - `job_run` 상태는 `RUNNING`, `SUCCESS`, `PARTIAL`, `FAILED`만 사용한다. `PARTIAL`은 부모 실행에만 사용한다.
@@ -31,12 +32,12 @@ alembic.ini                                  # Alembic 실행 설정
 alembic/env.py                               # 개별 POSTGRES_* 값을 Alembic 연결로 변환
 alembic/versions/20260819_01_initial.py      # items와 조회 인덱스 생성
 alembic/versions/20260819_02_job_runs.py     # job_run과 실행 이력 인덱스 생성
-signal_archive/config.py                     # DatabaseSettings와 환경변수 검증
+signal_archive/config.py                     # Pydantic Settings와 환경변수 검증
 signal_archive/db.py                         # psycopg 연결과 transaction 경계
 signal_archive/repository.py                 # items/job_run 조회·UPSERT repository
 signal_archive/collector.py                  # one-shot 전체 수집과 실행 이력 확정
 signal_archive/api.py                        # FastAPI 앱과 읽기 전용 endpoint
-signal_archive/schemas.py                    # NewsItem 확장, API 응답 dataclass
+signal_archive/schemas.py                    # Pydantic NewsItem·repository·API 응답 모델
 signal_archive/core.py                       # PostgreSQL repository를 사용하는 채널 수집 흐름
 signal_archive/cli.py                        # Collector 실행용 최소 CLI
 signal_archive/channels/__init__.py          # HN best만 등록
@@ -69,14 +70,14 @@ frontend/src/*.test.tsx                      # Frontend smoke 테스트
 - Create: `tests/test_config.py`
 
 **Interfaces:**
-- Produces: `DatabaseSettings.from_env(environ: Mapping[str, str]) -> DatabaseSettings`
+- Produces: `DatabaseSettings() -> DatabaseSettings`
 - Produces: `DatabaseSettings.connection_kwargs() -> dict[str, str | int]`
 - Produces: `connect(settings: DatabaseSettings) -> psycopg.Connection`
 - Produces: pytest fixture `db_settings: DatabaseSettings`
 
 - [ ] **Step 1: 필요한 런타임·개발 의존성을 선언한다.**
 
-`pyproject.toml`의 runtime dependencies에 `psycopg[binary]`, `alembic`, `tenacity`, `fastapi`, `uvicorn`을 추가한다. dev dependencies에 `pytest`와 호환되는 `pytest` HTTP test 도구만 추가하고, ORM이나 별도 설정 라이브러리는 추가하지 않는다.
+`pyproject.toml`의 runtime dependencies에 `pydantic`, `pydantic-settings`, `psycopg[binary]`, `alembic`, `tenacity`, `fastapi`, `uvicorn`을 추가한다. dev dependencies에 `pytest`와 호환되는 `pytest` HTTP test 도구만 추가하고, ORM은 추가하지 않는다.
 
 - [ ] **Step 2: 환경변수 누락 테스트를 먼저 작성한다.**
 
@@ -84,8 +85,8 @@ frontend/src/*.test.tsx                      # Frontend smoke 테스트
 def test_database_settings_requires_all_postgres_variables(monkeypatch):
     monkeypatch.delenv("POSTGRES_PASSWORD", raising=False)
 
-    with pytest.raises(ValueError, match="POSTGRES_PASSWORD"):
-        DatabaseSettings.from_env(os.environ)
+    with pytest.raises(ValidationError, match="POSTGRES_PASSWORD"):
+        DatabaseSettings()
 ```
 
 - [ ] **Step 3: 실패를 확인한다.**
@@ -97,20 +98,16 @@ Expected: FAIL because `signal_archive.config` does not exist.
 - [ ] **Step 4: 최소 `DatabaseSettings`를 구현한다.**
 
 ```python
-@dataclass(frozen=True)
-class DatabaseSettings:
-    host: str
-    port: int
-    database: str
-    user: str
-    password: str
-
-    def connection_kwargs(self) -> dict[str, str | int]:
-        return {"host": self.host, "port": self.port, "dbname": self.database,
-                "user": self.user, "password": self.password}
+class DatabaseSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    host: Annotated[str, Field(min_length=1)] = Field(validation_alias="POSTGRES_HOST")
+    port: Annotated[int, Field(ge=1, le=65535)] = Field(validation_alias="POSTGRES_PORT")
+    database: Annotated[str, Field(min_length=1)] = Field(validation_alias="POSTGRES_DB")
+    user: Annotated[str, Field(min_length=1)] = Field(validation_alias="POSTGRES_USER")
+    password: Annotated[str, Field(min_length=1)] = Field(validation_alias="POSTGRES_PASSWORD")
 ```
 
-공백 문자열과 숫자가 아닌 port는 `ValueError`로 거부한다. `db.py`의 `connect()`는 `psycopg.connect(**settings.connection_kwargs(), row_factory=dict_row)`만 담당하게 한다.
+문자열은 validator에서 `strip()`한 뒤 검증하고, 숫자가 아닌 port는 Pydantic `ValidationError`로 거부한다. `db.py`의 `connect()`는 `psycopg.connect(**settings.connection_kwargs(), row_factory=dict_row)`만 담당하게 한다.
 
 - [ ] **Step 5: `.env.example`과 테스트 fixture를 추가한다.**
 
@@ -152,9 +149,9 @@ git commit -m "feat: add PostgreSQL runtime settings"
 - Produces: `ItemRepository.upsert_items(items: Sequence[NewsItem]) -> UpsertResult`
 - Produces: `ItemRepository.list_items(source: str | None, start_at: datetime | None, end_at: datetime | None, limit: int, offset: int) -> list[ItemRecord]`
 - Produces: `ItemRepository.get_item(item_id: int) -> ItemRecord | None`
-- Produces: `ItemRepository.get_existing_external_ids(source: str, ids: Sequence[str]) -> set[str>`
+- Produces: `ItemRepository.get_existing_external_ids(source: str, ids: Sequence[str]) -> set[str]`
 
-`ItemRecord`은 `id`, `source`, `source_method`, `external_id`, `title`, `summary`, `url`, `source_item_url`, `author`, `published_at`, `score`, `comments_count`, `rank`, `item_type`, `tags`, `first_seen_at`, `last_seen_at`를 가진 immutable dataclass다. `UpsertResult`은 기존 `saved`, `updated` 정수 필드를 유지한다.
+`ItemRecord`은 Pydantic `BaseModel`로서 `id`, `source`, `source_method`, `external_id`, `title`, `summary`, `url`, `source_item_url`, `author`, `published_at`, `score`, `comments_count`, `rank`, `item_type`, `tags`, `first_seen_at`, `last_seen_at`를 가진다. `UpsertResult`은 기존 `saved`, `updated` 정수 필드를 유지한다.
 
 - [ ] **Step 1: PostgreSQL의 RSS 중복 테스트를 작성한다.**
 
@@ -175,9 +172,11 @@ Run: `rtk proxy uv run pytest tests/test_repository.py::test_upsert_keeps_one_rs
 
 Expected: FAIL because the migration and repository are absent.
 
-- [ ] **Step 3: `NewsItem`에 서비스 컬럼을 추가한다.**
+- [ ] **Step 3: `NewsItem`을 Pydantic 모델로 전환하고 서비스 컬럼을 추가한다.**
 
-`NewsItem`에 `summary`, `source_item_url`, `rank`, `item_type`을 nullable로 추가한다. 기존 SQLite CLI가 아직 `feed`를 참조하므로 이 단계에서는 `feed` 필드를 유지한다. Task 4에서 HN show와 SQLite 경로를 함께 제거할 때 `feed`도 삭제한다. RSS는 새 필드를 채우지 않아도 되고 HN은 `source_item_url`, `rank`, `item_type`을 채운다.
+`NewsItem(BaseModel)`에 `summary`, `source_item_url`, `rank`, `item_type`을 nullable로 추가한다. `source`와 `title`은 `Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]`, `url`과 `source_item_url`은 `HttpUrl | None`, tags는 `list[str]`, raw는 `dict[str, Any]`로 선언한다. `score`, `comments_count`, `rank`는 `int | None`, `published_at`은 `datetime | None`으로 선언한다. 기존 SQLite CLI가 아직 `feed`를 참조하므로 이 단계에서는 `feed` 필드를 유지한다. Task 4에서 HN show와 SQLite 경로를 함께 제거할 때 `feed`도 삭제한다.
+
+`tests/test_schemas.py`에 빈 title, `ftp://` URL, 문자열 score가 검증 오류가 되는 사례와 ISO 8601 datetime 문자열이 UTC datetime으로 정규화되는 사례를 추가한다.
 
 - [ ] **Step 4: 초기 Alembic migration을 작성한다.**
 
@@ -262,7 +261,7 @@ git commit -m "feat: store archive items in PostgreSQL"
 - Produces: `JobRunRepository.start_run(job_key: str, triggered_by: str, parent_run_id: int | None) -> int`
 - Produces: `JobRunRepository.finish_run(run_id: int, status: RunStatus, counts: RunCounts, error: RunError | None) -> None`
 
-`RunCounts`는 `fetched`, `inserted`, `updated`, `skipped`, `retry_count` 정수 필드를 모두 0 기본값으로 가진 immutable dataclass다. `RunError`는 `error_type`, `error_message` 문자열을 가진 immutable dataclass다. `JobRunRecord`는 테이블의 모든 컬럼과 `children: list[JobRunRecord]`를 가진 dataclass다.
+`RunCounts`는 Pydantic `BaseModel`로서 `fetched`, `inserted`, `updated`, `skipped`, `retry_count` 정수 필드를 모두 0 기본값으로 가진다. `RunError`는 `error_type`, `error_message` 문자열을 가진 Pydantic 모델이다. `JobRunRecord`는 테이블의 모든 컬럼과 `children: list[JobRunRecord]`를 가진 Pydantic 모델이다.
 
 - [ ] **Step 1: 부모·자식 실행 이력 저장 테스트를 작성한다.**
 
@@ -456,7 +455,7 @@ Expected: FAIL because `signal_archive.api` does not exist.
 
 - [ ] **Step 3: 앱 factory와 공통 응답을 구현한다.**
 
-`create_app(items: ItemRepository, runs: JobRunRepository) -> FastAPI`로 의존성을 명시한다. `/api/health`는 `{"status": "ok"}`를 반환한다. 목록 응답은 `items`, `total`, `limit`, `offset` 키를 사용한다. `limit`은 1~100만 허용한다.
+`create_app(items: ItemRepository, runs: JobRunRepository) -> FastAPI`로 의존성을 명시한다. `/api/health`는 Pydantic `HealthResponse` 모델로 `{"status": "ok"}`를 반환한다. 목록 응답은 Pydantic `ItemListResponse` 모델의 `items`, `total`, `limit`, `offset` 키를 사용한다. `limit`은 `Query(ge=1, le=100)`로 검증한다.
 
 - [ ] **Step 4: 상세·실행 이력 endpoint 테스트를 추가한다.**
 
@@ -473,7 +472,7 @@ def test_get_parent_run_returns_children(client, run_repository):
 
 - [ ] **Step 5: 읽기 전용 endpoint를 구현한다.**
 
-`/api/items/{id}`와 `/api/job-runs/{id}`는 존재하지 않으면 404를 반환한다. `GET /api/job-runs`는 부모 실행만 최신순으로 반환하고, 상세 endpoint는 자식 실행과 오류 요약을 포함한다. POST, PUT, PATCH, DELETE route를 만들지 않는다.
+`/api/items/{id}`와 `/api/job-runs/{id}`는 존재하지 않으면 404를 반환한다. `GET /api/job-runs`는 부모 실행만 최신순으로 반환하고, 상세 endpoint는 Pydantic `JobRunDetailResponse` 모델로 자식 실행과 오류 요약을 포함한다. POST, PUT, PATCH, DELETE route를 만들지 않는다.
 
 - [ ] **Step 6: API 테스트를 통과시킨다.**
 
