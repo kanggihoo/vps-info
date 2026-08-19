@@ -6,7 +6,6 @@ from typing import Any
 
 from signal_archive.channels import hackernews
 from signal_archive.channels.feed import fetch_feed, fetch_feed_raw
-from signal_archive.schemas import NewsItem
 
 
 Channel = dict[str, Any]
@@ -46,10 +45,12 @@ CHANNELS: dict[str, Channel] = {
         "target": hackernews.STORY_ENDPOINTS[hackernews.DEFAULT_FEED],
         "fetch": hackernews.fetch,
         "fetch_raw": hackernews.fetch_raw,
-        "feeds": list(hackernews.STORY_ENDPOINTS),
-        "default_feed": hackernews.DEFAULT_FEED,
     },
 }
+
+
+def collection_jobs() -> list[str]:
+    return ["geeknews", "producthunt", "indiehackers", "hackernews:best"]
 
 
 def get_channel(name: str) -> Channel:

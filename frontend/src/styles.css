@@ -1,0 +1,7 @@
+:root { font-family: system-ui, sans-serif; color: #1f2937; background: #f8fafc; }
+body { margin: 0; }
+nav, main { max-width: 960px; margin: auto; padding: 1rem; }
+nav { display: flex; gap: 1rem; }
+li { margin: .5rem 0; }
+button { margin-left: .5rem; }
+article a { margin-right: 1rem; }

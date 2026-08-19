@@ -9,11 +9,43 @@ from typing import Any
 
 import feedparser
 import httpx
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential_jitter
 
 from signal_archive.schemas import NewsItem, SourceMethod
 
 
 TIMEOUT_SECONDS = 15
+
+
+class RetryableHttpStatus(Exception):
+    def __init__(self, response: httpx.Response):
+        self.response = response
+
+
+def _retry_wait(state) -> float:
+    exc = state.outcome.exception() if state.outcome else None
+    if isinstance(exc, RetryableHttpStatus):
+        try:
+            delay = float(exc.response.headers.get("Retry-After", ""))
+            if delay > 0:
+                return delay
+        except (TypeError, ValueError):
+            pass
+    return wait_exponential_jitter(initial=1, max=30)(state)
+
+
+@retry(
+    retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError, RetryableHttpStatus)),
+    stop=stop_after_attempt(3),
+    wait=_retry_wait,
+    reraise=True,
+)
+def _get(url: str) -> httpx.Response:
+    response = httpx.get(url, timeout=TIMEOUT_SECONDS)
+    if getattr(response, "status_code", 200) in {429, 502, 503}:
+        raise RetryableHttpStatus(response)
+    response.raise_for_status()
+    return response
 
 
 def _published(entry: Any) -> datetime | None:
@@ -57,8 +89,7 @@ def fetch_feed(
         httpx.HTTPError: 네트워크 요청 실패 시.
         ValueError: XML 파싱에 실패한 경우.
     """
-    response = httpx.get(url, timeout=TIMEOUT_SECONDS)
-    response.raise_for_status()
+    response = _get(url)
     parsed = feedparser.parse(response.content)
     if parsed.bozo and not parsed.entries:
         raise ValueError(f"failed to parse feed: {url}")
@@ -105,8 +136,7 @@ def fetch_feed_raw(*, url: str, limit: int) -> list[dict[str, Any]]:
         httpx.HTTPError: 네트워크 요청 실패 시.
         ValueError: XML 파싱에 실패한 경우.
     """
-    response = httpx.get(url, timeout=TIMEOUT_SECONDS)
-    response.raise_for_status()
+    response = _get(url)
     parsed = feedparser.parse(response.content)
     if parsed.bozo and not parsed.entries:
         raise ValueError(f"failed to parse feed: {url}")

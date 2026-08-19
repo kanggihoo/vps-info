@@ -9,3 +9,8 @@ data/
 *.DS_Store 
 # Virtual environments
 .venv
+.env
+.playwright-cli/
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo

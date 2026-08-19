@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import httpx
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential_jitter
 
 from signal_archive.schemas import NewsItem
 
@@ -19,24 +20,9 @@ TIMEOUT_SECONDS = 15
 # documented rate limit, but bounded concurrency keeps latency predictable.
 MAX_CONCURRENCY = 20
 
-# Only "best" (high-quality mainstream) and "show" (side-project discovery)
-# are collected. top/new are dropped: new is noisy, top overlaps new.
-STORY_ENDPOINTS: dict[str, str] = {
-    "best": f"{BASE}/beststories.json",
-    "show": f"{BASE}/showstories.json",
-}
+STORY_ENDPOINTS: dict[str, str] = {"best": f"{BASE}/beststories.json"}
 DEFAULT_FEED = "best"
 ITEM_URL = f"{BASE}/item/{{item_id}}.json"
-
-
-def _feed_url(feed: str) -> str:
-    """피드 종류에 대응하는 Firebase API 엔드포인트 URL을 반환합니다."""
-    try:
-        return STORY_ENDPOINTS[feed]
-    except KeyError as exc:
-        raise ValueError(
-            f"unknown feed: {feed} (choose from {sorted(STORY_ENDPOINTS)})"
-        ) from exc
 
 
 def _hn_url(item_id: int) -> str:
@@ -44,7 +30,7 @@ def _hn_url(item_id: int) -> str:
     return f"https://news.ycombinator.com/item?id={item_id}"
 
 
-def _normalize(payload: dict[str, Any], feed: str) -> NewsItem | None:
+def _normalize(payload: dict[str, Any], rank: int) -> NewsItem | None:
     """Hacker News API 원시 페이로드를 NewsItem 객체로 변환합니다."""
     item_id = payload.get("id")
     title = payload.get("title")
@@ -62,11 +48,13 @@ def _normalize(payload: dict[str, Any], feed: str) -> NewsItem | None:
         external_id=str(item_id),
         title=str(title),
         url=str(payload.get("url") or _hn_url(int(item_id))),
+        source_item_url=_hn_url(int(item_id)),
         author=payload.get("by"),
         published_at=published_at,
         score=payload.get("score"),
         comments_count=payload.get("descendants"),
-        feed=feed,
+        rank=rank,
+        item_type=payload.get("type"),
         raw={
             "id": item_id,
             "type": payload.get("type"),
@@ -95,28 +83,25 @@ async def _fetch_item_payloads(
 
 
 def fetch(
-    limit: int,
-    *,
-    feed: str = DEFAULT_FEED,
-    payloads: list[dict[str, Any]] | None = None,
+    limit: int, *, payloads: list[dict[str, Any]] | None = None, ranks: list[int] | None = None
 ) -> list[NewsItem]:
     """Hacker News 피드의 아이템들을 수집하여 NewsItem 목록으로 반환합니다.
 
     Args:
         limit: 반환할 최대 아이템 수.
-        feed: 수집할 피드 종류 ('best', 'show', 기본값: 'best').
         payloads: 이미 수집된 원시 페이로드 목록 (선택 사항).
 
     Returns:
         정규화된 NewsItem 객체 목록.
     """
     if payloads is None:
-        ids = _fetch_ids(feed)
+        ids = _fetch_ids()
         payloads = asyncio.run(_fetch_payloads_async(ids))
+    ranks = ranks or list(range(1, len(payloads) + 1))
 
     items: list[NewsItem] = []
-    for payload in payloads:
-        item = _normalize(payload, feed)
+    for payload, rank in zip(payloads, ranks, strict=False):
+        item = _normalize(payload, rank)
         if item is not None:
             items.append(item)
             if len(items) >= limit:
@@ -124,10 +109,16 @@ def fetch(
     return items
 
 
-def _fetch_ids(feed: str) -> list[int]:
-    """지정된 피드의 아이템 ID 목록을 동기 HTTP 요청으로 가져옵니다."""
+@retry(
+    retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential_jitter(initial=1, max=30),
+    reraise=True,
+)
+def _fetch_ids() -> list[int]:
+    """HN best 목록을 동기 HTTP 요청으로 가져옵니다."""
     with httpx.Client(timeout=TIMEOUT_SECONDS) as client:
-        response = client.get(_feed_url(feed))
+        response = client.get(STORY_ENDPOINTS[DEFAULT_FEED])
         response.raise_for_status()
         return [int(i) for i in response.json()]
 
@@ -150,15 +141,14 @@ def fetch_payloads(ids: list[int]) -> list[dict[str, Any]]:
     return asyncio.run(_fetch_payloads_async(ids))
 
 
-def fetch_raw(limit: int, *, feed: str = DEFAULT_FEED) -> list[dict[str, Any]]:
+def fetch_raw(limit: int) -> list[dict[str, Any]]:
     """Hacker News 피드의 상위 아이템들에 대한 원시 API 페이로드를 수집합니다.
 
     Args:
         limit: 수집할 최대 아이템 수.
-        feed: 피드 종류 ('best', 'show', 기본값: 'best').
 
     Returns:
         원시 API 페이로드 딕셔너리 목록.
     """
-    ids = _fetch_ids(feed)[:limit]
+    ids = _fetch_ids()[:limit]
     return fetch_payloads(ids)
