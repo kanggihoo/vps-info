@@ -41,20 +41,11 @@ vps-infra
 
 Collector는 `vps_data`에만 연결한다. Frontend는 `vps_proxy`에만 연결한다. Backend는 두 네트워크에 연결한다. PostgreSQL은 호스트 포트를 공개하지 않는다.
 
-## 3. 배포 경로와 환경변수
+## 3. 환경변수와 배포 전제
 
-VPS의 앱 checkout 경로는 `/home/kkh/apps/vps-info`로 한다. `/opt`는 공용 인프라 경로로만 유지하며, 앱 checkout을 위해 새 root 권한을 요구하지 않는다.
+앱 소스 저장소를 VPS에 사람이 미리 clone할 필요는 없다. Docker는 Git 저장소를 실행하는 것이 아니라 build된 image를 실행하며, source checkout은 Jenkins가 webhook 실행 시 자신의 workspace에서 수행한다.
 
-최초 배포 전에 SSH로 한 번만 다음을 준비한다.
-
-- `/home/kkh/apps/vps-info` 생성 및 저장소 clone
-- 운영용 `.env` 생성
-- Jenkins 컨테이너에 앱 checkout 경로 마운트
-- systemd unit/timer 등록
-
-이후에는 Jenkins가 동일 경로를 checkout하고 배포한다.
-
-로컬에서는 `vps-info/.env`를, VPS에서는 `/home/kkh/apps/vps-info/.env`를 사용한다. 실제 `.env`는 Git에 넣지 않고 `.env.example`만 저장한다. Jenkins는 Credentials에서 값을 받아 운영 `.env`를 갱신한 뒤 Compose와 systemd가 같은 파일을 읽게 한다. 이는 Jenkins 종료 뒤에도 systemd timer가 Collector를 실행할 수 있게 한다.
+로컬에서는 `vps-info/.env`를 사용한다. 실제 `.env`는 Git에 넣지 않고 `.env.example`만 저장한다. 운영 비밀값을 Jenkins Credentials에서 어떤 영속 경로 또는 systemd 환경 파일로 전달할지는 8장의 로컬 통합 검증이 끝난 뒤 배포 단계에서 확정한다. systemd timer는 Jenkins 실행과 별개로 나중에 실행되므로, 일회성 Jenkins 환경변수에만 의존할 수는 없다.
 
 PostgreSQL 접속 정보는 URL 하나가 아니라 아래의 개별 변수로 관리한다.
 
@@ -78,7 +69,9 @@ Alembic은 Python 프로젝트 의존성으로 포함한다. 개발자는 migrat
 
 ### 4.1 `items`
 
-`items`는 콘텐츠 자체를 한 번만 저장한다. HN은 `best`만 수집하므로 `feed` 컬럼이나 feed membership 테이블은 만들지 않는다.
+`items`는 콘텐츠 자체를 한 번만 저장한다. 네 채널은 원본 형식은 다르지만 모두 제목·URL·작성자·발행 시각 같은 뉴스/링크 메타데이터를 `NewsItem`으로 정규화한 뒤 저장한다. 채널별로 없는 값은 `NULL`이며, 원본별 보조 정보는 `raw_json`에 보존한다. 따라서 채널별 테이블을 만들 필요가 없다.
+
+HN은 `best`만 수집하므로 `feed` 컬럼이나 feed membership 테이블은 만들지 않는다. HN `show`처럼 동일 콘텐츠가 서로 다른 목록에 동시에 속하는 요구가 생길 때만 membership 모델을 추가한다.
 
 주요 컬럼은 다음과 같다.
 
@@ -226,7 +219,7 @@ Vite는 로컬 개발에서만 개발 서버로 사용한다. 운영에서는 Vi
 
 `archive.kkh-hub.tech` 전체에는 `vps-infra`의 기존 `notes`와 같은 Nginx Basic Auth 방식을 적용한다. 인증 파일은 Git이 아닌 VPS의 `/opt/nginx-auth/archive.htpasswd`에 둔다.
 
-## 8. 로컬 개발과 테스트
+## 8. 로컬 개발과 테스트 (배포 전 게이트)
 
 로컬에서도 운영 구조와 같은 PostgreSQL 컨테이너를 사용한다. 먼저 `vps-infra`에서 PostgreSQL과 `vps_data` 네트워크를 띄우고, `vps-info` 앱 Compose가 그 네트워크에 연결한다. 테스트 데이터는 로컬 PostgreSQL 볼륨을 지워 초기화할 수 있다.
 
@@ -249,9 +242,11 @@ Frontend는 언제나 `/api/...`를 호출하므로, 로컬과 운영 사이에 
 
 운영 DB를 자동 테스트에 사용하지 않는다. 테스트에는 별도 테스트 DB 또는 일회성 PostgreSQL 컨테이너를 사용한다.
 
-## 9. Jenkins 배포
+이 장의 검증 결과가 확인되고 사용자가 승인하기 전에는 9장의 Jenkins, Nginx, TLS, systemd 배포 작업을 시작하지 않는다.
 
-현재 `vps-infra/jenkins`의 VPS 내 Docker 소켓 기반 배포 방식을 재사용한다. 단일 VPS이므로 이번 범위에서는 외부 image registry push/pull 단계를 추가하지 않는다.
+## 9. Jenkins 배포 (8장 검증·사용자 승인 후)
+
+현재 `vps-infra/jenkins`의 VPS 내 Docker 소켓 기반 배포 방식을 재사용한다. 단일 VPS이므로 이번 범위에서는 외부 image registry push/pull 단계를 추가하지 않는다. 이 장은 8장의 로컬 통합 검증과 사용자 승인 후에만 수행하는 후속 단계다.
 
 `vps-info` 저장소에는 전용 Jenkinsfile을 둔다. Jenkins는 GitHub webhook으로 실행되며 다음 순서를 따른다.
 
@@ -265,7 +260,7 @@ checkout
 -> Nginx 경유 확인
 ```
 
-Jenkins가 `/home/kkh/apps/vps-info`을 checkout·배포할 수 있도록, `vps-infra/jenkins/compose.yml`에는 해당 호스트 경로를 Jenkins 컨테이너에 마운트한다. Jenkins가 빌드 중 사용하는 실제 비밀값은 Credentials에서 받고 Git에 기록하지 않는다.
+Jenkins는 자신의 workspace에서 `vps-info`를 checkout하고 image를 build한다. 이후 Compose와 systemd가 참조할 배포 정의와 영속 환경 파일의 위치는 8장의 검증이 끝난 뒤, Jenkins 권한과 systemd 실행 방식을 함께 확인해 정한다. Jenkins가 빌드 중 사용하는 실제 비밀값은 Credentials에서 받고 Git에 기록하지 않는다.
 
 최초 공개 시에는 `vps-infra`에서 다음 인프라 작업이 필요하다.
 
