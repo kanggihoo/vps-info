@@ -5,8 +5,8 @@ from signal_archive import cli
 from signal_archive.repository import UpsertResult
 
 
-def test_channels_command_prints_registered_channels(capsys: pytest.CaptureFixture[str]):
-    exit_code = cli.main(["channels"])
+def test_sources_command_prints_registered_sources(capsys: pytest.CaptureFixture[str]):
+    exit_code = cli.main(["sources"])
 
     captured = capsys.readouterr()
     assert exit_code == 0

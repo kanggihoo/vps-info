@@ -2,11 +2,11 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from signal_archive.schemas import NewsItem
+from signal_archive.schemas import ArchiveItem
 
 
-def test_news_item_accepts_missing_optional_fields():
-    item = NewsItem(
+def test_archive_item_accepts_missing_optional_fields():
+    item = ArchiveItem(
         source="geeknews",
         source_method="official_rss",
         title="Example",
@@ -22,9 +22,9 @@ def test_news_item_accepts_missing_optional_fields():
     assert item.raw == {}
 
 
-def test_news_item_rejects_bad_url():
+def test_archive_item_rejects_bad_url():
     with pytest.raises(ValueError, match="url"):
-        NewsItem(
+        ArchiveItem(
             source="geeknews",
             source_method="official_rss",
             title="Example",
@@ -32,9 +32,9 @@ def test_news_item_rejects_bad_url():
         )
 
 
-def test_news_item_accepts_datetime():
+def test_archive_item_accepts_datetime():
     published_at = datetime(2026, 7, 3, tzinfo=UTC)
-    item = NewsItem(
+    item = ArchiveItem(
         source="hackernews",
         source_method="official_api",
         external_id="123",
@@ -46,10 +46,10 @@ def test_news_item_accepts_datetime():
     assert item.published_at == published_at
 
 
-def test_news_item_rejects_invalid_service_data():
+def test_archive_item_rejects_invalid_service_data():
     """Malformed source data must never reach the repository."""
     with pytest.raises(ValidationError):
-        NewsItem(
+        ArchiveItem(
             source="geeknews",
             source_method="official_rss",
             title=" ",
@@ -58,9 +58,9 @@ def test_news_item_rejects_invalid_service_data():
         )
 
 
-def test_news_item_normalizes_iso_datetime_to_utc():
+def test_archive_item_normalizes_iso_datetime_to_utc():
     """Offset timestamps need one stable representation for database queries."""
-    item = NewsItem(
+    item = ArchiveItem(
         source="geeknews",
         source_method="official_rss",
         title="Example",

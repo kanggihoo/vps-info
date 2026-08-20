@@ -1,7 +1,7 @@
 [project]
 name = "signal-archive"
 version = "0.1.0"
-description = "Archive links and metadata from tech/news channels."
+description = "Archive links and metadata from tech/news sources."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

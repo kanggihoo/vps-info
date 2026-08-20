@@ -12,8 +12,8 @@ SourceMethod = Literal["official_api", "official_rss", "unofficial_rss"]
 NonEmptyText = StringConstraints(strip_whitespace=True, min_length=1)
 
 
-class NewsItem(BaseModel):
-    """A channel item after input validation and before persistence."""
+class ArchiveItem(BaseModel):
+    """A Source item after input validation and before persistence."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -40,3 +40,13 @@ class NewsItem(BaseModel):
         if value.tzinfo is None:
             return value.replace(tzinfo=UTC)
         return value.astimezone(UTC)
+
+
+class FetchResult(BaseModel):
+    """Archive items produced by one Job's fetch, with retry and skip telemetry."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[ArchiveItem] = []
+    skipped: int = 0
+    retry_count: int = 0

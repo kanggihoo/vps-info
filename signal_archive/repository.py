@@ -11,7 +11,7 @@ import psycopg
 from psycopg.types.json import Json
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
-from signal_archive.schemas import NewsItem
+from signal_archive.schemas import ArchiveItem
 
 
 def _camel(name: str) -> str:
@@ -86,7 +86,7 @@ def normalize_url(url: str) -> str:
     return urlunparse((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path or "/", "", parsed.query, ""))
 
 
-def make_dedup_key(item: NewsItem) -> str:
+def make_dedup_key(item: ArchiveItem) -> str:
     if item.external_id:
         return f"external:{item.external_id}"
     return f"url:{sha256(normalize_url(str(item.url)).encode()).hexdigest()}"
@@ -96,7 +96,7 @@ class ItemRepository:
     def __init__(self, connection: psycopg.Connection):
         self.connection = connection
 
-    def upsert_items(self, items: Sequence[NewsItem]) -> UpsertResult:
+    def upsert_items(self, items: Sequence[ArchiveItem]) -> UpsertResult:
         saved = updated = 0
         sql = """
             INSERT INTO items (
@@ -211,15 +211,6 @@ class ItemRepository:
             values["end_at"] = end_at
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         return self.connection.execute(f"SELECT count(*) AS total FROM items {where}", values).fetchone()["total"]
-
-    def get_existing_external_ids(self, source: str, ids: Sequence[str]) -> set[str]:
-        if not ids:
-            return set()
-        rows = self.connection.execute(
-            "SELECT external_id FROM items WHERE source = %s AND external_id = ANY(%s)",
-            (source, list(ids)),
-        ).fetchall()
-        return {row["external_id"] for row in rows}
 
 
 class JobRunRepository:

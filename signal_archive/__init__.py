@@ -1,4 +1,4 @@
-"""signal-archive: 뉴스 및 테크 채널 메타데이터 수집/아카이빙 패키지."""
+"""signal-archive: 기술·뉴스 Source에서 Archive Item을 수집·보관하는 패키지."""
 
 __version__ = "0.1.0"
 

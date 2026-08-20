@@ -1,4 +1,4 @@
-"""One-shot collector that records parent and channel-level execution history."""
+"""One-shot collector that records parent and Job-level execution history."""
 
 from __future__ import annotations
 
@@ -7,16 +7,16 @@ from collections.abc import Callable, Sequence
 
 import psycopg
 
-from signal_archive.channels import collection_jobs
 from signal_archive.config import DatabaseSettings
-from signal_archive.core import fetch_channel_items
+from signal_archive.core import fetch_job_items
 from signal_archive.db import connect
 from signal_archive.repository import ItemRepository, JobRunRepository, RunCounts, RunError
-from signal_archive.schemas import NewsItem
+from signal_archive.schemas import FetchResult
+from signal_archive.sources import collection_jobs
 
 
 logger = logging.getLogger(__name__)
-Fetch = Callable[..., list[NewsItem]]
+Fetch = Callable[..., FetchResult]
 
 
 def collect_once(
@@ -25,26 +25,34 @@ def collect_once(
     *,
     limit: int,
     jobs: Sequence[str] | None = None,
-    fetch: Fetch = fetch_channel_items,
+    fetch: Fetch = fetch_job_items,
     triggered_by: str = "manual",
 ) -> int:
     jobs = list(jobs or collection_jobs())
-    parent_id = runs.start_run("fetch-all", triggered_by, None)
+    parent_id = runs.start_run("batch-run", triggered_by, None)
     totals = RunCounts()
     succeeded = failed = 0
     database_failed = False
     for job in jobs:
         child_id = runs.start_run(job, triggered_by, parent_id)
         try:
-            fetched = fetch(job, limit=limit, repository=items)
-            result = items.upsert_items(fetched)
-            counts = RunCounts(fetched=len(fetched), inserted=result.saved, updated=result.updated)
+            fetched = fetch(job, limit=limit)
+            result = items.upsert_items(fetched.items)
+            counts = RunCounts(
+                fetched=len(fetched.items),
+                inserted=result.saved,
+                updated=result.updated,
+                skipped=fetched.skipped,
+                retry_count=fetched.retry_count,
+            )
             runs.finish_run(child_id, "SUCCESS", counts, None)
             totals.fetched += counts.fetched
             totals.inserted += counts.inserted
             totals.updated += counts.updated
+            totals.skipped += counts.skipped
+            totals.retry_count += counts.retry_count
             succeeded += 1
-        except Exception as exc:  # channel isolation is the collector contract
+        except Exception as exc:  # job isolation is the collector contract
             database_failed = isinstance(exc, psycopg.Error)
             runs.finish_run(
                 child_id,

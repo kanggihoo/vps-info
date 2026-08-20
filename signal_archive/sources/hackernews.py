@@ -7,9 +7,15 @@ from datetime import datetime, timezone
 from typing import Any
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential_jitter
+from tenacity import AsyncRetrying, retry, retry_if_exception_type, stop_after_attempt
 
-from signal_archive.schemas import NewsItem
+from signal_archive.schemas import ArchiveItem, FetchResult
+from signal_archive.sources._http_retry import (
+    RetryableHttpStatus,
+    RetryCounter,
+    raise_for_retryable_status,
+    retry_wait,
+)
 
 
 NAME = "hackernews"
@@ -24,14 +30,16 @@ STORY_ENDPOINTS: dict[str, str] = {"best": f"{BASE}/beststories.json"}
 DEFAULT_FEED = "best"
 ITEM_URL = f"{BASE}/item/{{item_id}}.json"
 
+_RETRYABLE_EXCEPTIONS = (httpx.TimeoutException, httpx.ConnectError, RetryableHttpStatus)
+
 
 def _hn_url(item_id: int) -> str:
     """Hacker News 아이템의 공식 웹 상세 페이지 URL을 생성합니다."""
     return f"https://news.ycombinator.com/item?id={item_id}"
 
 
-def _normalize(payload: dict[str, Any], rank: int) -> NewsItem | None:
-    """Hacker News API 원시 페이로드를 NewsItem 객체로 변환합니다."""
+def _normalize(payload: dict[str, Any], rank: int) -> ArchiveItem | None:
+    """Hacker News API 원시 페이로드를 ArchiveItem 객체로 변환합니다."""
     item_id = payload.get("id")
     title = payload.get("title")
     if item_id is None or not title or payload.get("dead") or payload.get("deleted"):
@@ -42,7 +50,7 @@ def _normalize(payload: dict[str, Any], rank: int) -> NewsItem | None:
     if isinstance(timestamp, int):
         published_at = datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
-    return NewsItem(
+    return ArchiveItem(
         source=NAME,
         source_method=METHOD,
         external_id=str(item_id),
@@ -68,15 +76,26 @@ def _normalize(payload: dict[str, Any], rank: int) -> NewsItem | None:
 async def _fetch_item_payloads(
     client: httpx.AsyncClient,
     ids: list[int],
+    counter: RetryCounter,
 ) -> list[dict[str, Any]]:
     """동시 요청 수를 Semaphore로 제한하며 아이템 페이로드를 비동기 조회합니다."""
     semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
 
     async def fetch_one(item_id: int) -> dict[str, Any]:
-        async with semaphore:
-            response = await client.get(f"{BASE}/item/{item_id}.json")
-            response.raise_for_status()
-            return response.json() or {}
+        async def attempt() -> dict[str, Any]:
+            async with semaphore:
+                response = await client.get(f"{BASE}/item/{item_id}.json")
+                raise_for_retryable_status(response)
+                return response.json() or {}
+
+        retrying = AsyncRetrying(
+            retry=retry_if_exception_type(_RETRYABLE_EXCEPTIONS),
+            stop=stop_after_attempt(3),
+            wait=retry_wait,
+            reraise=True,
+            before_sleep=counter.on_retry,
+        )
+        return await retrying(attempt)
 
     results = await asyncio.gather(*(fetch_one(i) for i in ids))
     return [r for r in results if r]
@@ -84,61 +103,70 @@ async def _fetch_item_payloads(
 
 def fetch(
     limit: int, *, payloads: list[dict[str, Any]] | None = None, ranks: list[int] | None = None
-) -> list[NewsItem]:
-    """Hacker News 피드의 아이템들을 수집하여 NewsItem 목록으로 반환합니다.
+) -> FetchResult:
+    """Hacker News 피드의 아이템들을 수집하여 ArchiveItem 목록으로 반환합니다.
 
     Args:
         limit: 반환할 최대 아이템 수.
         payloads: 이미 수집된 원시 페이로드 목록 (선택 사항).
+        ranks: payloads와 짝지어질 순위 목록 (선택 사항).
 
     Returns:
-        정규화된 NewsItem 객체 목록.
+        정규화된 ArchiveItem 목록과 재시도·건너뜀 집계를 담은 FetchResult.
     """
+    retry_count = 0
     if payloads is None:
         ids = _fetch_ids()
-        payloads = asyncio.run(_fetch_payloads_async(ids))
+        retry_count += _fetch_ids.statistics.get("attempt_number", 1) - 1
+        payloads, payload_retry_count = fetch_payloads(ids)
+        retry_count += payload_retry_count
     ranks = ranks or list(range(1, len(payloads) + 1))
 
-    items: list[NewsItem] = []
+    items: list[ArchiveItem] = []
+    skipped = 0
     for payload, rank in zip(payloads, ranks, strict=False):
         item = _normalize(payload, rank)
-        if item is not None:
-            items.append(item)
-            if len(items) >= limit:
-                break
-    return items
+        if item is None:
+            skipped += 1
+            continue
+        items.append(item)
+        if len(items) >= limit:
+            break
+    return FetchResult(items=items, skipped=skipped, retry_count=retry_count)
 
 
 @retry(
-    retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
+    retry=retry_if_exception_type(_RETRYABLE_EXCEPTIONS),
     stop=stop_after_attempt(3),
-    wait=wait_exponential_jitter(initial=1, max=30),
+    wait=retry_wait,
     reraise=True,
 )
 def _fetch_ids() -> list[int]:
     """HN best 목록을 동기 HTTP 요청으로 가져옵니다."""
     with httpx.Client(timeout=TIMEOUT_SECONDS) as client:
         response = client.get(STORY_ENDPOINTS[DEFAULT_FEED])
-        response.raise_for_status()
+        raise_for_retryable_status(response)
         return [int(i) for i in response.json()]
 
 
-async def _fetch_payloads_async(ids: list[int]) -> list[dict[str, Any]]:
+async def _fetch_payloads_async(ids: list[int], counter: RetryCounter) -> list[dict[str, Any]]:
     """주어진 ID 목록의 세부 페이로드를 비동기 병렬로 가져옵니다."""
     async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
-        return await _fetch_item_payloads(client, ids)
+        return await _fetch_item_payloads(client, ids, counter)
 
 
-def fetch_payloads(ids: list[int]) -> list[dict[str, Any]]:
+def fetch_payloads(ids: list[int]) -> tuple[list[dict[str, Any]], int]:
     """주어진 ID 목록에 대한 원시 페이로드를 병렬 수집하여 반환합니다.
 
     Args:
         ids: 조회할 Hacker News 아이템 ID 목록.
 
     Returns:
-        각 아이템의 원시 API 페이로드 딕셔너리 목록.
+        각 아이템의 원시 API 페이로드 딕셔너리 목록과 재시도 횟수.
     """
-    return asyncio.run(_fetch_payloads_async(ids))
+    counter = RetryCounter()
+    payloads = asyncio.run(_fetch_payloads_async(ids, counter))
+    return payloads, counter.count
 
 
 def fetch_raw(limit: int) -> list[dict[str, Any]]:
@@ -151,4 +179,5 @@ def fetch_raw(limit: int) -> list[dict[str, Any]]:
         원시 API 페이로드 딕셔너리 목록.
     """
     ids = _fetch_ids()[:limit]
-    return fetch_payloads(ids)
+    payloads, _ = fetch_payloads(ids)
+    return payloads

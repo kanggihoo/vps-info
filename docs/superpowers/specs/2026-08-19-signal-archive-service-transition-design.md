@@ -69,7 +69,7 @@ Alembic은 Python 프로젝트 의존성으로 포함한다. 개발자는 migrat
 
 ### 4.1 `items`
 
-`items`는 콘텐츠 자체를 한 번만 저장한다. 네 채널은 원본 형식은 다르지만 모두 제목·URL·작성자·발행 시각 같은 뉴스/링크 메타데이터를 Pydantic v2 `NewsItem` 모델로 정규화·검증한 뒤 저장한다. `source`와 `title`은 공백 제거 후 비어 있으면 거부하고, `url`은 HTTP/HTTPS URL만 허용하며, 정수·datetime·tags·raw JSON의 타입도 모델에서 검증한다. 채널별로 없는 값은 `NULL`이며, 원본별 보조 정보는 `raw_json`에 보존한다. 따라서 채널별 테이블을 만들 필요가 없다.
+`items`는 Archive Item을 Source별로 저장한다. 같은 URL이라도 Source가 다르면 별도 행으로 저장하며, 같은 Source 안에서만 `dedup_key`로 중복을 제거한다([ADR 0001](../../adr/0001-scope-archive-item-identity-by-source.md)). 네 채널은 원본 형식은 다르지만 모두 제목·URL·작성자·발행 시각 같은 뉴스/링크 메타데이터를 Pydantic v2 `ArchiveItem` 모델로 정규화·검증한 뒤 저장한다. `source`와 `title`은 공백 제거 후 비어 있으면 거부하고, `url`은 HTTP/HTTPS URL만 허용하며, 정수·datetime·tags·raw JSON의 타입도 모델에서 검증한다. 채널별로 없는 값은 `NULL`이며, 원본별 보조 정보는 `raw_json`에 보존한다. 따라서 채널별 테이블을 만들 필요가 없다.
 
 HN은 `best`만 수집하므로 `feed` 컬럼이나 feed membership 테이블은 만들지 않는다. HN `show`처럼 동일 콘텐츠가 서로 다른 목록에 동시에 속하는 요구가 생길 때만 membership 모델을 추가한다.
 
@@ -111,7 +111,7 @@ UNIQUE(source, dedup_key)
 
 ### 4.2 `job_run`
 
-`job_run`은 수집 실행 이력 테이블이다. 한 번의 `fetch-all`은 부모 행 하나와 채널별 자식 행 네 개를 만든다.
+`job_run`은 수집 실행 이력 테이블이다. 한 번의 `batch-run`은 부모 행 하나와 채널별 자식 행 네 개를 만든다.
 
 ```text
 id
@@ -130,7 +130,7 @@ error_type
 error_message
 ```
 
-- 부모 `job_key`: `fetch-all`
+- 부모 `job_key`: `batch-run`
 - 자식 `job_key`: `geeknews`, `producthunt`, `indiehackers`, `hackernews:best`
 - `triggered_by`: 초기에는 `schedule` 또는 `manual`
 
@@ -150,12 +150,12 @@ Collector는 상시 서비스가 아니다. systemd timer가 매시간 한 번 �
 ```text
 systemd timer
   -> docker compose run --rm --no-deps collector
-  -> fetch-all
+  -> batch-run
   -> PostgreSQL 저장 및 job_run 확정
   -> 종료
 ```
 
-기존 채널 fetcher, `NewsItem` 정규화, HN 신규 ID 사전 필터, 채널 병렬 수집 흐름을 재사용한다. 수집 대상은 네 채널이다.
+기존 Source fetcher와 `ArchiveItem` 정규화를 재사용한다. HN은 이미 저장된 항목이라도 매 실행마다 상세 API를 다시 조회해 score·댓글 수·순위·`last_seen_at`을 최신 상태로 유지한다. Job은 Source별로 순차 실행하며, 운영 규모(네 Source, 시간당 1회)에서는 병렬 수집으로 얻는 이득보다 커넥션 공유 복잡도가 더 크다. 수집 대상은 네 Source다.
 
 - GeekNews
 - Product Hunt

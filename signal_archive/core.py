@@ -1,42 +1,39 @@
-"""Channel fetch orchestration independent from storage lifecycle."""
+"""Job fetch orchestration independent from storage lifecycle."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from signal_archive.channels import CHANNELS, get_channel
-from signal_archive.channels import hackernews
-from signal_archive.channels.feed import fetch_feed
-from signal_archive.repository import ItemRepository, UpsertResult
-from signal_archive.schemas import NewsItem
+from signal_archive.schemas import FetchResult
+from signal_archive.sources import SOURCES, get_source
+from signal_archive.sources import hackernews
+from signal_archive.sources.feed import fetch_feed
 
 
-def fetch_channel_items(
-    channel_name: str, *, limit: int, repository: ItemRepository
-) -> list[NewsItem]:
-    """Fetch one configured channel, filtering known HN IDs before item requests."""
-    name, _, *_ = channel_name.partition(":")
-    channel = get_channel(name)
-    if channel["fetch"] is fetch_feed:
+def fetch_job_items(job_key: str, *, limit: int) -> FetchResult:
+    """Fetch one configured Job, always re-requesting HN item detail to keep it fresh."""
+    name, _, *_ = job_key.partition(":")
+    source = get_source(name)
+    if source["fetch"] is fetch_feed:
         return fetch_feed(
-            source=channel["name"],
-            source_method=channel["method"],
-            url=channel["target"],
+            source=source["name"],
+            source_method=source["method"],
+            url=source["target"],
             limit=limit,
         )
     ids = hackernews._fetch_ids()
-    existing = repository.get_existing_external_ids(name, [str(item_id) for item_id in ids])
-    selected = [(rank, item_id) for rank, item_id in enumerate(ids, 1) if str(item_id) not in existing][:limit]
-    if not selected:
-        return []
-    payloads = hackernews.fetch_payloads([item_id for _, item_id in selected])
-    return hackernews.fetch(limit, payloads=payloads, ranks=[rank for rank, _ in selected])
+    id_retry_count = hackernews._fetch_ids.statistics.get("attempt_number", 1) - 1
+    selected_ids = ids[:limit]
+    payloads, payload_retry_count = hackernews.fetch_payloads(selected_ids)
+    result = hackernews.fetch(limit, payloads=payloads, ranks=list(range(1, len(selected_ids) + 1)))
+    result.retry_count += id_retry_count + payload_retry_count
+    return result
 
 
-def inspect_channel(channel_name: str, *, limit: int) -> Any:
-    channel = get_channel(channel_name.partition(":")[0])
-    return channel["fetch_raw"](limit)
+def inspect_source(source_name: str, *, limit: int) -> Any:
+    source = get_source(source_name.partition(":")[0])
+    return source["fetch_raw"](limit)
 
 
 def inspect_all(*, limit: int) -> dict[str, Any]:
-    return {name: inspect_channel(name, limit=limit) for name in CHANNELS}
+    return {name: inspect_source(name, limit=limit) for name in SOURCES}

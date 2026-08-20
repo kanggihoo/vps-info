@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from signal_archive.collector import collect_once
 from signal_archive.repository import RunCounts, UpsertResult
-from signal_archive.schemas import NewsItem
+from signal_archive.schemas import ArchiveItem, FetchResult
 
 
 class FakeItems:
@@ -24,20 +24,20 @@ class FakeRuns:
         self.finished.append((run_id, status, counts, error))
 
 
-def item() -> NewsItem:
-    return NewsItem(
+def item() -> ArchiveItem:
+    return ArchiveItem(
         source="geeknews", source_method="official_rss", title="one", url="https://example.com/one"
     )
 
 
-def test_collector_marks_parent_partial_when_one_channel_fails():
-    """A channel failure must preserve successful channel data and its child history."""
+def test_collector_marks_parent_partial_when_one_job_fails():
+    """A job failure must preserve successful job data and its child history."""
     runs = FakeRuns()
 
-    def fetch(job, *, limit, repository):
+    def fetch(job, *, limit):
         if job == "producthunt":
             raise TimeoutError("timed out")
-        return [item()]
+        return FetchResult(items=[item()])
 
     exit_code = collect_once(
         FakeItems(), runs, limit=1, jobs=["geeknews", "producthunt"], fetch=fetch
@@ -47,7 +47,22 @@ def test_collector_marks_parent_partial_when_one_channel_fails():
     assert [status for _, status, _, _ in runs.finished] == ["SUCCESS", "FAILED", "PARTIAL"]
 
 
-def test_collector_marks_parent_failed_when_every_channel_fails():
+def test_collector_records_retry_and_skip_counts_from_fetch_result():
+    """Job Run telemetry must surface the retries and skips the fetch actually made."""
+    runs = FakeRuns()
+
+    def fetch(job, *, limit):
+        return FetchResult(items=[item()], skipped=2, retry_count=3)
+
+    collect_once(FakeItems(), runs, limit=1, jobs=["geeknews"], fetch=fetch)
+
+    child_counts = runs.finished[0][2]
+    parent_counts = runs.finished[1][2]
+    assert (child_counts.skipped, child_counts.retry_count) == (2, 3)
+    assert (parent_counts.skipped, parent_counts.retry_count) == (2, 3)
+
+
+def test_collector_marks_parent_failed_when_every_job_fails():
     """A fully failed collection cannot be reported as partial success."""
     runs = FakeRuns()
 

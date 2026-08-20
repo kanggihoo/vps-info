@@ -9,15 +9,25 @@ function ErrorNotice({ error, retry }: { error: string; retry: () => void }) {
 
 function ListPage() {
   const [source, setSource] = useState("");
+  const [startAt, setStartAt] = useState("");
+  const [endAt, setEndAt] = useState("");
   const [items, setItems] = useState<ItemSummary[]>([]);
   const [error, setError] = useState("");
-  const load = () => loadItems({ source: source || undefined, limit: 20, offset: 0 })
+  const load = () => loadItems({
+    source: source || undefined,
+    startAt: startAt || undefined,
+    endAt: endAt || undefined,
+    limit: 20,
+    offset: 0,
+  })
     .then(({ items: result }) => { setItems(result); setError(""); })
     .catch((cause: Error) => setError(cause.message));
   useEffect(() => { load(); }, []);
   const submit = (event: FormEvent) => { event.preventDefault(); load(); };
   return <section><h1>항목</h1><form onSubmit={submit}>
     <label>Source <input value={source} onChange={(event) => setSource(event.target.value)} /></label>
+    <label>시작일 <input type="date" value={startAt} onChange={(event) => setStartAt(event.target.value)} /></label>
+    <label>종료일 <input type="date" value={endAt} onChange={(event) => setEndAt(event.target.value)} /></label>
     <button>필터</button>
   </form>{error ? <ErrorNotice error={error} retry={load} /> : <ul>{items.map((item) => <li key={item.id}><Link to={`/items/${item.id}`}>{item.title}</Link> <small>{item.source}</small></li>)}</ul>}</section>;
 }

@@ -9,42 +9,24 @@ from typing import Any
 
 import feedparser
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential_jitter
+from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
-from signal_archive.schemas import NewsItem, SourceMethod
+from signal_archive.schemas import ArchiveItem, FetchResult, SourceMethod
+from signal_archive.sources._http_retry import RetryableHttpStatus, raise_for_retryable_status, retry_wait
 
 
 TIMEOUT_SECONDS = 15
 
 
-class RetryableHttpStatus(Exception):
-    def __init__(self, response: httpx.Response):
-        self.response = response
-
-
-def _retry_wait(state) -> float:
-    exc = state.outcome.exception() if state.outcome else None
-    if isinstance(exc, RetryableHttpStatus):
-        try:
-            delay = float(exc.response.headers.get("Retry-After", ""))
-            if delay > 0:
-                return delay
-        except (TypeError, ValueError):
-            pass
-    return wait_exponential_jitter(initial=1, max=30)(state)
-
-
 @retry(
     retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError, RetryableHttpStatus)),
     stop=stop_after_attempt(3),
-    wait=_retry_wait,
+    wait=retry_wait,
     reraise=True,
 )
 def _get(url: str) -> httpx.Response:
     response = httpx.get(url, timeout=TIMEOUT_SECONDS)
-    if getattr(response, "status_code", 200) in {429, 502, 503}:
-        raise RetryableHttpStatus(response)
-    response.raise_for_status()
+    raise_for_retryable_status(response)
     return response
 
 
@@ -73,36 +55,39 @@ def fetch_feed(
     source_method: SourceMethod,
     url: str,
     limit: int,
-) -> list[NewsItem]:
-    """RSS/Atom 피드를 요청 및 파싱하여 표준 NewsItem 목록으로 변환합니다.
+) -> FetchResult:
+    """RSS/Atom 피드를 요청 및 파싱하여 표준 ArchiveItem 목록으로 변환합니다.
 
     Args:
-        source: 데이터 출처 채널 식별자.
+        source: 데이터 출처 Source 식별자.
         source_method: 수집 방식 식별자 ('official_rss' 등).
         url: 피드 XML 엔드포인트 URL.
         limit: 변환할 최대 아이템 수.
 
     Returns:
-        정규화된 NewsItem 객체 목록.
+        정규화된 ArchiveItem 목록과 재시도·건너뜀 집계를 담은 FetchResult.
 
     Raises:
         httpx.HTTPError: 네트워크 요청 실패 시.
         ValueError: XML 파싱에 실패한 경우.
     """
     response = _get(url)
+    retry_count = _get.statistics.get("attempt_number", 1) - 1
     parsed = feedparser.parse(response.content)
     if parsed.bozo and not parsed.entries:
         raise ValueError(f"failed to parse feed: {url}")
 
-    items: list[NewsItem] = []
+    items: list[ArchiveItem] = []
+    skipped = 0
     for entry in parsed.entries[:limit]:
         link = entry.get("link")
         title = entry.get("title")
         if not link or not title:
+            skipped += 1
             continue
         external_id = entry.get("id") or entry.get("guid") or link
         items.append(
-            NewsItem(
+            ArchiveItem(
                 source=source,
                 source_method=source_method,
                 external_id=str(external_id),
@@ -119,7 +104,7 @@ def fetch_feed(
                 },
             )
         )
-    return items
+    return FetchResult(items=items, skipped=skipped, retry_count=retry_count)
 
 
 def fetch_feed_raw(*, url: str, limit: int) -> list[dict[str, Any]]:
