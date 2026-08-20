@@ -1,0 +1,15 @@
+"""Liveness 확인 endpoint."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter
+
+from signal_archive.api.responses import HealthResponse
+
+
+router = APIRouter(tags=["health"])
+
+
+@router.get("/health", response_model=HealthResponse)
+def health() -> HealthResponse:
+    return HealthResponse()

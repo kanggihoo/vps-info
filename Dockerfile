@@ -9,4 +9,4 @@ COPY alembic ./alembic
 COPY signal_archive ./signal_archive
 RUN uv sync --frozen --no-dev
 
-CMD ["uvicorn", "signal_archive.api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "signal_archive.main:app", "--host", "0.0.0.0", "--port", "8000"]

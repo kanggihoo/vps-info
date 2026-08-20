@@ -22,8 +22,8 @@ NAME = "hackernews"
 METHOD = "official_api"
 BASE = "https://hacker-news.firebaseio.com/v0"
 TIMEOUT_SECONDS = 15
-# Cap concurrent item fetches to avoid hammering the API. The HN API has no
-# documented rate limit, but bounded concurrency keeps latency predictable.
+# API에 과도한 부하를 주지 않도록 동시 item fetch 수를 제한한다. HN API에는
+# 명시된 rate limit이 없지만, 동시성을 제한하면 지연 시간이 예측 가능해진다.
 MAX_CONCURRENCY = 20
 
 STORY_ENDPOINTS: dict[str, str] = {"best": f"{BASE}/beststories.json"}

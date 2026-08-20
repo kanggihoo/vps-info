@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+from typing import Iterator
 
+import psycopg
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -23,18 +25,19 @@ def db_settings(monkeypatch: pytest.MonkeyPatch) -> DatabaseSettings:
 
 
 @pytest.fixture
-def repository(db_settings: DatabaseSettings) -> ItemRepository:
+def connection(db_settings: DatabaseSettings) -> Iterator[psycopg.Connection]:
     command.upgrade(Config("alembic.ini"), "head")
-    with connect(db_settings) as connection:
-        connection.execute("TRUNCATE items, job_run RESTART IDENTITY CASCADE")
-        connection.commit()
-        yield ItemRepository(connection)
+    with connect(db_settings) as conn:
+        conn.execute("TRUNCATE items, job_run RESTART IDENTITY CASCADE")
+        conn.commit()
+        yield conn
 
 
 @pytest.fixture
-def run_repository(db_settings: DatabaseSettings) -> JobRunRepository:
-    command.upgrade(Config("alembic.ini"), "head")
-    with connect(db_settings) as connection:
-        connection.execute("TRUNCATE items, job_run RESTART IDENTITY CASCADE")
-        connection.commit()
-        yield JobRunRepository(connection)
+def repository(connection: psycopg.Connection) -> ItemRepository:
+    return ItemRepository(connection)
+
+
+@pytest.fixture
+def run_repository(connection: psycopg.Connection) -> JobRunRepository:
+    return JobRunRepository(connection)

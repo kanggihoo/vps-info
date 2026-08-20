@@ -1,4 +1,4 @@
-"""Create archive items."""
+"""archive item 테이블 생성."""
 
 from alembic import op
 import sqlalchemy as sa

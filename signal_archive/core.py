@@ -1,4 +1,4 @@
-"""Job fetch orchestration independent from storage lifecycle."""
+"""저장 lifecycle과 분리된 Job fetch orchestration."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from signal_archive.sources.feed import fetch_feed
 
 
 def fetch_job_items(job_key: str, *, limit: int) -> FetchResult:
-    """Fetch one configured Job, always re-requesting HN item detail to keep it fresh."""
+    """설정된 Job 하나를 fetch한다. HN item 상세는 항상 다시 요청해 최신 상태를 유지한다."""
     name, _, *_ = job_key.partition(":")
     source = get_source(name)
     if source["fetch"] is fetch_feed:

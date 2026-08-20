@@ -1,4 +1,4 @@
-"""Shared transient-HTTP-error retry policy for Source fetchers."""
+"""Source fetcher가 공유하는 일시적 HTTP 오류 재시도 정책."""
 
 from __future__ import annotations
 
@@ -27,14 +27,14 @@ def retry_wait(state) -> float:
 
 
 def raise_for_retryable_status(response: httpx.Response) -> None:
-    """Raise RetryableHttpStatus on transient status codes, else the usual HTTP error."""
+    """일시적 status code면 RetryableHttpStatus를, 그 외에는 통상적인 HTTP error."""
     if getattr(response, "status_code", 200) in RETRYABLE_STATUS_CODES:
         raise RetryableHttpStatus(response)
     response.raise_for_status()
 
 
 class RetryCounter:
-    """Tallies retry attempts across the concurrent fetches of a single Job."""
+    """Job 하나의 동시 fetch 전체에 걸친 재시도 횟수를 집계한다."""
 
     def __init__(self) -> None:
         self.count = 0

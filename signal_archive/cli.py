@@ -1,4 +1,4 @@
-"""Minimal command line entry point for the one-shot collector."""
+"""One-shot collector 실행용 최소 command line 진입점."""
 
 from __future__ import annotations
 

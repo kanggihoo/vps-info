@@ -1,4 +1,4 @@
-"""Create collector execution history."""
+"""Collector 실행 이력 테이블 생성."""
 
 from alembic import op
 import sqlalchemy as sa

@@ -1,4 +1,4 @@
-"""Application settings loaded from the five PostgreSQL environment variables."""
+"""다섯 개의 PostgreSQL 환경변수에서 읽어오는 애플리케이션 설정."""
 
 from __future__ import annotations
 
@@ -17,14 +17,9 @@ class DatabaseSettings(BaseSettings):
     user: Annotated[str, Field(min_length=1)] = Field(validation_alias="POSTGRES_USER")
     password: Annotated[str, Field(min_length=1)] = Field(validation_alias="POSTGRES_PASSWORD")
 
-    @field_validator("host", "database", "user", "password", mode="before")
+    @field_validator("host", "port", "database", "user", "password", mode="before")
     @classmethod
     def strip_strings(cls, value: object) -> object:
-        return value.strip() if isinstance(value, str) else value
-
-    @field_validator("port", mode="before")
-    @classmethod
-    def strip_port(cls, value: object) -> object:
         return value.strip() if isinstance(value, str) else value
 
     def connection_kwargs(self) -> dict[str, str | int]:

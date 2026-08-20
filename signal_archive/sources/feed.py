@@ -128,8 +128,8 @@ def fetch_feed_raw(*, url: str, limit: int) -> list[dict[str, Any]]:
 
     raw_entries: list[dict[str, Any]] = []
     for entry in parsed.entries[:limit]:
-        # feedparser entries (FeedParserDict) carry non-JSON-serializable
-        # values such as time.struct_time. Round-trip through json to coerce
-        # those to strings while keeping the full nested structure.
+        # feedparser entry(FeedParserDict)에는 time.struct_time처럼 JSON으로
+        # 직렬화할 수 없는 값이 들어 있다. 중첩 구조를 그대로 유지하면서 그런
+        # 값만 문자열로 바꾸기 위해 json으로 한 번 왕복시킨다.
         raw_entries.append(json.loads(json.dumps(entry, default=str)))
     return raw_entries

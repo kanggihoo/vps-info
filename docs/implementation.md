@@ -10,14 +10,29 @@ Signal Archive는 여러 기술/뉴스 채널의 목록 메타데이터를 공�
 
 ```text
 signal_archive/
-  cli.py          # argparse 기반 CLI
-  core.py         # fetch orchestration
-  schemas.py      # dataclass 기반 NewsItem
-  store.py        # SQLite init/upsert/list
-  channels/       # 채널별 수집기
+  main.py            # uvicorn ASGI 진입점
+  cli.py             # argparse 기반 CLI
+  core.py            # fetch orchestration
+  collector.py       # one-shot 수집과 실행 이력 확정
+  config.py          # Pydantic Settings
+  db.py              # connect(one-shot) / make_pool(API)
+  schemas.py         # Pydantic ArchiveItem, FetchResult
+  api/
+    __init__.py      # create_app
+    deps.py          # 요청당 커넥션 대여와 repository 주입
+    errors.py        # 도메인 예외와 전역 handler
+    responses.py     # API 응답 모델
+    routes/          # health, items, job_runs
+  repository/
+    records.py       # row 모델
+    items.py         # items UPSERT·조회
+    job_runs.py      # 실행 이력
+  sources/           # Source별 수집기
 ```
 
-`cli.py`는 사용자 명령만 처리합니다. 실제 수집 흐름은 `core.py`, DB 작업은 `store.py`, 외부 사이트별 로직은 `channels/`에 둡니다.
+`cli.py`는 사용자 명령만 처리합니다. 수집 흐름은 `core.py`·`collector.py`, DB 작업은 `repository/`, 외부 Source별 로직은 `sources/`에 둡니다.
+
+API는 sync route를 threadpool에서 실행하므로 요청마다 `deps.py`가 pool에서 커넥션을 하나씩 대여합니다. psycopg 커넥션은 thread-safe하지 않고, 하나를 공유하면 모든 요청이 직렬화됩니다. one-shot collector는 단일 스레드라 `connect()`를 그대로 사용합니다.
 
 ## 데이터 흐름
 

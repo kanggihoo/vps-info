@@ -1,4 +1,4 @@
-"""One-shot collector that records parent and Job-level execution history."""
+"""Parent와 Job 단위 실행 이력을 기록하는 one-shot collector."""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def collect_once(
             totals.skipped += counts.skipped
             totals.retry_count += counts.retry_count
             succeeded += 1
-        except Exception as exc:  # job isolation is the collector contract
+        except Exception as exc:  # Job 간 격리는 collector의 계약이다
             database_failed = isinstance(exc, psycopg.Error)
             runs.finish_run(
                 child_id,

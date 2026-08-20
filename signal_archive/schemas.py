@@ -1,11 +1,19 @@
-"""Validated domain models shared by collectors and repositories."""
+"""Collector와 repository가 공유하는 검증된 도메인 모델."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, HttpUrl, StrictInt, StringConstraints, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
+    StrictInt,
+    StringConstraints,
+    field_validator,
+)
 
 
 SourceMethod = Literal["official_api", "official_rss", "unofficial_rss"]
@@ -13,7 +21,7 @@ NonEmptyText = StringConstraints(strip_whitespace=True, min_length=1)
 
 
 class ArchiveItem(BaseModel):
-    """A Source item after input validation and before persistence."""
+    """입력 검증을 마치고 저장 전 단계에 있는 Source item."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -30,8 +38,9 @@ class ArchiveItem(BaseModel):
     comments_count: StrictInt | None = None
     rank: StrictInt | None = None
     item_type: str | None = None
-    tags: list[str] = []
-    raw: dict[str, Any] = {}
+    tags: list[str] = Field(default_factory=list)
+    raw: dict[str, Any] = Field(default_factory=dict)
+
     @field_validator("published_at")
     @classmethod
     def normalize_datetime(cls, value: datetime | None) -> datetime | None:
@@ -43,10 +52,10 @@ class ArchiveItem(BaseModel):
 
 
 class FetchResult(BaseModel):
-    """Archive items produced by one Job's fetch, with retry and skip telemetry."""
+    """Job 한 번의 fetch 결과. archive item과 재시도·skip 계측값을 함께 담는다."""
 
     model_config = ConfigDict(extra="forbid")
 
-    items: list[ArchiveItem] = []
+    items: list[ArchiveItem] = Field(default_factory=list)
     skipped: int = 0
     retry_count: int = 0
