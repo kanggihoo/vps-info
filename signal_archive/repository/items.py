@@ -59,8 +59,8 @@ def normalize_url(url: str) -> str:
 def make_dedup_key(item: ArchiveItem) -> str:
     """Source 자체 식별자를 우선해 Source 단위 dedup key를 만든다.
 
-    ADR-0001 참고: item 동일성은 Source 범위로 한정되므로, 이 key는 하나의
-    `source` 값 안에서만 유일하다.
+    item 동일성은 Source 범위로 한정되므로, 이 key는 하나의 `source` 값 안에서만
+    유일하다. 이 규칙의 근거는 아직 ADR로 기록돼 있지 않다 (docs/adr/decisions-later.md).
     """
     if item.external_id:
         return f"external:{item.external_id}"

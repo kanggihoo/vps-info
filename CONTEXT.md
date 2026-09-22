@@ -1,29 +1,53 @@
 # Signal Archive
 
-Signal Archive는 외부 기술·뉴스 Source에서 링크와 메타데이터를 수집하고, Source별 관찰 맥락과 실행 이력을 함께 보관하는 컨텍스트다.
+Signal Archive는 여러 외부 정보원에서 링크와 메타데이터를 주기적으로 수집해 보관하고,
+정보원별로 시간순으로 읽을 수 있게 하는 컨텍스트다.
 
 ## Language
 
-**Archive Item**:
-특정 Source에서 발견되어 공통 형태로 정규화되고 보관되는 링크와 메타데이터의 단위. 같은 URL이어도 Source가 다르면 별도의 Archive Item이다.
-_Avoid_: News, News Item, Content, Post
+**Feed**:
+시간순으로 정렬된 항목 목록 하나. 수집의 단위이자 화면에서 사용자가 선택하는 축이다.
+한 사이트가 여러 Feed를 가질 수 있다(Hacker News의 best와 show, YouTube의 채널 각각).
+RSS 제공 여부와 무관하다 — 어떻게 가져오는지는 Feed의 성질이 아니다.
+_Avoid_: Source, Channel, Provider, Subscription
 
-**Source**:
-Archive Item을 발견하고 수집한 외부 서비스 또는 피드의 출처. URL이 가리키는 원문 게시자와는 구분되며, Archive Item의 중복 판단과 점수·댓글·순위의 해석 범위가 된다.
-_Avoid_: Channel, Publisher, Origin
+**Entry**:
+Feed에서 발견된 항목 하나. 링크와 메타데이터를 보관하며 원문 본문 자체를 의미하지 않는다.
+같은 내용이라도 Feed가 다르면 별도의 Entry다.
+_Avoid_: Archive Item, Article, Post, News, Content
 
-**Job**:
-하나의 Source 또는 Source 내 특정 피드에서 Archive Item을 수집하고 저장하는 처리 단위. 각 Job은 실행 이력에서 구분할 수 있는 안정적인 키를 가진다.
-_Avoid_: Collection Job, Channel
+**Handler**:
+한 종류의 Feed를 수집하는 방법. 정보원에서 가져온 것을 Entry 목록으로 돌려주는 데까지가
+책임이며, 재시도·타임아웃·중복 판정·저장은 Handler의 일이 아니다.
+하나의 Handler가 파라미터만 다른 여러 Feed에 쓰인다.
+_Avoid_: Collector, Adapter, Parser, Scraper
 
-**Job Run**:
-특정 Job이 한 번 수행된 실행 이력. 시작·종료 시각, 상태, 처리 건수와 제한된 오류 요약을 포함하며, 수집된 Archive Item 자체를 의미하지 않는다.
-_Avoid_: Job Result, Archive Item, Outbox Event
+**Dedup Key**:
+두 Entry가 같은 것인지 판정하는 기준값. 정보원이 고유 식별자를 주면 그 값이고
+(Hacker News item id, YouTube video id, 모델 id 등), 주지 않으면 정규화한 URL에서 유도한다.
+판정 범위는 같은 Feed 안으로 한정된다. 따라서 같은 글이 두 Feed에 올라오면 Entry는 두 개다.
+_Avoid_: GUID, Hash, Unique Key
 
-**Batch Run**:
-Collector가 선택된 Job들을 한 묶음으로 수행한 전체 실행 이력. 각 Job Run을 자식으로 가지며 전체 성공, 부분 성공 또는 실패 상태를 나타낸다.
-_Avoid_: Collection Run, Fetch All
+**First Seen**:
+Entry를 처음 수집한 시각. 정보원이 게시 시각을 주지 않는 Feed에서 정렬 축이 된다.
+_Avoid_: Created At, Collected At
 
-**Partial Batch**:
-하나 이상의 Job Run이 성공하고 하나 이상의 Job Run이 실패한 Batch Run. 성공한 Job이 저장한 Archive Item은 유지된다.
-_Avoid_: Partial Job, Warning
+**Read Cursor**:
+Feed마다 "여기까지 훑었다"를 나타내는 지점. 이보다 새로운 Entry가 안 읽음이다.
+최신 쪽으로만 이동하며, 제목만 보고 넘긴 Entry도 지나간 이상 훑은 것으로 친다.
+_Avoid_: Read Flag, Last Read, Watermark
+
+**Opened At**:
+Entry의 원문 링크를 처음 열어본 시각. Read Cursor가 지나갔을 뿐인 Entry와
+실제로 읽은 Entry를 가르는 유일한 기준이다.
+_Avoid_: Read At, Visited
+
+**Bookmark**:
+나중에 다시 보려고 명시적으로 표시한 Entry. Read Cursor·Opened At과 달리
+사용자가 직접 남기는 유일한 읽기 상태다.
+_Avoid_: Favorite, Star, Saved
+
+**Fetch Attempt**:
+한 Feed를 한 번 수집하려 한 시도. 성공한 시도와 실패한 시도를 모두 포함하며,
+언제 시도했고 어떤 결과였는지를 남긴다. 그 시도로 저장된 Entry 자체를 의미하지 않는다.
+_Avoid_: Job Run, Batch Run, Collection Log, Fetch Result
