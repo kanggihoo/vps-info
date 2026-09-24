@@ -7,7 +7,8 @@ Signal Archive는 여러 외부 정보원에서 링크와 메타데이터를 주
 
 **Feed**:
 시간순으로 정렬된 항목 목록 하나. 수집의 단위이자 화면에서 사용자가 선택하는 축이다.
-한 사이트가 여러 Feed를 가질 수 있다(Hacker News의 best와 show, YouTube의 채널 각각).
+한 사이트가 여러 Feed를 가질 수 있다(Hacker News의 best와 show, YouTube 관심 채널 각각).
+Feed 위에 Site 같은 상위 묶음은 없고, Feed끼리 분류하지도 않는다.
 RSS 제공 여부와 무관하다 — 어떻게 가져오는지는 Feed의 성질이 아니다.
 _Avoid_: Source, Channel, Provider, Subscription
 
@@ -29,7 +30,9 @@ _Avoid_: Collector, Adapter, Parser, Scraper
 _Avoid_: GUID, Hash, Unique Key
 
 **First Seen**:
-Entry를 처음 수집한 시각. 정보원이 게시 시각을 주지 않는 Feed에서 정렬 축이 된다.
+Entry를 처음 수집한 시각. 모든 Feed에서 Entry의 정렬 축이자 Read Cursor의 기준 축이다.
+정보원이 주는 게시 시각은 표시용 메타데이터일 뿐 순서를 정하지 않는다.
+오래전에 게시된 글이 오늘 Feed에 새로 나타나면 그 글은 오늘의 새 Entry다.
 _Avoid_: Created At, Collected At
 
 **Read Cursor**:
@@ -45,9 +48,11 @@ _Avoid_: Read At, Visited
 **Bookmark**:
 나중에 다시 보려고 명시적으로 표시한 Entry. Read Cursor·Opened At과 달리
 사용자가 직접 남기는 유일한 읽기 상태다.
+새 Entry는 Feed별로만 읽지만, Bookmark는 여러 Feed의 것을 한곳에 모아 본다.
 _Avoid_: Favorite, Star, Saved
 
 **Fetch Attempt**:
 한 Feed를 한 번 수집하려 한 시도. 성공한 시도와 실패한 시도를 모두 포함하며,
 언제 시도했고 어떤 결과였는지를 남긴다. 그 시도로 저장된 Entry 자체를 의미하지 않는다.
+실패 뒤의 재시도도 각각 별개의 Fetch Attempt다.
 _Avoid_: Job Run, Batch Run, Collection Log, Fetch Result

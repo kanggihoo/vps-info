@@ -4,11 +4,10 @@
 
 - [CONTEXT.md](./CONTEXT.md): 프로젝트의 도메인 용어를 따른다.
 - [docs/adr/](./docs/adr/): 관련 아키텍처 결정을 따른다.
-- [Python conventions](./docs/conventions/python.md): Python 코드를 작성하거나 리팩터링할 때 따른다.
-- [TypeScript conventions](./docs/conventions/typescript.md): TypeScript 코드를 작성하거나 리팩터링할 때 따른다.
+- [TypeScript conventions](./docs/conventions/typescript.md): 코드를 작성하거나 리팩터링할 때 따른다.
 - [ADR template](./docs/adr/TEMPLATE.md): ADR을 새로 작성할 때 이 형식을 따른다.
-- [Decisions later](./docs/adr/decisions-later.md): 아직 결정하지 않았거나 기록이 없는 항목을 확인한다.
+- [Decisions later](./docs/adr/decisions-later.md): 아직 결정하지 않은 항목을 확인한다.
 
-사용자가 반복 적용 가능한 코드 구조나 스타일 변경을 요청하면 코드와 해당 언어 convention 문서를 함께 갱신한다. 특정 기능에만 해당하는 일회성 지시는 convention으로 기록하지 않는다.
+사용자가 반복 적용 가능한 코드 구조나 스타일 변경을 요청하면 코드와 convention 문서를 함께 갱신한다. 특정 기능에만 해당하는 일회성 지시는 convention으로 기록하지 않는다.
 
 변경으로 도메인 용어나 아키텍처 결정이 달라지면 `CONTEXT.md` 또는 관련 ADR도 함께 갱신한다.
