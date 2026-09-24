@@ -1,0 +1,233 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Fetch Attempt 1회",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1060,
+      650
+    ],
+    "column_fit": "spread",
+    "views": [
+      {
+        "id": "pick-due",
+        "label": "기한 확인",
+        "focus": [
+          "loop",
+          "db"
+        ],
+        "note": "수집기 루프가 next_run_at이 지난 Feed를 고른다."
+      },
+      {
+        "id": "fetch",
+        "label": "Handler 수집",
+        "focus": [
+          "attempt",
+          "handler",
+          "http",
+          "source"
+        ],
+        "note": "Handler는 주입받은 HTTP 클라이언트로만 호출. 타임아웃·재시도는 클라이언트가, 중복 판정은 DB가 맡음."
+      },
+      {
+        "id": "store",
+        "label": "저장과 결과 반영",
+        "focus": [
+          "attempt",
+          "db",
+          "loop"
+        ],
+        "note": "Entry 저장과 결과 반영은 한 트랜잭션. 실패하면 failed 기록 후 백오프로 next_run_at."
+      }
+    ]
+  },
+  "participants": [
+    {
+      "id": "loop",
+      "type": "backend",
+      "label": "수집기 루프",
+      "sublabel": "collector/main.ts"
+    },
+    {
+      "id": "attempt",
+      "type": "backend",
+      "label": "Fetch Attempt",
+      "sublabel": "fetch-attempt.ts"
+    },
+    {
+      "id": "handler",
+      "type": "backend",
+      "label": "Handler",
+      "sublabel": "handlers/*"
+    },
+    {
+      "id": "http",
+      "type": "security",
+      "label": "HTTP 클라이언트",
+      "sublabel": "http-client.ts"
+    },
+    {
+      "id": "source",
+      "type": "external",
+      "label": "정보원",
+      "sublabel": "HN API · RSS"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "feed · entry"
+    }
+  ],
+  "segments": [
+    {
+      "from": 160,
+      "to": 212,
+      "label": "기한 확인"
+    },
+    {
+      "from": 224,
+      "to": 468,
+      "label": "수집"
+    },
+    {
+      "from": 480,
+      "to": 564,
+      "label": "저장"
+    }
+  ],
+  "messages": [
+    {
+      "id": "select-due",
+      "from": "loop",
+      "to": "db",
+      "y": 170,
+      "label": "next_run_at ≤ now 조회",
+      "variant": "default"
+    },
+    {
+      "id": "due-rows",
+      "from": "db",
+      "to": "loop",
+      "y": 202,
+      "label": "기한 된 Feed",
+      "variant": "return"
+    },
+    {
+      "id": "run-attempt",
+      "from": "loop",
+      "to": "attempt",
+      "y": 234,
+      "label": "runFetchAttempt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "insert-running",
+      "from": "attempt",
+      "to": "db",
+      "y": 266,
+      "label": "fetch_attempt: running",
+      "variant": "default"
+    },
+    {
+      "id": "fetch-entries",
+      "from": "attempt",
+      "to": "handler",
+      "y": 298,
+      "label": "fetchEntries(params)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "http-call",
+      "from": "handler",
+      "to": "http",
+      "y": 330,
+      "label": "GET",
+      "variant": "default"
+    },
+    {
+      "id": "source-call",
+      "from": "http",
+      "to": "source",
+      "y": 362,
+      "label": "10초 · 재시도 2회",
+      "variant": "default"
+    },
+    {
+      "id": "source-response",
+      "from": "source",
+      "to": "http",
+      "y": 394,
+      "label": "JSON / XML",
+      "variant": "return"
+    },
+    {
+      "id": "http-response",
+      "from": "http",
+      "to": "handler",
+      "y": 426,
+      "label": "응답 본문",
+      "variant": "return"
+    },
+    {
+      "id": "drafts",
+      "from": "handler",
+      "to": "attempt",
+      "y": 458,
+      "label": "EntryDraft[]",
+      "variant": "return"
+    },
+    {
+      "id": "insert-entries",
+      "from": "attempt",
+      "to": "db",
+      "y": 490,
+      "label": "INSERT entry ON CONFLICT DO NOTHING",
+      "variant": "emphasis"
+    },
+    {
+      "id": "update-result",
+      "from": "attempt",
+      "to": "db",
+      "y": 522,
+      "label": "success · next_run_at",
+      "variant": "default"
+    },
+    {
+      "id": "inserted-count",
+      "from": "attempt",
+      "to": "loop",
+      "y": 554,
+      "label": "새 Entry N건",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "loop",
+      "from": 165,
+      "to": 560
+    },
+    {
+      "participant": "attempt",
+      "from": 234,
+      "to": 554
+    },
+    {
+      "participant": "handler",
+      "from": 298,
+      "to": 458
+    },
+    {
+      "participant": "http",
+      "from": 330,
+      "to": 426
+    },
+    {
+      "participant": "db",
+      "from": 485,
+      "to": 528
+    }
+  ]
+}

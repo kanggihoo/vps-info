@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Feed 수집 수명주기",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "success-cycle",
+        "label": "정상 주기",
+        "focus": [
+          "waiting",
+          "running",
+          "judging",
+          "succeeded"
+        ],
+        "note": "30초마다 기한 확인 → 성공하면 next_run_at = 지금 + 주기(DB의 interval_minutes)."
+      },
+      {
+        "id": "retry-cycle",
+        "label": "실패와 재시도",
+        "focus": [
+          "judging",
+          "failed",
+          "waiting"
+        ],
+        "note": "0건(allow_empty 제외)·예외는 실패. 재시도 간격은 5분→15분→45분…, 주기를 넘지 않음."
+      },
+      {
+        "id": "restart",
+        "label": "재시작",
+        "focus": [
+          "started",
+          "waiting"
+        ],
+        "note": "강제 종료로 남은 running은 시작할 때 failed로 정리. 스케줄은 DB에 있어 이어서 실행."
+      }
+    ],
+    "viewBox": [
+      1000,
+      566
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "수집 주기"
+    },
+    {
+      "id": "exceptions",
+      "label": "실패"
+    }
+  ],
+  "states": [
+    {
+      "id": "started",
+      "type": "start",
+      "label": "수집기 시작",
+      "sublabel": "running 정리 · Feed 등록",
+      "lane": "main",
+      "col": 0,
+      "step": "01"
+    },
+    {
+      "id": "waiting",
+      "type": "waiting",
+      "label": "대기",
+      "sublabel": "next_run_at 지나면 실행",
+      "lane": "main",
+      "col": 1,
+      "step": "02"
+    },
+    {
+      "id": "running",
+      "type": "active",
+      "label": "running",
+      "sublabel": "Handler 호출",
+      "lane": "main",
+      "col": 2,
+      "step": "03"
+    },
+    {
+      "id": "judging",
+      "type": "decision",
+      "label": "결과 판정",
+      "sublabel": "예외 또는 0건인가",
+      "lane": "main",
+      "col": 3,
+      "step": "04"
+    },
+    {
+      "id": "succeeded",
+      "type": "success",
+      "label": "success",
+      "sublabel": "1건 이상 · Entry 저장",
+      "lane": "main",
+      "col": 4,
+      "step": "05"
+    },
+    {
+      "id": "failed",
+      "type": "failure",
+      "label": "failed",
+      "sublabel": "연속 실패 + 1",
+      "lane": "exceptions",
+      "col": 1,
+      "tag": "재시도"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "start-to-wait",
+      "from": "started",
+      "to": "waiting",
+      "route": "straight"
+    },
+    {
+      "id": "due",
+      "from": "waiting",
+      "to": "running",
+      "route": "straight"
+    },
+    {
+      "id": "handler-returned",
+      "from": "running",
+      "to": "judging",
+      "route": "straight"
+    },
+    {
+      "id": "has-entries",
+      "from": "judging",
+      "to": "succeeded",
+      "route": "straight"
+    },
+    {
+      "id": "next-interval",
+      "from": "succeeded",
+      "to": "waiting",
+      "label": "+주기",
+      "variant": "emphasis",
+      "route": "top-channel"
+    },
+    {
+      "id": "judged-failed",
+      "from": "judging",
+      "to": "failed",
+      "label": "0건 · 예외",
+      "variant": "security",
+      "route": "drop"
+    },
+    {
+      "id": "backoff",
+      "from": "failed",
+      "to": "waiting",
+      "label": "+min(5분×3ⁿ⁻¹, 주기)",
+      "variant": "emphasis",
+      "fromSide": "left",
+      "toSide": "bottom"
+    }
+  ]
+}
