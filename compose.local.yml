@@ -1,24 +1,36 @@
+# 로컬 개발용 덮어쓰기. vps-infra 없이 이 저장소만으로 뜨도록 전용 PostgreSQL과 네트워크를 둔다(ADR-0001).
+# 실행: docker compose -f compose.yml -f compose.local.yml up --build
 services:
-  backend:
-    ports: ["8000:8000"]
+  postgres:
+    image: postgres:17
+    environment: [POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      retries: 15
+    networks: [vps_data]
 
-  frontend:
-    build:
-      context: ./frontend
-      target: development
-    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
-    ports: ["5173:5173"]
-    volumes: ["./frontend:/app", "frontend_node_modules:/app/node_modules"]
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5173 >/dev/null || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+  migrate:
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  app:
+    command: ["node", "--watch", "src/server/main.ts"]
+    ports: ["${APP_PORT:-8000}:8000"]  # 호스트 포트가 겹치면 .env의 APP_PORT로 바꾼다
+    volumes: ["./src:/app/src"]
+
+  collector:
+    command: ["node", "--watch", "src/collector/main.ts"]
+    volumes: ["./src:/app/src"]
+
+networks:
+  vps_proxy:
+    external: false
+    name: signal_archive_local_proxy
+  vps_data:
+    external: false
+    name: signal_archive_local_data
 
 volumes:
-  frontend_node_modules:
+  postgres_data:

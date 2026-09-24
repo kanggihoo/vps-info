@@ -1,0 +1,36 @@
+{
+  "name": "signal-archive",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "vitest run --dir src",
+    "db:generate": "drizzle-kit generate",
+    "dev:web": "vite",
+    "build:web": "vite build"
+  },
+  "dependencies": {
+    "@fastify/static": "^10.1.4",
+    "drizzle-orm": "^0.45.3",
+    "fastify": "^5.12.5",
+    "ofetch": "^1.5.1",
+    "pg": "^8.23.0",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "drizzle-kit": "^0.31.11",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}

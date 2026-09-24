@@ -1,16 +1,6 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-data/
-*.DS_Store 
-# Virtual environments
-.venv
+node_modules/
 .env
-.playwright-cli/
-frontend/node_modules/
-frontend/dist/
+.DS_Store
 *.tsbuildinfo
+.playwright-cli/
+web/dist/

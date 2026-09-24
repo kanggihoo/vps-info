@@ -1,18 +1,29 @@
+# 배포용 구성. PostgreSQL과 네트워크는 vps-infra가 소유한다.
+x-database-env: &database-env
+  environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD]
+
 services:
-  backend:
-    build: .
-    environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD]
+  # 마이그레이션을 적용하고 종료한다. 성공해야 app과 collector가 뜬다.
+  migrate:
+    build: { context: ., target: base }
+    command: ["node", "src/db/run-migrations.ts"]
+    <<: *database-env
+    networks: [vps_data]
+
+  app:
+    build: { context: ., target: app }
+    <<: *database-env
+    restart: unless-stopped
+    depends_on:
+      migrate: { condition: service_completed_successfully }
     networks: [vps_proxy, vps_data]
 
-  frontend:
-    build:
-      context: ./frontend
-    networks: [vps_proxy]
-
   collector:
-    build: .
-    command: ["signal-archive", "collect", "--limit", "20"]
-    environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD]
+    build: { context: ., target: collector }
+    <<: *database-env
+    restart: unless-stopped
+    depends_on:
+      migrate: { condition: service_completed_successfully }
     networks: [vps_data]
 
 networks:

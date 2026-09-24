@@ -5,36 +5,246 @@
     "title": "Signal Archive 아키텍처",
     "quality_profile": "showcase",
     "views": [
-      { "id": "collect-path", "label": "수집 경로", "focus": ["hn", "rss", "collector", "db"], "note": "상주 collector가 기한이 된 Feed를 순차로 수집해 Entry로 저장한다." },
-      { "id": "read-path", "label": "읽기 경로", "focus": ["browser", "nginx", "app", "db"], "note": "브라우저 요청은 nginx Basic Auth를 거쳐 app이 DB를 조회한다." },
-      { "id": "deploy", "label": "배포 단위", "focus": ["migrate", "collector", "app", "db"], "note": "migrate가 성공해야 app과 collector가 뜬다." }
+      {
+        "id": "collect-path",
+        "label": "수집 경로",
+        "focus": [
+          "hn",
+          "rss",
+          "collector",
+          "db"
+        ],
+        "note": "상주 collector가 기한이 된 Feed를 순차로 수집해 Entry로 저장한다."
+      },
+      {
+        "id": "read-path",
+        "label": "읽기 경로",
+        "focus": [
+          "browser",
+          "nginx",
+          "app",
+          "db"
+        ],
+        "note": "브라우저 요청은 nginx Basic Auth를 거쳐 app이 DB를 조회한다."
+      },
+      {
+        "id": "deploy",
+        "label": "배포 단위",
+        "focus": [
+          "migrate",
+          "collector",
+          "app",
+          "db"
+        ],
+        "note": "migrate가 성공해야 app과 collector가 뜬다."
+      }
     ]
   },
   "components": [
-    { "id": "hn", "type": "external", "label": "Hacker News API", "sublabel": "Firebase JSON", "pos": [40, 220], "size": [160, 64] },
-    { "id": "rss", "type": "external", "label": "RSS / Atom", "sublabel": "YouTube 채널 등", "pos": [40, 380], "size": [160, 64] },
-    { "id": "collector", "type": "backend", "label": "collector", "sublabel": "상주 · 30초마다 기한 확인", "pos": [320, 300], "size": [180, 64], "tag": "Handler + 공통 HTTP" },
-    { "id": "migrate", "type": "backend", "label": "migrate", "sublabel": "Drizzle · 일회성", "pos": [600, 120], "size": [160, 64] },
-    { "id": "db", "type": "database", "label": "PostgreSQL", "sublabel": "feed · entry · fetch_attempt", "pos": [590, 500], "size": [180, 64], "tag": "운영: vps-infra 소유" },
-    { "id": "app", "type": "backend", "label": "app", "sublabel": "Fastify API + React 정적", "pos": [860, 300], "size": [180, 64], "tag": "API·화면 구현 예정" },
-    { "id": "nginx", "type": "security", "label": "nginx", "sublabel": "Basic Auth", "pos": [1140, 300], "size": [150, 64], "tag": "vps-infra" },
-    { "id": "browser", "type": "frontend", "label": "브라우저", "sublabel": "채팅형 Feed 화면", "pos": [1140, 500], "size": [150, 64] }
+    {
+      "id": "hn",
+      "type": "external",
+      "label": "Hacker News API",
+      "sublabel": "Firebase JSON",
+      "pos": [
+        40,
+        220
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "rss",
+      "type": "external",
+      "label": "RSS / Atom",
+      "sublabel": "YouTube 채널 등",
+      "pos": [
+        40,
+        380
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "collector",
+      "type": "backend",
+      "label": "collector",
+      "sublabel": "상주 · 30초마다 기한 확인",
+      "pos": [
+        320,
+        300
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "tag": "Handler + 공통 HTTP"
+    },
+    {
+      "id": "migrate",
+      "type": "backend",
+      "label": "migrate",
+      "sublabel": "Drizzle · 일회성",
+      "pos": [
+        600,
+        120
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "feed · entry · fetch_attempt",
+      "pos": [
+        590,
+        500
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "tag": "운영: vps-infra 소유"
+    },
+    {
+      "id": "app",
+      "type": "backend",
+      "label": "app",
+      "sublabel": "Fastify API + React 정적",
+      "pos": [
+        860,
+        300
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "nginx",
+      "type": "security",
+      "label": "nginx",
+      "sublabel": "Basic Auth",
+      "pos": [
+        1140,
+        300
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "vps-infra"
+    },
+    {
+      "id": "browser",
+      "type": "frontend",
+      "label": "브라우저",
+      "sublabel": "채팅형 Feed 화면",
+      "pos": [
+        1140,
+        500
+      ],
+      "size": [
+        150,
+        64
+      ]
+    }
   ],
   "boundaries": [
-    { "kind": "region", "label": "vps-info Docker Compose", "wraps": ["collector", "migrate", "app"] }
+    {
+      "kind": "region",
+      "label": "vps-info Docker Compose",
+      "wraps": [
+        "collector",
+        "migrate",
+        "app"
+      ]
+    }
   ],
   "connections": [
-    { "id": "hn-to-collector", "from": "hn", "to": "collector", "label": "HTTP JSON" },
-    { "id": "rss-to-collector", "from": "rss", "to": "collector", "label": "HTTP XML" },
-    { "id": "collector-to-db", "from": "collector", "to": "db", "label": "Entry 저장 · 중복 무시", "variant": "emphasis" },
-    { "id": "migrate-to-db", "from": "migrate", "to": "db", "label": "스키마 적용", "variant": "dashed", "labelAt": [680, 240] },
-    { "id": "app-to-db", "from": "app", "to": "db", "label": "조회 · 커서 갱신" },
-    { "id": "nginx-to-app", "from": "nginx", "to": "app", "label": "프록시" },
-    { "id": "browser-to-nginx", "from": "browser", "to": "nginx", "label": "HTTPS" }
+    {
+      "id": "hn-to-collector",
+      "from": "hn",
+      "to": "collector",
+      "label": "HTTP JSON"
+    },
+    {
+      "id": "rss-to-collector",
+      "from": "rss",
+      "to": "collector",
+      "label": "HTTP XML"
+    },
+    {
+      "id": "collector-to-db",
+      "from": "collector",
+      "to": "db",
+      "label": "Entry 저장 · 중복 무시",
+      "variant": "emphasis"
+    },
+    {
+      "id": "migrate-to-db",
+      "from": "migrate",
+      "to": "db",
+      "label": "스키마 적용",
+      "variant": "dashed",
+      "labelAt": [
+        680,
+        240
+      ]
+    },
+    {
+      "id": "app-to-db",
+      "from": "app",
+      "to": "db",
+      "label": "조회 · 커서 갱신"
+    },
+    {
+      "id": "nginx-to-app",
+      "from": "nginx",
+      "to": "app",
+      "label": "프록시"
+    },
+    {
+      "id": "browser-to-nginx",
+      "from": "browser",
+      "to": "nginx",
+      "label": "HTTPS"
+    }
   ],
   "cards": [
-    { "dot": "emerald", "title": "수집", "items": ["next_run_at이 지난 Feed를 순차 실행", "Handler는 EntryDraft만 반환, 재시도·저장은 코어", "0건은 실패, 재시도 간격 min(5분×3^(n−1), 주기)"] },
-    { "dot": "cyan", "title": "저장", "items": ["Dedup Key는 Feed 범위 UNIQUE(feed_id, dedup_key)", "entry.id 순서 = First Seen → 게시 시각, Read Cursor 기준", "raw는 내부 전용, API로 내보내지 않음"] },
-    { "dot": "violet", "title": "배포", "items": ["Dockerfile 하나의 app / collector target", "화면만 바뀌면 collector는 재시작되지 않음", "접근 제어는 nginx Basic Auth, 앱에는 사용자 개념 없음"] }
+    {
+      "dot": "emerald",
+      "title": "수집",
+      "items": [
+        "next_run_at이 지난 Feed를 순차 실행",
+        "Handler는 EntryDraft만 반환, 재시도·저장은 코어",
+        "0건은 실패, 재시도 간격 min(5분×3^(n−1), 주기)"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "저장",
+      "items": [
+        "Dedup Key는 Feed 범위 UNIQUE(feed_id, dedup_key)",
+        "entry.id 순서 = First Seen → 게시 시각, Read Cursor 기준",
+        "raw는 내부 전용, API로 내보내지 않음"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "배포",
+      "items": [
+        "Dockerfile 하나의 app / collector target",
+        "화면만 바뀌면 collector는 재시작되지 않음",
+        "접근 제어는 nginx Basic Auth, 앱에는 사용자 개념 없음"
+      ]
+    }
   ]
 }
