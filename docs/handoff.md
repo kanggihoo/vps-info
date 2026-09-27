@@ -37,7 +37,7 @@
   - 단위 테스트: `npm test`
   - DB 통합 테스트: `npm run test:db`. 별도 `_test` DB를 쓰는 컨테이너에서 돈다.
 
-### Feed 추가 (커밋 안 됨, 작업 트리에 있음)
+### Feed 추가 (커밋 8aef758)
 
 - `cheerio`를 추가했다.
 - 공통 요약 변환 `summary-text.ts`를 만들었다.
@@ -119,7 +119,6 @@
 
 ## 3. 해야 할 것
 
-- [ ] **이번 Feed 추가 작업을 커밋한다.** 지금 작업 트리에 있다.
 - [ ] **배포**
   - vps-infra nginx에 Basic Auth를 설정하고 `app:8000`으로 프록시한다(ADR-0001의 접근 제어).
   - Jenkins 파이프라인을 만든다.
