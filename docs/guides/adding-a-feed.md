@@ -290,3 +290,4 @@ from entry where feed_id = 'openai-news' order by id desc limit 5;
 - [ ] `--once`로 N건 저장, 한 번 더 실행해 0건 확인
 - [ ] DB에서 `dedup_key`, `title`, `url`, `published_at`, `extra` 확인
 - [ ] 화면 왼쪽 목록에 보이고 제목을 누르면 원문이 열림
+- [ ] [docs/feeds.md](../feeds.md)에 이 Feed의 출처·가져오는 방식·주기·새 Entry가 생기는 때를 적음

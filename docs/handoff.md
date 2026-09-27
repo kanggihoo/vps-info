@@ -12,6 +12,7 @@
 | [CONTEXT.md](../CONTEXT.md) | 도메인 용어(Feed, Entry, Handler, Dedup Key, First Seen, Read Cursor, Opened At, Bookmark, Fetch Attempt) |
 | [docs/adr/](./adr/) | 확정된 아키텍처 결정 0001–0006 |
 | [docs/adr/decisions-later.md](./adr/decisions-later.md) | 미뤄 둔 결정 |
+| [docs/feeds.md](./feeds.md) | 지금 수집하는 Feed 목록과 각 Feed의 출처·주기 |
 | [docs/guides/adding-a-feed.md](./guides/adding-a-feed.md) | Feed·Handler 추가 절차와 검증 방법 |
 | [docs/conventions/typescript.md](./conventions/typescript.md) | 코드 규칙 |
 | [docs/diagrams/](./diagrams/) | 구조·수명주기·Fetch Attempt 시퀀스 다이어그램 |
@@ -47,22 +48,7 @@
   - 모든 Feed가 첫 `--once`에서 데이터를 저장했고, 두 번째 실행은 0건이었다.
   - 테스트 46개(단위 27 + DB 19)가 통과했다.
 
-| Feed id | Handler | 방식 | 첫 수집 |
-|---|---|---|---|
-| `hn-best`, `hn-show` | `hackernews` | 공식 API | (기존) |
-| `geeknews` | `rss` | 공식 RSS | 50 |
-| `producthunt` | `rss` | 공식 Atom | 50 |
-| `techcrunch` | `rss` | 공식 RSS | 20 |
-| `openai-news` | `rss` | 공식 RSS. 2015년부터 전체가 들어 있다 | 1230 |
-| `claude-code-releases` | `rss` | GitHub 릴리스 Atom | 10 |
-| `openrouter-models` | `openrouter-models` | 공개 API | 458 |
-| `hf-papers-weekly` | `huggingface-papers` | API. 지난주 추천수 상위 30편 | 30 |
-| `hellogithub` | `hellogithub` | 공개 API | 20 |
-| `devto-top-week` | `devto` | 공개 API. 최근 7일 반응 상위 30개 | 30 |
-| `github-trending-daily` | `github-trending` | HTML | 9 |
-| `trendshift` | `trendshift` | HTML 안의 JSON-LD | 25 |
-| `indiehackers-top-week` | `indiehackers` | HTML. 지난주 인기글 | 20 |
-| `anthropic-news` | `anthropic-news` | HTML | 10 |
+Feed별 출처, 가져오는 방식, 주기는 [feeds.md](./feeds.md)에 있다.
 
 ### 조사하면서 알게 된 것
 

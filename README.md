@@ -43,6 +43,7 @@ npm run db:generate    # src/db/schema.ts를 바꾼 뒤 마이그레이션 SQL �
 
 ## 결정 기록
 
+- 등록된 Feed 목록: [docs/feeds.md](./docs/feeds.md)
 - 새 Feed 추가: [docs/guides/adding-a-feed.md](./docs/guides/adding-a-feed.md)
 - 구조도: [docs/diagrams/](./docs/diagrams/) (아키텍처, 수집 수명주기, Fetch Attempt 시퀀스)
 - 아키텍처 결정: [docs/adr/](./docs/adr/)

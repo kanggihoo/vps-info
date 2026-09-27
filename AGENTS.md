@@ -8,6 +8,7 @@
 - [ADR template](./docs/adr/TEMPLATE.md): ADR을 새로 작성할 때 이 형식을 따른다.
 - [Decisions later](./docs/adr/decisions-later.md): 아직 결정하지 않은 항목을 확인한다.
 - [Handoff](./docs/handoff.md): 지금 진행 상황, 정해야 할 것, 남은 작업을 확인한다.
+- [등록된 Feed](./docs/feeds.md): 지금 수집하는 Feed 목록. Feed 선언을 바꾸면 이 문서도 고친다.
 - [새 Feed 추가하기](./docs/guides/adding-a-feed.md): Feed나 Handler를 추가·수정할 때 이 절차를 따른다.
 
 사용자가 반복 적용 가능한 코드 구조나 스타일 변경을 요청하면 코드와 convention 문서를 함께 갱신한다. 특정 기능에만 해당하는 일회성 지시는 convention으로 기록하지 않는다.
