@@ -1,4 +1,4 @@
-/** Fetch Attempt 결과에 따라 다음 수집 시각을 정한다(ADR-0008). */
+/** Fetch Attempt 결과에 따라 다음 수집 시각을 정한다(ADR-0005). */
 
 const MINUTE_IN_MILLISECONDS = 60_000;
 

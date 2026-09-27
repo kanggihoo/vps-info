@@ -14,13 +14,13 @@ export type FeedSummary = {
   readCursorEntryId: number | null;
   /** 이 Feed에서 가장 최근에 저장된 Entry의 id. Entry가 없으면 `null`. */
   latestEntryId: number | null;
-  /** 연속 실패 수. 0보다 크면 화면에 경고를 띄운다(ADR-0008). */
+  /** 연속 실패 수. 0보다 크면 화면에 경고를 띄운다(ADR-0005). */
   consecutiveFailures: number;
   nextRunAt: string;
 };
 
 /**
- * 화면에 보내는 Entry. 정보원 원본(`raw`)은 포함하지 않는다(ADR-0006).
+ * 화면에 보내는 Entry. 정보원 원본(`raw`)은 포함하지 않는다(ADR-0003).
  */
 export type EntryView = {
   id: number;

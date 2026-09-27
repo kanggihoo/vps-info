@@ -8,24 +8,14 @@ import { apiClient } from './api-client.ts';
 import { BookmarkList } from './bookmark-list.tsx';
 import { FeedSidebar } from './feed-sidebar.tsx';
 import { FeedTimeline } from './feed-timeline.tsx';
+import { readScreenFromHash, type Screen } from './screen-route.ts';
 
 /** 새 Entry가 들어왔는지 Feed 목록을 다시 받아오는 간격. */
 const FEED_LIST_REFRESH_INTERVAL_MILLISECONDS = 60_000;
 
-/** 지금 보고 있는 화면. */
-export type Screen = { kind: 'feed'; feedId: string } | { kind: 'bookmarks' } | { kind: 'none' };
-
-/** URL 해시를 화면으로 해석한다. */
-function readScreenFromHash(): Screen {
-  const hash = decodeURIComponent(window.location.hash);
-  if (hash === '#/bookmarks') return { kind: 'bookmarks' };
-  const feedMatch = hash.match(/^#\/feeds\/(.+)$/);
-  return feedMatch ? { kind: 'feed', feedId: feedMatch[1] } : { kind: 'none' };
-}
-
 export function App() {
   const [feeds, setFeeds] = useState<FeedSummary[]>([]);
-  const [screen, setScreen] = useState<Screen>(readScreenFromHash);
+  const [screen, setScreen] = useState<Screen>(() => readScreenFromHash(window.location.hash));
 
   const refreshFeeds = useCallback(() => {
     apiClient.listFeeds().then(setFeeds).catch(console.error);
@@ -34,7 +24,7 @@ export function App() {
   useEffect(() => {
     refreshFeeds();
     const timer = window.setInterval(refreshFeeds, FEED_LIST_REFRESH_INTERVAL_MILLISECONDS);
-    const onHashChange = () => setScreen(readScreenFromHash());
+    const onHashChange = () => setScreen(readScreenFromHash(window.location.hash));
     window.addEventListener('hashchange', onHashChange);
     return () => {
       window.clearInterval(timer);

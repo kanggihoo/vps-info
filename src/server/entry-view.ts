@@ -1,6 +1,6 @@
 /**
  * DB의 Entry 행을 API 응답(`EntryView`)으로 바꾸는 규칙.
- * 조회 컬럼을 여기 한 곳에 모아 `raw`가 응답에 섞이지 않게 한다(ADR-0006).
+ * 조회 컬럼을 여기 한 곳에 모아 `raw`가 응답에 섞이지 않게 한다(ADR-0003).
  */
 import type { EntryView } from '../api-types.ts';
 import { entry } from '../db/schema.ts';

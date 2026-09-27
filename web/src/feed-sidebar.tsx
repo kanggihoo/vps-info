@@ -1,6 +1,6 @@
 /** 왼쪽 Feed 목록. Feed마다 안 읽음 수와 연속 실패 경고를 보여 준다. */
 import type { FeedSummary } from '../../src/api-types.ts';
-import type { Screen } from './app.tsx';
+import { makeScreenHash, type Screen } from './screen-route.ts';
 
 type FeedSidebarProps = {
   feeds: FeedSummary[];
@@ -15,7 +15,7 @@ export function FeedSidebar({ feeds, screen }: FeedSidebarProps) {
         {feeds.map((feed) => (
           <li key={feed.id}>
             <a
-              href={`#/feeds/${encodeURIComponent(feed.id)}`}
+              href={makeScreenHash({ kind: 'feed', feedId: feed.id })}
               className={screen.kind === 'feed' && screen.feedId === feed.id ? 'feed-link selected' : 'feed-link'}
             >
               <span className="feed-title">{feed.title}</span>
@@ -32,7 +32,7 @@ export function FeedSidebar({ feeds, screen }: FeedSidebarProps) {
           </li>
         ))}
       </ul>
-      <a href="#/bookmarks" className={screen.kind === 'bookmarks' ? 'feed-link selected' : 'feed-link'}>
+      <a href={makeScreenHash({ kind: 'bookmarks' })} className={screen.kind === 'bookmarks' ? 'feed-link selected' : 'feed-link'}>
         <span className="feed-title">★ Bookmark</span>
       </a>
     </nav>

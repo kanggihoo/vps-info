@@ -9,7 +9,7 @@ import { bigint, check, index, integer, jsonb, pgTable, text, timestamp, unique 
  * Feed의 실행 상태와 운영 값.
  *
  * Feed의 정의(Handler, 파라미터, 제목)는 코드(`src/feed-definitions.ts`)에 있고, 여기에는 두지 않는다.
- * 수집 주기처럼 운영하면서 바꾸는 값만 DB가 소유한다(ADR-0007).
+ * 수집 주기처럼 운영하면서 바꾸는 값만 DB가 소유한다(ADR-0004).
  */
 export const feed = pgTable('feed', {
   /** 코드의 Feed 정의와 같은 식별자. 한 번 정하면 바꾸지 않는다. */
@@ -18,7 +18,7 @@ export const feed = pgTable('feed', {
   intervalMinutes: integer('interval_minutes').notNull(),
   /** 다음 수집 예정 시각. 수집기는 이 값이 지난 Feed를 실행한다. */
   nextRunAt: timestamp('next_run_at', { withTimezone: true }).notNull().defaultNow(),
-  /** 연속으로 실패한 Fetch Attempt 수. 성공하면 0이 된다(ADR-0008). */
+  /** 연속으로 실패한 Fetch Attempt 수. 성공하면 0이 된다(ADR-0005). */
   consecutiveFailures: integer('consecutive_failures').notNull().default(0),
   /** Read Cursor. 마지막으로 지나간 Entry의 id이며, 이보다 큰 id가 안 읽음이다. */
   readCursorEntryId: bigint('read_cursor_entry_id', { mode: 'number' }),
@@ -36,7 +36,7 @@ export const entry = pgTable(
   {
     id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
     feedId: text('feed_id').notNull().references(() => feed.id),
-    /** 같은 Feed 안에서 같은 항목인지 판정하는 값(ADR-0005). */
+    /** 같은 Feed 안에서 같은 항목인지 판정하는 값(ADR-0002). */
     dedupKey: text('dedup_key').notNull(),
     url: text('url').notNull(),
     title: text('title').notNull(),
@@ -46,7 +46,7 @@ export const entry = pgTable(
     summary: text('summary'),
     /** Feed마다 다른 필드 중 화면에 쓰는 것(HN 점수 등). */
     extra: jsonb('extra').$type<Record<string, unknown>>(),
-    /** 정보원 원본. 내부 전용이며 API로 내보내지 않는다(ADR-0006). */
+    /** 정보원 원본. 내부 전용이며 API로 내보내지 않는다(ADR-0003). */
     raw: jsonb('raw').notNull(),
     firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
     /** 원문 링크를 처음 연 시각. */

@@ -2,5 +2,4 @@ node_modules/
 .env
 .DS_Store
 *.tsbuildinfo
-.playwright-cli/
 web/dist/

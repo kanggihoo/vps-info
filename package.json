@@ -7,10 +7,11 @@
   },
   "scripts": {
     "typecheck": "tsc",
-    "test": "vitest run --dir src",
+    "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "dev:web": "vite",
-    "build:web": "vite build"
+    "build:web": "vite build",
+    "test:db": "docker compose -f compose.yml -f compose.local.yml run --rm --build test"
   },
   "dependencies": {
     "@fastify/static": "^10.1.4",

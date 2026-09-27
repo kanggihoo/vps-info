@@ -23,7 +23,7 @@ const feedIdParamsSchema = {
 export async function registerFeedRoutes(server: FastifyInstance): Promise<void> {
   /**
    * 선언된 Feed 목록을 선언 순서대로 돌려준다.
-   * 선언에서 빠진 Feed는 DB에 남아 있어도 보이지 않는다(ADR-0007).
+   * 선언에서 빠진 Feed는 DB에 남아 있어도 보이지 않는다(ADR-0004).
    */
   server.get('/api/feeds', async (): Promise<FeedSummary[]> => {
     const rows = await database

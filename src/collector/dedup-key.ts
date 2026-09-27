@@ -1,4 +1,4 @@
-/** Dedup Key 계산(ADR-0005). 같은 Feed 안에서 두 Entry가 같은 항목인지 판정하는 값이다. */
+/** Dedup Key 계산(ADR-0002). 같은 Feed 안에서 두 Entry가 같은 항목인지 판정하는 값이다. */
 import { createHash } from 'node:crypto';
 
 /** 추적용이라 같은 글을 가리키는 데 영향이 없는 쿼리 파라미터의 접두사. */

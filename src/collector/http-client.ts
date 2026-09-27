@@ -1,5 +1,5 @@
 /**
- * Handler에 주입하는 공통 HTTP 클라이언트(ADR-0009).
+ * Handler에 주입하는 공통 HTTP 클라이언트(ADR-0006).
  * 타임아웃·재시도 정책은 여기에만 있고, Handler는 이 클라이언트로 자유롭게 호출한다.
  */
 import { ofetch } from 'ofetch';

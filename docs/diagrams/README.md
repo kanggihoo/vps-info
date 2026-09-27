@@ -6,8 +6,8 @@
 | 다이어그램 | 보여 주는 것 |
 |---|---|
 | [system-architecture.html](./system-architecture.html) | 구성요소와 연결: 정보원 → collector → PostgreSQL ← app ← nginx ← 브라우저 |
-| [feed-collection-lifecycle.html](./feed-collection-lifecycle.html) | Feed 하나의 수집 주기: 대기 → running → 판정 → success/failed → 재시도 (ADR-0007, ADR-0008) |
-| [fetch-attempt-sequence.html](./fetch-attempt-sequence.html) | Fetch Attempt 1회의 호출 순서: 루프 → Fetch Attempt → Handler → HTTP 클라이언트 → 정보원, 그리고 DB 저장 (ADR-0009) |
+| [feed-collection-lifecycle.html](./feed-collection-lifecycle.html) | Feed 하나의 수집 주기: 대기 → running → 판정 → success/failed → 재시도 (ADR-0004, ADR-0005) |
+| [fetch-attempt-sequence.html](./fetch-attempt-sequence.html) | Fetch Attempt 1회의 호출 순서: 루프 → Fetch Attempt → Handler → HTTP 클라이언트 → 정보원, 그리고 DB 저장 (ADR-0006) |
 
 ## 다시 만들기
 

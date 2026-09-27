@@ -1,4 +1,4 @@
-/** Handler의 계약(ADR-0009). 모든 Handler는 `defineHandler`로 만든다. */
+/** Handler의 계약(ADR-0006). 모든 Handler는 `defineHandler`로 만든다. */
 import type { HttpClient } from '../http-client.ts';
 
 /**
@@ -18,7 +18,7 @@ export type EntryDraft = {
   summary?: string;
   /** Feed마다 다른 필드 중 화면에 쓰는 것(HN 점수 등). */
   extra?: Record<string, unknown>;
-  /** 정보원 원본. 내부 전용으로 보존한다(ADR-0006). */
+  /** 정보원 원본. 내부 전용으로 보존한다(ADR-0003). */
   raw: unknown;
 };
 

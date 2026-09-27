@@ -17,31 +17,48 @@ export type FeedRunState = {
   consecutiveFailures: number;
 };
 
+/** Feed 정의를 받아 EntryDraft 목록을 가져오는 함수. 테스트에서는 가짜 함수로 바꿔 넣는다. */
+export type EntryFetcher = (definition: FeedDefinition) => Promise<EntryDraft[]>;
+
+/** 등록된 Handler에 공통 HTTP 클라이언트를 주입해 부른다. 실제 수집에서 쓰는 기본값이다. */
+export const fetchEntriesWithRegisteredHandler: EntryFetcher = (definition) => {
+  // handler 이름과 params의 짝은 FeedDefinition 타입이 이미 검사했다.
+  const handler = handlers[definition.handler] as Handler<typeof definition.params>;
+  return handler.fetchEntries(definition.params, { httpClient });
+};
+
 /**
  * Feed 하나를 한 번 수집한다. 실패해도 예외를 밖으로 던지지 않고 Fetch Attempt에 기록한다.
  *
+ * @param fetchEntries - EntryDraft를 가져오는 함수. 기본값은 등록된 Handler 호출이다.
  * @returns 새로 저장된 Entry 수. 실패하면 `undefined`.
  */
-export async function runFetchAttempt(definition: FeedDefinition, state: FeedRunState): Promise<number | undefined> {
+export async function runFetchAttempt(
+  definition: FeedDefinition,
+  state: FeedRunState,
+  fetchEntries: EntryFetcher = fetchEntriesWithRegisteredHandler,
+): Promise<number | undefined> {
   const [attempt] = await database
     .insert(fetchAttempt)
     .values({ feedId: definition.id, status: 'running' })
     .returning({ id: fetchAttempt.id });
 
   try {
-    // handler 이름과 params의 짝은 FeedDefinition 타입이 이미 검사했다.
-    const handler = handlers[definition.handler] as Handler<typeof definition.params>;
-    const drafts = await handler.fetchEntries(definition.params, { httpClient });
+    const drafts = await fetchEntries(definition);
     if (drafts.length === 0 && !definition.allowEmpty) {
       throw new Error('Handler가 0건을 돌려줬습니다. 정보원 구조가 바뀌었을 수 있습니다');
     }
 
     return await database.transaction(async (transaction) => {
-      const inserted = await transaction
-        .insert(entry)
-        .values(toEntryRows(definition.id, drafts))
-        .onConflictDoNothing()
-        .returning({ id: entry.id });
+      // allowEmpty인 Feed는 0건도 성공이다. 빈 목록은 INSERT할 수 없으므로 건너뛴다.
+      const inserted =
+        drafts.length === 0
+          ? []
+          : await transaction
+              .insert(entry)
+              .values(toEntryRows(definition.id, drafts))
+              .onConflictDoNothing()
+              .returning({ id: entry.id });
       const now = new Date();
       await transaction
         .update(fetchAttempt)
