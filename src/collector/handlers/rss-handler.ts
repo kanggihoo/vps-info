@@ -1,9 +1,7 @@
 /** RSS와 Atom을 읽는 일반 Handler. YouTube 채널 RSS도 이 Handler로 수집한다. */
 import Parser from 'rss-parser';
 import { defineHandler } from './define-handler.ts';
-
-/** 요약으로 남길 최대 글자 수. 원문 본문을 저장하지 않는다는 결정(링크와 메타데이터만 저장)을 지키기 위한 상한이다. */
-const SUMMARY_MAX_LENGTH = 500;
+import { toSummaryText } from './summary-text.ts';
 
 const feedParser = new Parser();
 
@@ -20,7 +18,8 @@ export const rssHandler = defineHandler<{ url: string }>({
         externalId: item.guid ?? item.id,
         publishedAt: item.isoDate ? new Date(item.isoDate) : undefined,
         author: item.creator ?? item.author,
-        summary: item.contentSnippet?.slice(0, SUMMARY_MAX_LENGTH),
+        // rss-parser의 contentSnippet은 들여쓰기된 첫 문단을 잃는 경우가 있어(Product Hunt) 본문 HTML에서 직접 뽑는다.
+        summary: toSummaryText(item.content ?? item.contentSnippet),
         raw: item,
       }));
   },

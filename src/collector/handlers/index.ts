@@ -2,12 +2,28 @@
  * Handler 등록 목록(ADR-0006). 새 Handler는 여기에 한 줄을 추가해야 쓸 수 있다.
  * 디렉터리를 스캔하지 않는 이유는 Feed 선언의 파라미터를 타입으로 검사하기 위해서다.
  */
+import { anthropicNewsHandler } from './anthropic-news-handler.ts';
+import { devtoHandler } from './devto-handler.ts';
+import { githubTrendingHandler } from './github-trending-handler.ts';
 import { hackernewsHandler } from './hackernews-handler.ts';
+import { hellogithubHandler } from './hellogithub-handler.ts';
+import { huggingfacePapersHandler } from './huggingface-papers-handler.ts';
+import { indiehackersHandler } from './indiehackers-handler.ts';
+import { openrouterModelsHandler } from './openrouter-models-handler.ts';
 import { rssHandler } from './rss-handler.ts';
+import { trendshiftHandler } from './trendshift-handler.ts';
 
 export const handlers = {
   rss: rssHandler,
   hackernews: hackernewsHandler,
+  'openrouter-models': openrouterModelsHandler,
+  'huggingface-papers': huggingfacePapersHandler,
+  hellogithub: hellogithubHandler,
+  devto: devtoHandler,
+  'github-trending': githubTrendingHandler,
+  trendshift: trendshiftHandler,
+  indiehackers: indiehackersHandler,
+  'anthropic-news': anthropicNewsHandler,
 };
 
 /** 등록된 Handler 이름. Feed 선언의 `handler` 값이 된다. */

@@ -26,6 +26,19 @@ const YOUTUBE_ATOM_XML = `<?xml version="1.0"?>
   </entry>
 </feed>`;
 
+const PRODUCT_HUNT_ATOM_XML = `<?xml version="1.0"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <id>tag:www.producthunt.com,2005:Post/1</id><title>Cuey</title>
+    <link rel="alternate" href="https://www.producthunt.com/products/cuey"/>
+    <content type="html">          &lt;p&gt;
+            Compare answers in one tab.
+          &lt;/p&gt;
+          &lt;p&gt;&lt;a href="x"&gt;Discussion&lt;/a&gt; | &lt;a href="y"&gt;Link&lt;/a&gt;&lt;/p&gt;
+</content>
+  </entry>
+</feed>`;
+
 describe('rssHandler', () => {
   it('RSS 항목을 EntryDraft로 바꾸고, 링크나 제목이 없는 항목은 버린다', async () => {
     const drafts = await rssHandler.fetchEntries({ url: 'https://example.com/rss' }, { httpClient: fakeHttpClientReturning(RSS_XML) });
@@ -53,5 +66,13 @@ describe('rssHandler', () => {
         publishedAt: new Date('2026-09-22T23:00:10Z'),
       }),
     ]);
+  });
+
+  it('요약은 본문 HTML의 태그를 걷어내고 공백을 합친 평문이다', async () => {
+    const drafts = await rssHandler.fetchEntries(
+      { url: 'https://www.producthunt.com/feed' },
+      { httpClient: fakeHttpClientReturning(PRODUCT_HUNT_ATOM_XML) },
+    );
+    expect(drafts[0].summary).toBe('Compare answers in one tab. Discussion | Link');
   });
 });

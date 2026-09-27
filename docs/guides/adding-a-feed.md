@@ -50,11 +50,12 @@ Handler 안에서 재시도·타임아웃·저장·중복 확인을 직접 구�
 | `externalId` | | 정보원이 주는 고유 ID(글 번호, 영상 ID, guid). **있으면 반드시 넣는다.** 없으면 정규화한 URL로 중복을 판정한다 |
 | `publishedAt` | | 정보원이 준 게시 시각(`Date`). 표시용이다. 정렬은 처음 수집한 순서(First Seen)로 한다 |
 | `author` | | 작성자 이름 하나(문자열) |
-| `summary` | | 짧은 **평문** 요약. HTML을 넣지 않는다. 원문 본문을 저장하지 않으므로 짧게 자른다 |
+| `summary` | | 짧은 **평문** 요약. `toSummaryText(html)`(`summary-text.ts`)로 만든다. 태그를 걷고 공백을 합쳐 500자로 자른다 |
 | `extra` | | Feed 고유 필드 중 **화면에 보여 줄 것**(예: HN의 `score`, `commentCount`, `commentsUrl`) |
 | `raw` | ✅ | 정보원이 준 원본 그대로. 내부 보존용이며 API로 나가지 않는다(ADR-0003) |
 
 화면(`web/src/entry-card.tsx`)은 `extra`의 `score`, `commentCount`, `commentsUrl`을 알아서 보여 준다.
+그래서 인기도(추천수, 좋아요, 기간 내 스타 수)는 `score`에, 댓글 수는 `commentCount`에 넣는다.
 다른 필드를 화면에 보이려면 그때 `entry-card.tsx`를 고친다.
 
 ## 3. 어떤 경우인가
@@ -73,6 +74,14 @@ Handler 안에서 재시도·타임아웃·저장·중복 확인을 직접 구�
 |---|---|---|---|
 | `rss` | `rss-handler.ts` | `{ url }` | RSS·Atom 전부. YouTube 채널은 `https://www.youtube.com/feeds/videos.xml?channel_id=<채널ID>` |
 | `hackernews` | `hackernews-handler.ts` | `{ section: 'best' \| 'show' }` | Hacker News 공식 API |
+| `openrouter-models` | `openrouter-models-handler.ts` | `{}` | OpenRouter 모델 목록 API |
+| `huggingface-papers` | `huggingface-papers-handler.ts` | `{ period: 'week' \| 'month' }` | HF Papers API. 지난주·지난달 추천수 상위 30편 |
+| `hellogithub` | `hellogithub-handler.ts` | `{}` | HelloGitHub 추천 저장소 API |
+| `devto` | `devto-handler.ts` | `{ topDays }` | dev.to API. 최근 N일 반응 상위 30개 |
+| `github-trending` | `github-trending-handler.ts` | `{ since: 'daily' \| 'weekly' \| 'monthly' }` | GitHub Trending HTML |
+| `trendshift` | `trendshift-handler.ts` | `{}` | Trendshift 첫 화면의 JSON-LD |
+| `indiehackers` | `indiehackers-handler.ts` | `{}` | Indie Hackers 지난주 인기글 HTML |
+| `anthropic-news` | `anthropic-news-handler.ts` | `{}` | Anthropic 뉴스 목록 HTML |
 
 RSS가 없는 사이트는 RSSHub 라우트(`lib/routes/<site>/`)를 열어 **어떤 주소를 호출하는지만** 참고한다.
 RSSHub는 AGPL-3.0이므로 코드를 복사하지 않는다(ADR-0006). 공식 RSS가 있으면 RSSHub를 거치지 말고 그것을 쓴다.
@@ -134,8 +143,12 @@ export const exampleHandler = defineHandler<{ period: 'day' | 'week' }>({
 지킬 것:
 
 - 파라미터 타입(`defineHandler<{ … }>`)을 반드시 선언한다. Feed 선언이 이 타입으로 검사된다.
-- HTML은 `httpClient(url, { responseType: 'text' })`로 받아 파싱한다.
+- HTML은 `httpClient(url, { responseType: 'text' })`로 받아 `cheerio`로 파싱한다.
+  파싱은 `parse…Page(html)` 함수로 따로 export해서 HTML 조각으로 테스트한다(`github-trending-handler.ts` 참고).
+  페이지에 JSON-LD나 내장 JSON이 있으면 클래스 이름 대신 그것을 읽는다(`trendshift-handler.ts`). 화면 구조가 바뀌어도 덜 깨진다.
   RSS·Atom 문자열은 `rss-parser`의 `parseString`을 쓴다(`rss-handler.ts` 참고).
+- 순위 목록(트렌드, 주간 인기)은 "끝난 기간"을 가져오면 몇 번을 수집해도 결과가 같다
+  (`huggingface-papers-handler.ts`, `indiehackers-handler.ts`). 진행 중인 기간을 가져오면 추천수가 적을 때의 글이 먼저 들어온다.
 - 요청을 여러 번 보내도 된다(목록 조회 → 항목별 조회 등). 병렬로 보낼 때는 개수에 상한을 둔다.
 - 제목이나 링크가 없는 항목은 걸러서 버린다. 예외를 던지면 Fetch Attempt 전체가 실패한다.
 - 예외는 잡지 않는다. 정보원이 실패하면 그대로 던지면 코어가 `failed`로 기록한다.

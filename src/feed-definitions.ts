@@ -26,4 +26,23 @@ export type FeedDefinition = { [Name in HandlerName]: FeedDefinitionUsing<Name> 
 export const feedDefinitions: FeedDefinition[] = [
   { id: 'hn-best', title: 'Hacker News Best', handler: 'hackernews', params: { section: 'best' }, intervalMinutes: 60 },
   { id: 'hn-show', title: 'Show HN', handler: 'hackernews', params: { section: 'show' }, intervalMinutes: 60 },
+  { id: 'geeknews', title: 'GeekNews', handler: 'rss', params: { url: 'https://news.hada.io/rss/news' }, intervalMinutes: 60 },
+  { id: 'producthunt', title: 'Product Hunt', handler: 'rss', params: { url: 'https://www.producthunt.com/feed' }, intervalMinutes: 180 },
+  { id: 'techcrunch', title: 'TechCrunch', handler: 'rss', params: { url: 'https://techcrunch.com/feed/' }, intervalMinutes: 60 },
+  { id: 'openai-news', title: 'OpenAI News', handler: 'rss', params: { url: 'https://openai.com/news/rss.xml' }, intervalMinutes: 360 },
+  {
+    id: 'claude-code-releases',
+    title: 'Claude Code 릴리스',
+    handler: 'rss',
+    params: { url: 'https://github.com/anthropics/claude-code/releases.atom' },
+    intervalMinutes: 360,
+  },
+  { id: 'openrouter-models', title: 'OpenRouter 새 모델', handler: 'openrouter-models', params: {}, intervalMinutes: 360 },
+  { id: 'hf-papers-weekly', title: 'Hugging Face 주간 인기 논문', handler: 'huggingface-papers', params: { period: 'week' }, intervalMinutes: 720 },
+  { id: 'hellogithub', title: 'HelloGitHub', handler: 'hellogithub', params: {}, intervalMinutes: 1440 },
+  { id: 'devto-top-week', title: 'dev.to 주간 인기글', handler: 'devto', params: { topDays: 7 }, intervalMinutes: 360 },
+  { id: 'github-trending-daily', title: 'GitHub Trending', handler: 'github-trending', params: { since: 'daily' }, intervalMinutes: 360 },
+  { id: 'trendshift', title: 'Trendshift', handler: 'trendshift', params: {}, intervalMinutes: 360 },
+  { id: 'indiehackers-top-week', title: 'Indie Hackers 주간 인기글', handler: 'indiehackers', params: {}, intervalMinutes: 720 },
+  { id: 'anthropic-news', title: 'Anthropic News', handler: 'anthropic-news', params: {}, intervalMinutes: 360 },
 ];
