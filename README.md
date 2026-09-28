@@ -38,6 +38,12 @@ docker compose -f compose.yml -f compose.local.yml up --build
 - Feed 하나를 지금 수집: `docker compose -f compose.yml -f compose.local.yml run --rm collector node src/collector/main.ts --once hn-best`
 - `apps/backend/src/`를 고치면 app과 collector가 자동으로 재시작한다
 
+## 배포
+
+`main`에 push하면 VPS Jenkins의 `vps-info` Job이 테스트 → `.env` 복호화 → `docker compose up --wait` 순으로 배포합니다.
+Job 정의와 nginx(`info.kkh-hub.tech`, Basic Auth)는 `vps-infra`가 소유합니다.
+운영 접속 정보는 `secrets/env.prod.sops.env`에 SOPS로 암호화해 둡니다(`sops edit secrets/env.prod.sops.env`).
+
 ## 개발 명령
 
 ```bash

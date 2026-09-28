@@ -1,0 +1,7 @@
+# SOPS 암호화 규칙. vps-infra와 같은 age 공개키를 써서 VPS Jenkins의 key 하나로 복호화한다.
+# 복호화할 때 SOPS는 이 규칙이 아니라 파일 확장자로 형식을 판단하므로 `.sops.env`로 끝낸다.
+creation_rules:
+  - path_regex: (^|/)secrets/env\..*\.sops\.env$
+    input_type: dotenv
+    output_type: dotenv
+    age: age1mh8hd0zyjkx53jldewvwf4en9yn0mt96uqhaz3zj8yupemvupp4qv0amj8

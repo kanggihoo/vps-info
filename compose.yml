@@ -1,4 +1,7 @@
 # 배포용 구성. PostgreSQL과 네트워크는 vps-infra가 소유한다.
+# 프로젝트 이름을 고정한다. 없으면 Jenkins workspace 디렉터리 이름이 프로젝트 이름이 된다.
+name: vps-info
+
 x-database-env: &database-env
   environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD]
 
@@ -16,7 +19,16 @@ services:
     restart: unless-stopped
     depends_on:
       migrate: { condition: service_completed_successfully }
-    networks: [vps_proxy, vps_data]
+    # slim 이미지에 curl이 없어 node로 확인한다. `up --wait`가 이 상태를 기다린다.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8000/api/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 5s
+      retries: 12
+    networks:
+      vps_data: {}
+      # vps_proxy는 여러 프로젝트가 공유한다. 서비스 이름 `app`은 겹칠 수 있어 nginx는 이 alias로 찾는다.
+      vps_proxy:
+        aliases: [vps-info-app]
 
   collector:
     build: { context: ., target: collector }
