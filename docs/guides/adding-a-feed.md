@@ -296,6 +296,15 @@ Ranked Feed는 순위표로 열리고, 목록에는 속이 빈 NEW 알약이 뜬
 | Feed 다시 받기 | 같은 `id`로 선언을 되살린다. 기존 Entry와 읽음 상태가 이어진다 |
 | 망가진 Feed 찾기 | `select id, consecutive_failures from feed where consecutive_failures > 0;` |
 
+모든 환경(로컬·운영)에 같이 적용해야 하는 운영 값 변경은 손으로 SQL을 치지 말고 **데이터 마이그레이션**으로 남긴다.
+Stream Feed를 Ranked Feed로 바꾸면서 주기도 바꾸는 경우가 여기에 해당한다(`apps/backend/drizzle/0002_ranked_feed_interval.sql` 참고).
+
+1. `apps/backend`에서 `npx drizzle-kit generate --custom --name <무엇을 바꾸는지>`로 빈 마이그레이션을 만든다.
+2. `update` 문을 쓰되, **이전 값일 때만** 바꾸는 조건을 붙인다(`… and interval_minutes = 60`). 운영 중에 따로 정한 값을 덮어쓰지 않기 위해서다(ADR-0004).
+3. 새 DB에서는 Feed 행이 아직 없어 0건이 바뀐다. 그래서 선언의 값도 같이 바꿔 둔다.
+
+한 환경에서만 잠깐 바꾸는 값(로컬에서 지금 바로 다시 수집하기 등)은 위 표처럼 SQL로 바꾼다.
+
 **하지 말 것**
 
 - Feed `id` 바꾸기: 새 Feed가 되고 기존 Entry와 읽음 상태가 끊긴다.
