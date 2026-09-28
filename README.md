@@ -22,7 +22,7 @@ npm workspaces 모노레포입니다(ADR-0008).
 | `migrate` 컨테이너 | Drizzle 마이그레이션을 적용하고 종료합니다. `app`과 `collector`는 이 작업이 성공한 뒤에 뜹니다 |
 | PostgreSQL | 운영은 `vps-infra`가 소유합니다. 로컬은 `compose.local.yml`의 전용 컨테이너를 씁니다 |
 
-앱에는 사용자 개념이 없고, `info.kkh-hub.tech`는 현재 인증 없이 공개되어 있습니다.
+접근 제어는 상위 nginx의 Basic Auth가 맡고, 앱에는 사용자 개념이 없습니다.
 
 ## 로컬 실행
 
@@ -41,7 +41,7 @@ docker compose -f compose.yml -f compose.local.yml up --build
 ## 배포
 
 `main`에 push하면 VPS Jenkins의 `vps-info` Job이 테스트 → `.env` 복호화 → `docker compose up --wait` 순으로 배포합니다.
-Job 정의와 nginx(`info.kkh-hub.tech`)는 `vps-infra`가 소유합니다.
+Job 정의와 nginx(`info.kkh-hub.tech`, Basic Auth)는 `vps-infra`가 소유합니다.
 운영 접속 정보는 `secrets/env.prod.sops.env`에 SOPS로 암호화해 둡니다(`sops edit secrets/env.prod.sops.env`).
 
 ## 개발 명령
