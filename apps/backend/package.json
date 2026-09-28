@@ -1,0 +1,27 @@
+{
+  "name": "@signal-archive/backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@signal-archive/api-types": "*",
+    "@fastify/static": "^10.1.4",
+    "cheerio": "^1.2.0",
+    "drizzle-orm": "^0.45.3",
+    "fastify": "^5.12.5",
+    "ofetch": "^1.5.1",
+    "pg": "^8.23.0",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.11",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
+}

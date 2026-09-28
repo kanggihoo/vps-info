@@ -1,0 +1,14 @@
+{
+  // 화면 코드. Vite가 번들하므로 bundler 해석을 쓰고, shadcn/ui가 만드는 `@/` import와 확장자 없는 import를 허용한다.
+  // 설정 파일과 scripts/는 Node에서 돌아서 tsconfig.node.json이 따로 검사한다.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["vite/client"],
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "jsx": "react-jsx",
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["src"]
+}

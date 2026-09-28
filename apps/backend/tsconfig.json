@@ -1,0 +1,12 @@
+{
+  // 서버·수집기. 빌드하지 않고 Node가 .ts를 직접 실행하므로 nodenext 해석과 타입 제거 가능한 문법만 쓴다.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "erasableSyntaxOnly": true,
+    "types": ["node"],
+    "lib": ["es2023"]
+  },
+  "include": ["src", "drizzle.config.ts", "vitest.config.ts"]
+}

@@ -10,12 +10,12 @@
 | 문서 | 내용 |
 |---|---|
 | [CONTEXT.md](../CONTEXT.md) | 도메인 용어(Feed, Entry, Handler, Dedup Key, First Seen, Read Cursor, Opened At, Bookmark, Fetch Attempt) |
-| [docs/adr/](./adr/) | 확정된 아키텍처 결정 0001–0007 |
+| [docs/adr/](./adr/) | 확정된 아키텍처 결정 0001–0008 |
 | [docs/adr/decisions-later.md](./adr/decisions-later.md) | 미뤄 둔 결정 |
 | [docs/feeds.md](./feeds.md) | 지금 수집하는 Feed 목록과 각 Feed의 출처·주기 |
 | [docs/guides/adding-a-feed.md](./guides/adding-a-feed.md) | Feed·Handler 추가 절차와 검증 방법 |
 | [docs/conventions/typescript.md](./conventions/typescript.md) | 코드 규칙 |
-| [web/DESIGN.md](../web/DESIGN.md) | 화면 디자인 토큰과 규칙 |
+| [apps/web/DESIGN.md](../apps/web/DESIGN.md) | 화면 디자인 토큰과 규칙 |
 | [docs/diagrams/](./diagrams/) | 구조·수명주기·Fetch Attempt 시퀀스 다이어그램 |
 
 ## 1. 지금까지 한 것
@@ -53,15 +53,21 @@ Feed별 출처, 가져오는 방식, 주기는 [feeds.md](./feeds.md)에 있다.
 
 ### 화면 디자인 시스템 (ADR-0007)
 
-- `web/DESIGN.md`에 Mintlify 기반 토큰(YAML)과 규칙을 두었다. 다크 값은 직접 정했다.
-- `npm run design:tokens`가 토큰으로 `web/src/styles/`의 CSS 변수와 글자 단계 목록을 만든다. 어긋나면 `npm test`가 실패한다.
+- `apps/web/DESIGN.md`에 Mintlify 기반 토큰(YAML)과 규칙을 두었다. 다크 값은 직접 정했다.
+- `npm run design:tokens`가 토큰으로 `apps/web/src/styles/`의 CSS 변수와 글자 단계 목록을 만든다. 어긋나면 `npm test`가 실패한다.
 - Tailwind v4, shadcn/ui(radix-vega: button·badge·skeleton·tooltip), lucide-react, Geist·Pretendard(자체 서빙)를 붙였다.
 - 기존 화면을 모두 옮기면서 스켈레톤·빈 상태·오류+다시 시도·다크 모드 토글·24시간제 시각을 넣었다.
 - 확인: 타입 검사, 단위 테스트, `vite build`, Docker 이미지 빌드, headless Chrome으로 라이트·다크·390px 화면.
   연속 실패 툴팁과 키보드 포커스 링은 화면으로 확인하지 못했다(실패 중인 Feed가 없었다).
 - 도구 문제
-  - shadcn 공식 CLI는 이 저장소에서 쓰지 못한다(ADR-0007). `npm run ui:add -- <이름>`을 쓴다.
+  - shadcn 컴포넌트는 `npm run ui:add -- <이름>`으로 받는다. 레지스트리 파일이 shadcn의 새 `cn` 패키지를 직접 import해서, 그대로 두면 우리 글자 단계 등록을 거치지 않는다(ADR-0007).
   - Windows에서 `npx @google/design.md`는 아무 출력 없이 끝난다(실행 파일 이름이 `.md`라서로 보임). `npm run design:lint`는 `designmd` 별칭으로 부른다.
+
+### 모노레포 분리 (ADR-0008)
+
+- `apps/backend`(server + collector), `apps/web`, `packages/api-types`로 나눴다. 루트는 워크스페이스와 위임 스크립트만 둔다.
+- 확인: 타입 검사(워크스페이스 3개), 단위 테스트 33개, DB 통합 테스트 포함 52개(`test:db`), Docker 이미지 빌드,
+  app 컨테이너의 `/api/health`·화면 서빙, 실행 이미지에 화면 패키지가 없는지(`node_modules` 57MB).
 
 ### 조사하면서 알게 된 것
 
@@ -128,12 +134,20 @@ Feed별 출처, 가져오는 방식, 주기는 [feeds.md](./feeds.md)에 있다.
 - [ ] **화면에 `extra` 필드 더 보여 주기**
   - 지금은 `score`, `commentCount`, `commentsUrl`만 보인다.
   - GitHub의 "기간 내 스타 수"도 `score`에 넣어서 "▲ 2527"로 보인다.
-  - `language`, `stars`, `subject`, `arxivUrl` 같은 필드를 보이려면 `web/src/entry-card.tsx`를 고친다.
+  - `language`, `stars`, `subject`, `arxivUrl` 같은 필드를 보이려면 `apps/web/src/entry-card.tsx`를 고친다.
 - [ ] **Product Hunt 요약 끝의 "Discussion | Link"**
   - 피드 본문에 원래 있는 문구다. 거슬리면 없앤다.
 - [ ] **문서가 코드와 어긋나지 않게 하는 장치**
   - `npm run check` 하나로 타입 검사, 테스트, `drizzle-kit check`, 문서 속 경로 존재 여부를 검사한다.
   - AGENTS.md에 "X를 바꾸면 Y 문서를 고친다" 표를 둔다.
+- [ ] **로컬 Compose 네트워크 이름이 고정이라 체크아웃 두 곳의 스택이 섞인다.**
+  - `compose.local.yml`의 `signal_archive_local_data`는 프로젝트 이름과 상관없이 같은 이름이다.
+  - 메인 체크아웃과 worktree에서 동시에 띄우면 `postgres` 이름이 두 컨테이너로 풀려 요청이 무작위로 갈린다.
+    `test:db`가 "테스트 DB가 없다"며 간헐적으로 실패한 원인이었다.
+  - `name:`을 지워 네트워크를 Compose 프로젝트별로 만들면 된다. 운영 compose.yml의 외부 네트워크 이름과는 무관하다.
+- [ ] **shadcn의 새 `cn` 패키지로 옮길지**
+  - `cn`(shadcn·aidenybai, 2026-09-22 공개)은 clsx + tailwind-merge를 대체한다. 커스텀 글자 단계는 `cn/config`의 `createCn`으로 등록한다.
+  - `cn/vite` 플러그인은 `@theme`의 `--text-*`를 읽어 자동 등록한다고 한다(확인 전). 되면 `design-token-names.ts` 생성과 `ui:add`의 import 바꾸기가 필요 없어질 수 있다.
 - [ ] **모바일 Feed 탭 줄이 선택한 Feed로 스크롤되지 않는다.**
   - 탭이 많아 선택한 Feed가 화면 밖에 있으면 직접 옆으로 밀어야 한다. 선택 시 `scrollIntoView({ inline: nearest })`로 맞추면 된다.
 - [ ] **알려진 한계: 타임라인 맨 아래를 보고 있을 때 새 Entry가 자동으로 붙지 않는다.**

@@ -2,13 +2,27 @@
 
 백엔드(Fastify), 수집기, 프론트엔드(React)를 모두 TypeScript로 작성한다.
 
+## 저장소 구조
+
+npm workspaces 모노레포다(ADR-0008). 루트 package.json은 워크스페이스를 묶고 명령을 넘겨주기만 하고, 코드는 두지 않는다.
+
+| 워크스페이스 | 이름 | 내용 |
+|---|---|---|
+| `apps/backend` | `@signal-archive/backend` | 서버(`src/server`)와 수집기(`src/collector`), DB 스키마·마이그레이션 |
+| `apps/web` | `@signal-archive/web` | React 화면, DESIGN.md, 토큰 생성·컴포넌트 추가 스크립트 |
+| `packages/api-types` | `@signal-archive/api-types` | 서버와 화면이 함께 쓰는 API 응답 타입(타입만) |
+
+- 의존성은 쓰는 워크스페이스의 package.json에 넣는다(`npm i <패키지> -w @signal-archive/web`). 루트에는 넣지 않는다.
+- 워크스페이스끼리는 패키지 이름으로 import한다(`@signal-archive/api-types`). `../../`로 다른 워크스페이스 파일을 가리키지 않는다.
+- 공통 컴파일 옵션은 `tsconfig.base.json`에 두고, 모듈 해석과 대상 환경은 워크스페이스의 tsconfig가 정한다.
+
 ## 실행과 타입
 
 - TypeScript의 strict mode를 유지하고 JavaScript 파일을 추가하지 않는다.
 - 서버와 수집기는 빌드하지 않고 Node의 타입 제거 기능으로 `.ts`를 직접 실행한다(`node src/collector/main.ts`).
   `tsc`는 타입 검사(`npm run typecheck`)에만 쓴다.
 - 그래서 상대 경로 import에는 `.ts` 확장자를 붙이고, 타입 제거만으로 지워지지 않는 문법
-  (`enum`, `namespace`, 생성자 매개변수 프로퍼티)은 쓰지 않는다. `tsconfig.json`의 `erasableSyntaxOnly`가 이를 검사한다.
+  (`enum`, `namespace`, 생성자 매개변수 프로퍼티)은 쓰지 않는다. `apps/backend/tsconfig.json`의 `erasableSyntaxOnly`가 이를 검사한다.
 
 ## 이름
 
@@ -35,21 +49,21 @@
 ## Handler
 
 - Handler는 코어가 주입한 HTTP 클라이언트만 쓴다. 재시도·타임아웃·저장을 Handler 안에서 구현하지 않는다 (ADR-0006).
-- Handler는 `src/collector/handlers/index.ts`에 import 한 줄로 등록하고, 파라미터 타입을 선언한다 (ADR-0006).
+- Handler는 `apps/backend/src/collector/handlers/index.ts`에 import 한 줄로 등록하고, 파라미터 타입을 선언한다 (ADR-0006).
 - HTML은 `cheerio`로 파싱하고, 파싱 함수(`parse…Page`)를 export해서 HTML 조각으로 테스트한다. `summary`는 `toSummaryText`로 만든다.
 - RSSHub 라우트 코드를 복사하지 않는다. 엔드포인트와 파라미터만 참고한다 (AGPL-3.0, ADR-0006).
 
 ## 프론트엔드
 
 - 브라우저의 HTTP 호출과 응답 타입은 프론트엔드의 API 모듈 한 곳에 둔다. 요청 경로는 상대 `/api`를 쓴다.
-- 화면 코드는 `web/tsconfig.json`(bundler 해석)으로 검사한다. `npm run typecheck`가 루트 설정과 함께 돌린다 (ADR-0007).
-- `web/src` 안의 모듈은 `@/` 별칭으로 확장자 없이 import한다(`@/components/ui/button`). 같은 디렉터리의 상대 import는 지금처럼 확장자를 붙인다.
-- 스타일은 [web/DESIGN.md](../../web/DESIGN.md)를 따른다. 색·글자·모서리는 토큰 유틸리티(`bg-brand`, `text-entry-title`, `rounded-lg`)로만 쓰고, Tailwind 기본 팔레트(`bg-zinc-100`)와 임의 색 값(`bg-[#123456]`)은 쓰지 않는다.
-- 토큰을 바꿀 때는 `web/DESIGN.md`의 YAML을 고치고 `npm run design:tokens`를 돌린다. `web/src/styles/`의 생성 파일은 손으로 고치지 않는다.
+- 화면 코드는 `apps/web/tsconfig.json`(bundler 해석)으로, 그 워크스페이스의 설정 파일과 `scripts/`는 `tsconfig.node.json`으로 검사한다. 루트 `npm run typecheck`가 모든 워크스페이스를 돌린다 (ADR-0007).
+- `apps/web/src` 안의 모듈은 `@/` 별칭으로 확장자 없이 import한다(`@/components/ui/button`). 같은 디렉터리의 상대 import는 지금처럼 확장자를 붙인다.
+- 스타일은 [apps/web/DESIGN.md](../../apps/web/DESIGN.md)를 따른다. 색·글자·모서리는 토큰 유틸리티(`bg-brand`, `text-entry-title`, `rounded-lg`)로만 쓰고, Tailwind 기본 팔레트(`bg-zinc-100`)와 임의 색 값(`bg-[#123456]`)은 쓰지 않는다.
+- 토큰을 바꿀 때는 `apps/web/DESIGN.md`의 YAML을 고치고 `npm run design:tokens`를 돌린다. `apps/web/src/styles/`의 생성 파일은 손으로 고치지 않는다.
 - 클래스 이름을 합칠 때는 `cn`(`@/lib/class-names`)을 쓴다.
-- 공통 컴포넌트는 shadcn/ui를 `npm run ui:add -- <이름>`으로 받아 `web/src/components/ui/`에 둔다. 이 디렉터리는 shadcn 원본을 거의 그대로 두는 곳이라 이름·주석 규칙을 적용하지 않는다. 화면 전용 컴포넌트는 `web/src/`에 둔다.
+- 공통 컴포넌트는 shadcn/ui를 `npm run ui:add -- <이름>`으로 받아 `apps/web/src/components/ui/`에 둔다. 이 디렉터리는 shadcn 원본을 거의 그대로 두는 곳이라 이름·주석 규칙을 적용하지 않는다. 화면 전용 컴포넌트는 `apps/web/src/`에 둔다.
 - 아이콘은 `lucide-react`만 쓴다. 이모지와 유니코드 기호를 아이콘 대신 쓰지 않는다.
 
 ## 테스트
 
-- 테스트는 Vitest로 작성하고, 테스트 대상 파일 옆에 `<파일명>.test.ts`로 둔다.
+- 테스트는 Vitest로 작성하고, 테스트 대상 파일 옆에 `<파일명>.test.ts`로 둔다. Vitest 설정은 워크스페이스마다 있고, 루트 `npm test`가 모두 돌린다.

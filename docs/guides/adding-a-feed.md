@@ -9,7 +9,7 @@
                            (수집만)                      (조회·읽음 상태만)
 ```
 
-- **collector**(`src/collector/`)와 **app**(`src/server/`, `web/`)은 별도 컨테이너다. 둘은 DB로만 연결된다.
+- **collector**(`apps/backend/src/collector/`)와 **app**(`apps/backend/src/server/`, `apps/web/`)은 별도 컨테이너다. 둘은 DB로만 연결된다.
   Feed를 추가하는 일은 거의 전부 collector 쪽이다. app과 화면은 고칠 필요가 없다.
 - collector는 상주하면서 30초마다 `feed.next_run_at`이 지난 Feed를 찾아 **하나씩** 수집한다.
 - Feed 하나를 한 번 수집하는 것을 **Fetch Attempt**라 하고, 성공이든 실패든 `fetch_attempt`에 한 행이 남는다.
@@ -18,7 +18,7 @@
 
 ### Fetch Attempt 한 번의 흐름
 
-`src/collector/fetch-attempt.ts`의 `runFetchAttempt`가 한다.
+`apps/backend/src/collector/fetch-attempt.ts`의 `runFetchAttempt`가 한다.
 
 1. `fetch_attempt`에 `running` 행을 넣는다.
 2. Feed 선언의 `handler`로 등록된 **Handler**를 부른다. Handler는 **EntryDraft 목록만** 돌려준다.
@@ -41,7 +41,7 @@ Handler 안에서 재시도·타임아웃·저장·중복 확인을 직접 구�
 
 ## 2. 공통 형태: EntryDraft
 
-모든 Handler는 정보원이 무엇이든 이 형태로 돌려준다(`src/collector/handlers/define-handler.ts`).
+모든 Handler는 정보원이 무엇이든 이 형태로 돌려준다(`apps/backend/src/collector/handlers/define-handler.ts`).
 
 | 필드 | 필수 | 넣는 값 |
 |---|---|---|
@@ -54,7 +54,7 @@ Handler 안에서 재시도·타임아웃·저장·중복 확인을 직접 구�
 | `extra` | | Feed 고유 필드 중 **화면에 보여 줄 것**(예: HN의 `score`, `commentCount`, `commentsUrl`) |
 | `raw` | ✅ | 정보원이 준 원본 그대로. 내부 보존용이며 API로 나가지 않는다(ADR-0003) |
 
-화면(`web/src/entry-card.tsx`)은 `extra`의 `score`, `commentCount`, `commentsUrl`을 알아서 보여 준다.
+화면(`apps/web/src/entry-card.tsx`)은 `extra`의 `score`, `commentCount`, `commentsUrl`을 알아서 보여 준다.
 그래서 인기도(추천수, 좋아요, 기간 내 스타 수)는 `score`에, 댓글 수는 `commentCount`에 넣는다.
 다른 필드를 화면에 보이려면 그때 `entry-card.tsx`를 고친다.
 
@@ -88,7 +88,7 @@ RSSHub는 AGPL-3.0이므로 코드를 복사하지 않는다(ADR-0006). 공식 R
 
 ## 4. [A] 기존 Handler로 Feed 추가
 
-**고칠 파일은 `src/feed-definitions.ts` 하나다. DB는 직접 건드리지 않는다.**
+**고칠 파일은 `apps/backend/src/feed-definitions.ts` 하나다. DB는 직접 건드리지 않는다.**
 
 ```ts
 export const feedDefinitions: FeedDefinition[] = [
@@ -96,7 +96,7 @@ export const feedDefinitions: FeedDefinition[] = [
   {
     id: 'openai-news',              // 영구 식별자. 한 번 정하면 바꾸지 않는다
     title: 'OpenAI News',           // 화면 왼쪽 목록에 보이는 이름
-    handler: 'rss',                 // src/collector/handlers/index.ts에 등록된 이름
+    handler: 'rss',                 // apps/backend/src/collector/handlers/index.ts에 등록된 이름
     params: { url: 'https://openai.com/news/rss.xml' },  // handler에 맞지 않으면 컴파일 오류
     intervalMinutes: 120,           // 처음 만들 때의 수집 주기(분)
     // allowEmpty: true,            // 새 글이 원래 드물어 0건이 정상인 Feed만
@@ -115,7 +115,7 @@ export const feedDefinitions: FeedDefinition[] = [
 
 ### 5-1. Handler 파일
 
-`src/collector/handlers/<이름>-handler.ts`를 만든다. 아래는 JSON API를 가정한 예시다. 필드 이름은 실제 응답을 보고 맞춘다.
+`apps/backend/src/collector/handlers/<이름>-handler.ts`를 만든다. 아래는 JSON API를 가정한 예시다. 필드 이름은 실제 응답을 보고 맞춘다.
 
 ```ts
 /** Example 사이트의 인기 글 목록을 공개 JSON API로 가져오는 Handler. */
@@ -155,7 +155,7 @@ export const exampleHandler = defineHandler<{ period: 'day' | 'week' }>({
 
 ### 5-2. 등록
 
-`src/collector/handlers/index.ts`에 한 줄을 추가한다. 디렉터리를 스캔하지 않으므로 이 줄이 없으면 쓸 수 없다.
+`apps/backend/src/collector/handlers/index.ts`에 한 줄을 추가한다. 디렉터리를 스캔하지 않으므로 이 줄이 없으면 쓸 수 없다.
 
 ```ts
 import { exampleHandler } from './example-handler.ts';
@@ -186,7 +186,7 @@ it('응답을 EntryDraft로 바꾼다', async () => {
 });
 ```
 
-그다음 4장처럼 `src/feed-definitions.ts`에 Feed를 선언한다.
+그다음 4장처럼 `apps/backend/src/feed-definitions.ts`에 Feed를 선언한다.
 
 ## 6. 확인하기
 
@@ -196,7 +196,7 @@ it('응답을 EntryDraft로 바꾼다', async () => {
 docker compose -f compose.yml -f compose.local.yml up -d --build
 ```
 
-로컬에서는 `src/`를 고치면 collector가 자동으로 재시작되며 새 Feed를 DB에 넣고 곧바로 수집한다.
+로컬에서는 `apps/backend/src/`를 고치면 collector가 자동으로 재시작되며 새 Feed를 DB에 넣고 곧바로 수집한다.
 
 ### 6-1. 코드 검사
 
@@ -266,10 +266,10 @@ from entry where feed_id = 'openai-news' order by id desc limit 5;
 보통은 필요 없다. Feed 고유 필드는 `extra`에, 원본은 `raw`에 넣는다(ADR-0003).
 **모든 Feed에 공통인** 새 필드가 생겼을 때만 스키마를 바꾼다.
 
-1. `src/db/schema.ts`를 고친다.
-2. `npm run db:generate`로 `drizzle/`에 마이그레이션 SQL을 만든다. 생성된 SQL을 읽어 보고 커밋한다.
+1. `apps/backend/src/db/schema.ts`를 고친다.
+2. `npm run db:generate`로 `apps/backend/drizzle/`에 마이그레이션 SQL을 만든다. 생성된 SQL을 읽어 보고 커밋한다.
 3. `docker compose -f compose.yml -f compose.local.yml up -d --build`를 실행하면 `migrate` 컨테이너가 먼저 적용한다.
-4. 화면에 내보내야 하면 `src/server/entry-view.ts`의 `entryViewColumns`와 `src/api-types.ts`의 `EntryView`에 추가한다.
+4. 화면에 내보내야 하면 `apps/backend/src/server/entry-view.ts`의 `entryViewColumns`와 `packages/api-types/src/index.ts`의 `EntryView`에 추가한다.
 
 ## 9. 문제 해결
 
@@ -285,7 +285,7 @@ from entry where feed_id = 'openai-news' order by id desc limit 5;
 
 - [ ] RSS·기존 Handler로 되는지 먼저 확인했다
 - [ ] (새 Handler라면) 파일 작성, `handlers/index.ts` 등록, 테스트 추가
-- [ ] `src/feed-definitions.ts`에 `id`(영구), `title`, `handler`, `params`, `intervalMinutes` 선언
+- [ ] `apps/backend/src/feed-definitions.ts`에 `id`(영구), `title`, `handler`, `params`, `intervalMinutes` 선언
 - [ ] `npm run typecheck`, `npm test`, `npm run test:db` 통과
 - [ ] `--once`로 N건 저장, 한 번 더 실행해 0건 확인
 - [ ] DB에서 `dedup_key`, `title`, `url`, `published_at`, `extra` 확인

@@ -18,11 +18,11 @@ services:
   app:
     command: ["node", "--watch", "src/server/main.ts"]
     ports: ["${APP_PORT:-8000}:8000"]  # 호스트 포트가 겹치면 .env의 APP_PORT로 바꾼다
-    volumes: ["./src:/app/src"]
+    volumes: ["./apps/backend/src:/app/apps/backend/src"]
 
   collector:
     command: ["node", "--watch", "src/collector/main.ts"]
-    volumes: ["./src:/app/src"]
+    volumes: ["./apps/backend/src:/app/apps/backend/src"]
 
   # DB 통합 테스트. `npm run test:db`로 실행하며 평소 `up`에는 뜨지 않는다.
   test:

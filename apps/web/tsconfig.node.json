@@ -1,0 +1,12 @@
+{
+  // Node에서 도는 화면 쪽 파일(Vite·Vitest 설정, scripts/). Node가 .ts를 직접 실행한다.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "erasableSyntaxOnly": true,
+    "types": ["node"],
+    "lib": ["es2023", "dom"]
+  },
+  "include": ["vite.config.ts", "vitest.config.ts", "scripts"]
+}

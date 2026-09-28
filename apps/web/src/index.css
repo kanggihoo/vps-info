@@ -1,0 +1,22 @@
+/* 화면 스타일 진입점. 값은 design-tokens.css(DESIGN.md에서 생성)에만 있고, 여기서는 Tailwind를 켜고 기본 스타일만 둔다. */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./styles/design-tokens.css";
+
+/* 다크 모드는 OS 설정이 아니라 <html class="dark"> 토글로 켠다(DESIGN.md). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}

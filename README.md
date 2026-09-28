@@ -7,6 +7,14 @@ Feed별로 시간순으로 읽는 개인용 리더입니다. 용어는 [CONTEXT.
 
 ## 구조
 
+npm workspaces 모노레포입니다(ADR-0008).
+
+| 워크스페이스 | 내용 |
+| --- | --- |
+| `apps/backend` | 서버(Fastify API)와 수집기, DB 스키마·마이그레이션 |
+| `apps/web` | React 화면과 디자인 토큰(`DESIGN.md`) |
+| `packages/api-types` | 서버와 화면이 함께 쓰는 API 응답 타입 |
+
 | 구성요소 | 역할 |
 | --- | --- |
 | `app` 컨테이너 | Fastify API와 React 빌드 결과를 함께 서빙합니다 |
@@ -28,7 +36,7 @@ docker compose -f compose.yml -f compose.local.yml up --build
 - 화면: `http://localhost:8000` (app 컨테이너가 빌드된 화면을 서빙)
 - 상태 확인: `curl localhost:8000/api/health`
 - Feed 하나를 지금 수집: `docker compose -f compose.yml -f compose.local.yml run --rm collector node src/collector/main.ts --once hn-best`
-- `src/`를 고치면 app과 collector가 자동으로 재시작한다
+- `apps/backend/src/`를 고치면 app과 collector가 자동으로 재시작한다
 
 ## 개발 명령
 
@@ -38,10 +46,10 @@ npm run dev:web        # 화면 개발 서버(HMR). /api는 app 컨테이너로 
 npm run typecheck      # 타입 검사
 npm test               # 단위 테스트(DB 불필요)
 npm run test:db        # DB 통합 테스트까지 전부(컨테이너에서 로컬 postgres의 별도 테스트 DB 사용)
-npm run db:generate    # src/db/schema.ts를 바꾼 뒤 마이그레이션 SQL 생성
-npm run design:tokens  # web/DESIGN.md의 토큰으로 web/src/styles/ 생성
-npm run design:lint    # web/DESIGN.md 토큰 참조·대비 검사
-npm run ui:add -- button  # shadcn/ui 컴포넌트를 web/src/components/ui/에 추가
+npm run db:generate    # apps/backend/src/db/schema.ts를 바꾼 뒤 마이그레이션 SQL 생성
+npm run design:tokens  # apps/web/DESIGN.md의 토큰으로 apps/web/src/styles/ 생성
+npm run design:lint    # apps/web/DESIGN.md 토큰 참조·대비 검사
+npm run ui:add -- button  # shadcn/ui 컴포넌트를 apps/web/src/components/ui/에 추가
 ```
 
 ## 결정 기록
@@ -52,4 +60,4 @@ npm run ui:add -- button  # shadcn/ui 컴포넌트를 web/src/components/ui/에 
 - 아키텍처 결정: [docs/adr/](./docs/adr/)
 - 미결 항목: [docs/adr/decisions-later.md](./docs/adr/decisions-later.md)
 - 코드 규칙: [docs/conventions/typescript.md](./docs/conventions/typescript.md)
-- 화면 디자인: [web/DESIGN.md](./web/DESIGN.md)
+- 화면 디자인: [apps/web/DESIGN.md](./apps/web/DESIGN.md)

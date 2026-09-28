@@ -1,6 +1,6 @@
 # 등록된 Feed
 
-지금 수집하는 Feed 목록을 사람이 읽기 좋게 정리한 문서다. 실제 선언은 [`src/feed-definitions.ts`](../src/feed-definitions.ts)에 있다.
+지금 수집하는 Feed 목록을 사람이 읽기 좋게 정리한 문서다. 실제 선언은 [`apps/backend/src/feed-definitions.ts`](../apps/backend/src/feed-definitions.ts)에 있다.
 Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이 고친다.
 
 - **주기**는 처음 등록할 때의 값이다. 운영 중에 DB에서 바꿨다면 DB 값이 우선한다
