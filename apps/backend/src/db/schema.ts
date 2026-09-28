@@ -3,13 +3,13 @@
  * 이 파일을 바꾼 뒤에는 `npm run db:generate`로 마이그레이션 SQL을 만든다.
  */
 import { sql } from 'drizzle-orm';
-import { bigint, check, index, integer, jsonb, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { bigint, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, unique } from 'drizzle-orm/pg-core';
 
 /**
  * Feed의 실행 상태와 운영 값.
  *
  * Feed의 정의(Handler, 파라미터, 제목)는 코드(`src/feed-definitions.ts`)에 있고, 여기에는 두지 않는다.
- * 수집 주기처럼 운영하면서 바꾸는 값만 DB가 소유한다(ADR-0004).
+ * 수집 주기처럼 운영하면서 바꾸는 값만 DB가 소유한다(ADR-0004, ADR-0009).
  */
 export const feed = pgTable('feed', {
   /** 코드의 Feed 정의와 같은 식별자. 한 번 정하면 바꾸지 않는다. */
@@ -20,8 +20,10 @@ export const feed = pgTable('feed', {
   nextRunAt: timestamp('next_run_at', { withTimezone: true }).notNull().defaultNow(),
   /** 연속으로 실패한 Fetch Attempt 수. 성공하면 0이 된다(ADR-0005). */
   consecutiveFailures: integer('consecutive_failures').notNull().default(0),
-  /** Read Cursor. 마지막으로 지나간 Entry의 id이며, 이보다 큰 id가 안 읽음이다. */
+  /** Read Cursor. 마지막으로 지나간 Entry의 id이며, 이보다 큰 id가 안 읽음이다. Stream Feed만 쓴다. */
   readCursorEntryId: bigint('read_cursor_entry_id', { mode: 'number' }),
+  /** Ranked Feed가 한 번에 가져올 순위 수. Stream Feed는 비어 있다. 처음 한 번만 코드 값으로 채운다(ADR-0009). */
+  rankLimit: integer('rank_limit'),
 });
 
 /**
@@ -79,5 +81,29 @@ export const fetchAttempt = pgTable(
   (table) => [
     index('fetch_attempt_feed_id_started_at_index').on(table.feedId, table.startedAt),
     check('fetch_attempt_status_check', sql`${table.status} in ('running', 'success', 'failed')`),
+  ],
+);
+
+/**
+ * Rank Snapshot: Ranked Feed를 한 번 수집해 성공했을 때 본 순위표(ADR-0009).
+ * 성공한 Fetch Attempt 하나에 Rank마다 한 행이다. 순위가 직전과 같아도 쌓는다.
+ */
+export const rankSnapshot = pgTable(
+  'rank_snapshot',
+  {
+    fetchAttemptId: bigint('fetch_attempt_id', { mode: 'number' })
+      .notNull()
+      .references(() => fetchAttempt.id),
+    /** 1부터 시작하는 순위. 정보원이 준 목록 순서다. */
+    rank: integer('rank').notNull(),
+    entryId: bigint('entry_id', { mode: 'number' })
+      .notNull()
+      .references(() => entry.id),
+    /** 그 시점의 수치(점수, 댓글 수 등). Feed마다 필드가 다르다. */
+    metrics: jsonb('metrics').$type<Record<string, unknown>>(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.fetchAttemptId, table.rank] }),
+    unique('rank_snapshot_fetch_attempt_id_entry_id_unique').on(table.fetchAttemptId, table.entryId),
   ],
 );

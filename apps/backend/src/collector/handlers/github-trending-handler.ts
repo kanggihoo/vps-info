@@ -1,6 +1,7 @@
 /**
  * GitHub Trending 페이지(HTML)에서 저장소 목록을 뽑는 Handler. 공식 API가 없어서 HTML을 읽는다.
  * 순위에 오래 머무는 저장소도 Entry는 처음 올라온 때 하나뿐이다(Dedup Key가 `owner/name`).
+ * 비로그인 요청이라 개수가 정해져 있어서 `rankLimit`은 쓰지 않는다(코어가 자른다).
  */
 import * as cheerio from 'cheerio';
 import { defineHandler } from './define-handler.ts';
@@ -29,11 +30,11 @@ export function parseTrendingPage(html: string) {
         title: fullName,
         externalId: fullName,
         summary: toSummaryText(row.find('p').first().text()),
-        extra: {
+        extra: { language: row.find('[itemprop="programmingLanguage"]').text().trim() || undefined },
+        metrics: {
           score: starsInPeriod,
           starsInPeriod,
           stars: parseCount(row.find(`a[href="${repositoryPath}/stargazers"]`).text()),
-          language: row.find('[itemprop="programmingLanguage"]').text().trim() || undefined,
         },
         raw: { fullName, starsInPeriodText: starsInPeriodText.trim() },
       };

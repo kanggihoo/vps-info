@@ -20,7 +20,7 @@ describe('parseTrendshiftPage', () => {
         url: 'https://github.com/owner/repo',
         title: 'owner/repo',
         externalId: 'owner/repo',
-        extra: { rank: 1, language: 'Python', keywords: ['AI'], trendshiftUrl: 'https://trendshift.io/repositories/15603' },
+        extra: { language: 'Python', keywords: ['AI'], trendshiftUrl: 'https://trendshift.io/repositories/15603' },
       }),
     ]);
   });

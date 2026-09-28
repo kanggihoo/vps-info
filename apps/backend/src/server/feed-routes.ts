@@ -1,13 +1,14 @@
 /**
- * Feed 단위 API: Feed 목록, Feed의 Entry 조회, Read Cursor 이동.
+ * Feed 단위 API: Feed 목록, Feed의 Entry 조회, Read Cursor 이동, Ranked Feed의 순위표.
  */
 import { and, asc, desc, eq, exists, gt, lt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import type { EntryView, FeedSummary, MoveReadCursorRequest } from '@signal-archive/api-types';
+import type { EntryView, FeedSummary, MoveReadCursorRequest, RankSnapshotView } from '@signal-archive/api-types';
 import { database } from '../db/database-client.ts';
 import { entry, feed } from '../db/schema.ts';
 import { feedDefinitions } from '../feed-definitions.ts';
 import { entryViewColumns, toEntryView } from './entry-view.ts';
+import { loadRankSnapshotView } from './rank-snapshot-view.ts';
 
 /** 한 번에 돌려주는 Entry 수의 기본값과 상한. */
 const DEFAULT_ENTRY_PAGE_SIZE = 50;
@@ -37,13 +38,36 @@ export async function registerFeedRoutes(server: FastifyInstance): Promise<void>
         // ponytail: Feed마다 하위 쿼리 두 번. Feed가 수백 개가 되면 한 번의 GROUP BY로 바꾼다.
         unreadCount: sql<number>`(select count(*)::int from entry as candidate where candidate.feed_id = "feed"."id" and candidate.id > coalesce("feed"."read_cursor_entry_id", 0))`,
         latestEntryId: sql<number | null>`(select max(candidate.id)::int from entry as candidate where candidate.feed_id = "feed"."id")`,
+        // 최신 Rank Snapshot에서 그 수집 때 처음 발견한 Entry 수(ADR-0009). Stream Feed는 Snapshot이 없어서 0이다.
+        rankSnapshotNewCount: sql<number>`(
+          select count(*)::int
+          from rank_snapshot as ranked
+          join entry as ranked_entry on ranked_entry.id = ranked.entry_id
+          join fetch_attempt as latest_attempt on latest_attempt.id = ranked.fetch_attempt_id
+          where latest_attempt.id = (
+            select max(snapshot_attempt.id) from fetch_attempt as snapshot_attempt
+            where snapshot_attempt.feed_id = "feed"."id"
+              and exists (select 1 from rank_snapshot as any_rank where any_rank.fetch_attempt_id = snapshot_attempt.id)
+          )
+          and ranked_entry.first_seen_at >= latest_attempt.started_at
+        )`,
       })
       .from(feed);
     const rowsById = new Map(rows.map((row) => [row.id, row]));
-    return feedDefinitions.flatMap((definition) => {
+    return feedDefinitions.flatMap((definition): FeedSummary[] => {
       const row = rowsById.get(definition.id);
       if (!row) return [];
-      return [{ ...row, title: definition.title, nextRunAt: row.nextRunAt.toISOString() }];
+      const kind = definition.kind ?? 'stream';
+      return [
+        {
+          ...row,
+          title: definition.title,
+          kind,
+          // Ranked Feed에는 Read Cursor가 없다(ADR-0009). Stream Feed였던 때의 커서가 남아 있어도 세지 않는다.
+          unreadCount: kind === 'ranked' ? 0 : row.unreadCount,
+          nextRunAt: row.nextRunAt.toISOString(),
+        },
+      ];
     });
   });
 
@@ -92,9 +116,21 @@ export async function registerFeedRoutes(server: FastifyInstance): Promise<void>
     },
   );
 
+  /** Ranked Feed의 최신 Rank Snapshot을 직전과 비교해 돌려준다(ADR-0009). 선언되지 않았거나 Stream Feed면 404다. */
+  server.get<{ Params: { feedId: string } }>(
+    '/api/feeds/:feedId/rank-snapshot',
+    { schema: { params: feedIdParamsSchema } },
+    async (request, reply): Promise<RankSnapshotView> => {
+      const { feedId } = request.params;
+      const definition = feedDefinitions.find((candidate) => candidate.id === feedId);
+      if (definition?.kind !== 'ranked') return reply.code(404).send({ message: 'Ranked Feed가 아닙니다' });
+      return loadRankSnapshotView(feedId);
+    },
+  );
+
   /**
    * Read Cursor를 옮긴다. 최신 쪽으로만 움직이므로 지금 커서보다 작은 값은 무시한다.
-   * 다른 Feed의 Entry id를 보내면 404다.
+   * 다른 Feed의 Entry id를 보내면 404, Ranked Feed면 409다(Read Cursor가 없다, ADR-0009).
    */
   server.put<{ Params: { feedId: string }; Body: MoveReadCursorRequest }>(
     '/api/feeds/:feedId/read-cursor',
@@ -111,6 +147,9 @@ export async function registerFeedRoutes(server: FastifyInstance): Promise<void>
     async (request, reply) => {
       const { feedId } = request.params;
       const { entryId } = request.body;
+      if (feedDefinitions.find((candidate) => candidate.id === feedId)?.kind === 'ranked') {
+        return reply.code(409).send({ message: 'Ranked Feed에는 Read Cursor가 없습니다' });
+      }
       const updated = await database
         .update(feed)
         .set({ readCursorEntryId: sql`greatest(coalesce(${feed.readCursorEntryId}, 0), ${entryId})` })

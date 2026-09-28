@@ -1,7 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { connectionPool, database } from '../db/database-client.ts';
-import { entry, feed, fetchAttempt } from '../db/schema.ts';
+import { entry, feed, fetchAttempt, rankSnapshot } from '../db/schema.ts';
 import type { FeedDefinition } from '../feed-definitions.ts';
 import { resetDatabase } from '../test-support/reset-database.ts';
 import { type EntryFetcher, markInterruptedAttemptsFailed, runFetchAttempt } from './fetch-attempt.ts';
@@ -72,6 +72,58 @@ describe('runFetchAttempt 성공', () => {
     const insertedCount = await runFetchAttempt({ ...definition, allowEmpty: true }, { intervalMinutes: 30, consecutiveFailures: 0 }, fetcherReturning([]));
     expect(insertedCount).toBe(0);
     expect((await readAttempts())[0].status).toBe('success');
+  });
+});
+
+describe('runFetchAttempt Ranked Feed (ADR-0009)', () => {
+  const rankedDefinition: FeedDefinition = { ...definition, kind: 'ranked', rankLimit: 10 };
+  const rankedDraft = (externalId: string, score: number): EntryDraft => ({
+    ...draft(externalId, '2026-09-22T10:00:00Z'),
+    extra: { commentsUrl: `https://example.com/${externalId}#comments` },
+    metrics: { score },
+  });
+
+  async function readSnapshotRows() {
+    return database
+      .select({ fetchAttemptId: rankSnapshot.fetchAttemptId, rank: rankSnapshot.rank, title: entry.title, metrics: rankSnapshot.metrics })
+      .from(rankSnapshot)
+      .innerJoin(entry, eq(entry.id, rankSnapshot.entryId))
+      .orderBy(asc(rankSnapshot.fetchAttemptId), asc(rankSnapshot.rank));
+  }
+
+  it('Handler가 돌려준 순서대로 Rank와 수치를 저장하고, 순위가 같아도 수집마다 쌓는다', async () => {
+    const fetcher = fetcherReturning([rankedDraft('b', 20), rankedDraft('a', 10)]);
+    await runFetchAttempt(rankedDefinition, { intervalMinutes: 30, consecutiveFailures: 0, rankLimit: 10 }, fetcher);
+    await runFetchAttempt(rankedDefinition, { intervalMinutes: 30, consecutiveFailures: 0, rankLimit: 10 }, fetcher);
+    expect(await readSnapshotRows()).toEqual([
+      { fetchAttemptId: 1, rank: 1, title: '글 b', metrics: { score: 20 } },
+      { fetchAttemptId: 1, rank: 2, title: '글 a', metrics: { score: 10 } },
+      { fetchAttemptId: 2, rank: 1, title: '글 b', metrics: { score: 20 } },
+      { fetchAttemptId: 2, rank: 2, title: '글 a', metrics: { score: 10 } },
+    ]);
+  });
+
+  it('DB의 rank_limit을 Handler에 넘기고, 돌려받은 목록도 그 개수로 자른다', async () => {
+    let receivedRankLimit: number | undefined;
+    const fetcher: EntryFetcher = async (_definition, rankLimit) => {
+      receivedRankLimit = rankLimit;
+      return [rankedDraft('a', 3), rankedDraft('b', 2), rankedDraft('c', 1)];
+    };
+    const insertedCount = await runFetchAttempt(rankedDefinition, { intervalMinutes: 30, consecutiveFailures: 0, rankLimit: 2 }, fetcher);
+    expect(receivedRankLimit).toBe(2);
+    expect(insertedCount).toBe(2);
+    expect((await readSnapshotRows()).map((row) => row.title)).toEqual(['글 a', '글 b']);
+  });
+
+  it('처음 저장하는 Entry의 extra에는 처음 봤을 때의 수치를 합친다', async () => {
+    await runFetchAttempt(rankedDefinition, { intervalMinutes: 30, consecutiveFailures: 0, rankLimit: 10 }, fetcherReturning([rankedDraft('a', 7)]));
+    const [row] = await database.select({ extra: entry.extra }).from(entry);
+    expect(row.extra).toEqual({ commentsUrl: 'https://example.com/a#comments', score: 7 });
+  });
+
+  it('Stream Feed는 Rank Snapshot을 남기지 않는다', async () => {
+    await runFetchAttempt(definition, { intervalMinutes: 30, consecutiveFailures: 0 }, fetcherReturning([rankedDraft('a', 7)]));
+    expect(await database.$count(rankSnapshot)).toBe(0);
   });
 });
 

@@ -13,6 +13,8 @@ type EntryCardProps = {
   feedTitle?: string;
   /** Opened At이나 Bookmark가 바뀌면 바뀐 Entry로 부른다. */
   onEntryChange: (changedEntry: EntryView) => void;
+  /** 점수 옆에 보여 줄 직전 수집 대비 증감(Ranked Feed). */
+  scoreChange?: number;
 };
 
 /** `extra`에서 숫자 필드를 꺼낸다. Feed마다 필드가 달라서 타입을 확인하고 쓴다. */
@@ -21,7 +23,7 @@ function readNumber(extra: EntryView['extra'], key: string): number | undefined 
   return typeof value === 'number' ? value : undefined;
 }
 
-export function EntryCard({ entry, feedTitle, onEntryChange }: EntryCardProps) {
+export function EntryCard({ entry, feedTitle, onEntryChange, scoreChange }: EntryCardProps) {
   const score = readNumber(entry.extra, 'score');
   const commentCount = readNumber(entry.extra, 'commentCount');
   const commentsUrl = typeof entry.extra?.commentsUrl === 'string' ? entry.extra.commentsUrl : undefined;
@@ -76,6 +78,12 @@ export function EntryCard({ entry, feedTitle, onEntryChange }: EntryCardProps) {
           <span className="flex items-center gap-0.5 font-mono tabular-nums">
             <ArrowUp className="size-3.5" strokeWidth={1.5} aria-label="점수" />
             {score}
+            {scoreChange !== undefined && scoreChange !== 0 && (
+              <span className="ml-1">
+                ({scoreChange > 0 ? '+' : ''}
+                {scoreChange})
+              </span>
+            )}
           </span>
         )}
         {commentCount !== undefined && <CommentCount count={commentCount} url={commentsUrl} />}

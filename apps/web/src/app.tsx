@@ -1,5 +1,5 @@
 /**
- * 화면 전체 틀: 왼쪽 Feed 목록과 오른쪽 본문(Feed 타임라인 또는 Bookmark 목록).
+ * 화면 전체 틀: 왼쪽 Feed 목록과 오른쪽 본문(Stream Feed 타임라인, Ranked Feed 순위표, Bookmark 목록).
  * 어떤 화면을 보는지는 URL 해시(`#/feeds/<id>`, `#/bookmarks`)에 두어 새로고침해도 유지한다.
  */
 import { useCallback, useEffect, useState } from 'react';
@@ -9,6 +9,7 @@ import { BookmarkList } from './bookmark-list.tsx';
 import { FeedSidebar } from './feed-sidebar.tsx';
 import { FeedTimeline } from './feed-timeline.tsx';
 import { EmptyMessage, LoadError } from './load-states.tsx';
+import { RankTable } from './rank-table.tsx';
 import { readScreenFromHash, type Screen } from './screen-route.ts';
 
 /** 새 Entry가 들어왔는지 Feed 목록을 다시 받아오는 간격. */
@@ -55,7 +56,8 @@ export function App() {
       <main className="relative min-h-0 overflow-hidden">
         {showFeedListError && <LoadError message="Feed 목록을 불러오지 못했습니다." onRetry={refreshFeeds} />}
         {effectiveScreen.kind === 'bookmarks' && <BookmarkList />}
-        {selectedFeed && <FeedTimeline key={selectedFeed.id} feed={selectedFeed} onReadCursorSaved={refreshFeeds} />}
+        {selectedFeed?.kind === 'stream' && <FeedTimeline key={selectedFeed.id} feed={selectedFeed} onReadCursorSaved={refreshFeeds} />}
+        {selectedFeed?.kind === 'ranked' && <RankTable key={selectedFeed.id} feed={selectedFeed} />}
         {effectiveScreen.kind === 'feed' && !selectedFeed && feeds.length > 0 && (
           <EmptyMessage>없는 Feed입니다. 왼쪽 목록에서 Feed를 고르세요.</EmptyMessage>
         )}

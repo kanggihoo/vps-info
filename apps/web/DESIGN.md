@@ -330,9 +330,17 @@ components:
 
 - **Feed 행** (`feed-nav-item`): `rounded-sm`, `px-3 py-2`, 한 줄 말줄임. 선택되면 `sidebar-accent` 바탕 + `text-body-sm-medium`. 오른쪽 끝에 배지.
 - **안 읽음 배지** (`badge-unread`): 민트 알약 + 검정 Mono 숫자. 0이면 그리지 않는다.
+- **NEW 수 배지** (`badge-rank-new`): Ranked Feed 행에 쓴다. 속이 빈 알약(1px `brand` 테두리) + `brand-ink` Mono 글자 `NEW 3`. 안 읽음 배지와 달리 열어 봐도 줄지 않으므로 채운 알약과 구분한다. 0이면 그리지 않는다.
 - **연속 실패** (`badge-failure`): 바탕 없이 경고 아이콘(`text-warn`) + Mono 숫자(`text-warn-ink`). 툴팁으로 다음 시도 시각을 보여 준다.
 - **Entry 카드** (`entry-card`): `bg-card`, 1px `border`, `rounded-lg`, `px-4 py-3`, 그림자 없음. 카드 사이 8px. Mintlify 카드 여백(24px)은 밀도 때문에 줄였다.
 - **Entry 메타** (`entry-meta`): 호스트 · 작성자 · 시각 · 점수 · 댓글을 `text-caption`으로, 사이 간격 12px(`gap-x-3`). 숫자는 `font-mono`.
+- **순위표** (`rank-table`): Ranked Feed 화면. 맨 위에 수집 시각과 비교한 직전 수집 시각을 `text-caption`으로, 그 아래에 순위순 Entry 카드. 카드 왼쪽에 순위 칸(모바일 32px, 데스크톱 48px)을 둔다.
+  - 순위 숫자는 `text-entry-title` Mono. 그 아래에 변동 표시 하나.
+  - NEW는 민트 알약(`bg-brand` + 검정 글자), 재진입은 1px `border` 알약 + `muted-foreground` 글자.
+  - 오름·내림은 Lucide `ChevronUp` / `ChevronDown` + 계단 수를 `muted-foreground` Mono로. 오름을 민트로, 내림을 빨강으로 칠하지 않는다(두 번째 강조색 금지). 그대로면 `Minus`를 `subtle-foreground`로.
+  - 점수 옆 괄호에 직전 수집 대비 증감(`(+240)`). 0이면 쓰지 않는다.
+  - 빠진 Entry는 목록 아래 `<details>`에 접어 둔다. 요약 줄은 `빠짐 N개`(`text-caption-bold`), 순위 칸에는 `직전 N위`.
+  - 빈 상태: "아직 순위표가 없습니다. 다음 수집은 14:30입니다."
 - **Bookmark 토글** (`bookmark-toggle`): 32px 원형 탭 영역(모바일 44px). 꺼짐은 `subtle-foreground` 외곽선 별, 켜짐은 `brand-ink` 채운 별.
 - **새 글 구분선** (`unread-divider`): 가운데 `text-caption-bold` 라벨(`brand-ink`), 양쪽으로 1px `brand` 선. 화면에 하나.
 - **안 읽음으로 이동** (`jump-to-latest`): 검정 알약(다크 모드에서는 흰 알약). 화면에서 유일하게 그림자를 갖는다. 누르면 `translate-y-px`.
@@ -363,7 +371,7 @@ components:
 ### Do
 
 - 색·글자·모서리는 토큰 유틸리티(`bg-brand`, `text-entry-title`, `rounded-lg`)로만 쓴다.
-- 민트는 안 읽음·새 글·켜진 Bookmark에만 쓴다.
+- 민트는 안 읽음·새 글(순위표의 NEW 포함)·켜진 Bookmark에만 쓴다.
 - 숫자는 `font-mono tabular-nums`.
 - 로딩은 모양 그대로의 스켈레톤, 빈 상태는 다음에 일어날 일을 알려 주는 문장.
 

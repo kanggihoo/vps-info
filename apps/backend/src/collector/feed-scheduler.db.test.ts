@@ -40,6 +40,18 @@ describe('insertMissingFeeds', () => {
       { id: 'b', intervalMinutes: 30 },
     ]);
   });
+
+  it('Ranked Feed의 rank_limit은 비어 있을 때만 선언 값으로 채운다 (ADR-0009)', async () => {
+    await insertMissingFeeds([defineTestFeed('a')]); // Stream Feed로 먼저 등록된 Feed
+    await insertMissingFeeds([{ ...defineTestFeed('a'), kind: 'ranked', rankLimit: 100 }]);
+    const [filled] = await database.select({ rankLimit: feed.rankLimit }).from(feed).where(eq(feed.id, 'a'));
+    expect(filled.rankLimit).toBe(100);
+
+    await database.update(feed).set({ rankLimit: 50 }).where(eq(feed.id, 'a')); // 운영 중 DB에서 바꿈
+    await insertMissingFeeds([{ ...defineTestFeed('a'), kind: 'ranked', rankLimit: 100 }]);
+    const [kept] = await database.select({ rankLimit: feed.rankLimit }).from(feed).where(eq(feed.id, 'a'));
+    expect(kept.rankLimit).toBe(50);
+  });
 });
 
 describe('runDueFeeds', () => {

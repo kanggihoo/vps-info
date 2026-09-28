@@ -7,13 +7,26 @@ import { feed } from '../db/schema.ts';
 import type { FeedDefinition } from '../feed-definitions.ts';
 import { type EntryFetcher, fetchEntriesWithRegisteredHandler, runFetchAttempt } from './fetch-attempt.ts';
 
-/** 코드에 선언된 Feed 중 DB에 없는 것만 넣는다. 이미 있는 Feed의 주기는 덮어쓰지 않는다(ADR-0004). */
+/**
+ * 코드에 선언된 Feed 중 DB에 없는 것만 넣는다. 이미 있는 Feed의 주기는 덮어쓰지 않는다(ADR-0004).
+ * `rank_limit`도 비어 있을 때만 채운다. Stream Feed였다가 Ranked Feed로 바뀐 Feed가 여기에 해당한다(ADR-0009).
+ */
 export async function insertMissingFeeds(definitions: FeedDefinition[]): Promise<void> {
   if (definitions.length === 0) return;
   await database
     .insert(feed)
-    .values(definitions.map((definition) => ({ id: definition.id, intervalMinutes: definition.intervalMinutes })))
-    .onConflictDoNothing();
+    .values(
+      definitions.map((definition) => ({
+        id: definition.id,
+        intervalMinutes: definition.intervalMinutes,
+        rankLimit: definition.kind === 'ranked' ? definition.rankLimit : null,
+      })),
+    )
+    .onConflictDoUpdate({
+      target: feed.id,
+      set: { rankLimit: sql`excluded.rank_limit` },
+      setWhere: sql`${feed.rankLimit} is null and excluded.rank_limit is not null`,
+    });
 }
 
 /**
@@ -27,7 +40,7 @@ export async function runDueFeeds(
 ): Promise<string[]> {
   const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));
   const dueFeeds = await database
-    .select({ id: feed.id, intervalMinutes: feed.intervalMinutes, consecutiveFailures: feed.consecutiveFailures })
+    .select({ id: feed.id, intervalMinutes: feed.intervalMinutes, consecutiveFailures: feed.consecutiveFailures, rankLimit: feed.rankLimit })
     .from(feed)
     .where(lte(feed.nextRunAt, sql`now()`))
     .orderBy(asc(feed.nextRunAt));
@@ -53,7 +66,7 @@ export async function runFeedOnce(
 ): Promise<number | undefined> {
   await insertMissingFeeds([definition]);
   const [state] = await database
-    .select({ intervalMinutes: feed.intervalMinutes, consecutiveFailures: feed.consecutiveFailures })
+    .select({ intervalMinutes: feed.intervalMinutes, consecutiveFailures: feed.consecutiveFailures, rankLimit: feed.rankLimit })
     .from(feed)
     .where(eq(feed.id, definition.id));
   return runFetchAttempt(definition, state, fetchEntries);

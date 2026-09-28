@@ -31,18 +31,27 @@ describe('hackernewsHandler', () => {
       externalId: '1',
       author: 'alice',
       publishedAt: new Date(1_758_000_000 * 1000),
-      extra: { score: 120, commentCount: 45, commentsUrl: 'https://news.ycombinator.com/item?id=1' },
+      extra: { commentsUrl: 'https://news.ycombinator.com/item?id=1' },
+      metrics: { score: 120, commentCount: 45 },
     });
     // 외부 링크가 없는 글은 HN 토론 페이지가 원문이다.
     expect(drafts[1].url).toBe('https://news.ycombinator.com/item?id=2');
   });
 
-  it('section에 따라 목록 주소가 바뀌고, 상위 30개 item만 요청한다', async () => {
+  it('section에 따라 목록 주소가 바뀌고, rankLimit이 없으면 상위 30개 item만 요청한다', async () => {
     const storyIds = Array.from({ length: 50 }, (_, index) => index + 1);
     const { httpClient, requestedUrls } = createFakeHttpClient({ [`${API_BASE_URL}/showstories.json`]: storyIds });
     await hackernewsHandler.fetchEntries({ section: 'show' }, { httpClient });
 
     expect(requestedUrls[0]).toBe(`${API_BASE_URL}/showstories.json`);
     expect(requestedUrls.filter((url) => url.includes('/item/'))).toHaveLength(30);
+  });
+
+  it('rankLimit이 있으면 그 개수만큼만 item을 요청한다', async () => {
+    const storyIds = Array.from({ length: 50 }, (_, index) => index + 1);
+    const { httpClient, requestedUrls } = createFakeHttpClient({ [`${API_BASE_URL}/beststories.json`]: storyIds });
+    await hackernewsHandler.fetchEntries({ section: 'best' }, { httpClient, rankLimit: 12 });
+
+    expect(requestedUrls.filter((url) => url.includes('/item/'))).toHaveLength(12);
   });
 });

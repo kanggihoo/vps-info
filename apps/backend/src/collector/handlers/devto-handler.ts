@@ -4,8 +4,8 @@ import { toSummaryText } from './summary-text.ts';
 
 const ARTICLES_URL = 'https://dev.to/api/articles';
 
-/** 한 번에 가져올 글 수. */
-const ARTICLE_COUNT = 30;
+/** `rankLimit`이 없을 때 가져올 글 수. 운영에서는 DB `feed.rank_limit`으로 정한다(ADR-0009). */
+const DEFAULT_ARTICLE_COUNT = 30;
 
 /** `/api/articles` 응답 항목 중 쓰는 필드. */
 type DevtoArticle = {
@@ -21,8 +21,10 @@ type DevtoArticle = {
 };
 
 export const devtoHandler = defineHandler<{ topDays: number }>({
-  async fetchEntries({ topDays }, { httpClient }) {
-    const articles = await httpClient<DevtoArticle[]>(ARTICLES_URL, { query: { top: topDays, per_page: ARTICLE_COUNT } });
+  async fetchEntries({ topDays }, { httpClient, rankLimit }) {
+    const articles = await httpClient<DevtoArticle[]>(ARTICLES_URL, {
+      query: { top: topDays, per_page: rankLimit ?? DEFAULT_ARTICLE_COUNT },
+    });
     return articles.map((article) => ({
       url: article.url,
       title: article.title,
@@ -30,12 +32,8 @@ export const devtoHandler = defineHandler<{ topDays: number }>({
       publishedAt: article.published_at ? new Date(article.published_at) : undefined,
       author: article.user?.name,
       summary: toSummaryText(article.description),
-      extra: {
-        score: article.public_reactions_count,
-        commentCount: article.comments_count,
-        commentsUrl: `${article.url}#comments`,
-        tags: article.tag_list,
-      },
+      extra: { commentsUrl: `${article.url}#comments`, tags: article.tag_list },
+      metrics: { score: article.public_reactions_count, commentCount: article.comments_count },
       raw: article,
     }));
   },

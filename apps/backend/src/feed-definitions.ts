@@ -1,8 +1,8 @@
 /**
  * Feed 선언. Feed는 여기서 만든다(ADR-0004).
  *
- * 수집기가 시작할 때 DB에 없는 Feed만 넣는다. `intervalMinutes`는 그때 한 번만 쓰이고,
- * 이후 주기는 DB의 `feed.interval_minutes`를 바꿔서 조정한다.
+ * 수집기가 시작할 때 DB에 없는 Feed만 넣는다. `intervalMinutes`와 `rankLimit`은 그때 한 번만 쓰이고,
+ * 이후에는 DB의 `feed.interval_minutes`, `feed.rank_limit`을 바꿔서 조정한다(ADR-0009).
  * `id`는 한 번 정하면 바꾸지 않는다. 바꾸면 기존 Entry와 연결이 끊긴 새 Feed가 된다.
  */
 import type { HandlerName, HandlerParams } from './collector/handlers/index.ts';
@@ -18,14 +18,31 @@ type FeedDefinitionUsing<Name extends HandlerName> = {
   intervalMinutes: number;
   /** 새 글이 원래 드문 Feed라서 0건을 실패로 보지 않을지 여부(ADR-0005). */
   allowEmpty?: boolean;
-};
+} & FeedKindDeclaration;
+
+/** Feed 종류(ADR-0009). 생략하면 Stream Feed다. */
+type FeedKindDeclaration =
+  | { kind?: 'stream' }
+  | {
+      kind: 'ranked';
+      /** 처음 만들 때 가져올 순위 수. 이후에는 DB 값이 원본이다. */
+      rankLimit: number;
+    };
 
 /** Feed 하나의 정의. `handler` 값에 따라 `params` 타입이 정해진다. */
 export type FeedDefinition = { [Name in HandlerName]: FeedDefinitionUsing<Name> }[HandlerName];
 
 export const feedDefinitions: FeedDefinition[] = [
-  { id: 'hn-best', title: 'Hacker News Best', handler: 'hackernews', params: { section: 'best' }, intervalMinutes: 60 },
-  { id: 'hn-show', title: 'Show HN', handler: 'hackernews', params: { section: 'show' }, intervalMinutes: 60 },
+  {
+    id: 'hn-best',
+    title: 'Hacker News Best',
+    handler: 'hackernews',
+    params: { section: 'best' },
+    intervalMinutes: 360,
+    kind: 'ranked',
+    rankLimit: 100,
+  },
+  { id: 'hn-show', title: 'Show HN', handler: 'hackernews', params: { section: 'show' }, intervalMinutes: 360, kind: 'ranked', rankLimit: 60 },
   { id: 'geeknews', title: 'GeekNews', handler: 'rss', params: { url: 'https://news.hada.io/rss/news' }, intervalMinutes: 60 },
   { id: 'producthunt', title: 'Product Hunt', handler: 'rss', params: { url: 'https://www.producthunt.com/feed' }, intervalMinutes: 180 },
   { id: 'techcrunch', title: 'TechCrunch', handler: 'rss', params: { url: 'https://techcrunch.com/feed/' }, intervalMinutes: 60 },
@@ -40,9 +57,26 @@ export const feedDefinitions: FeedDefinition[] = [
   { id: 'openrouter-models', title: 'OpenRouter 새 모델', handler: 'openrouter-models', params: {}, intervalMinutes: 360 },
   { id: 'hf-papers-weekly', title: 'Hugging Face 주간 인기 논문', handler: 'huggingface-papers', params: { period: 'week' }, intervalMinutes: 720 },
   { id: 'hellogithub', title: 'HelloGitHub', handler: 'hellogithub', params: {}, intervalMinutes: 1440 },
-  { id: 'devto-top-week', title: 'dev.to 주간 인기글', handler: 'devto', params: { topDays: 7 }, intervalMinutes: 360 },
-  { id: 'github-trending-daily', title: 'GitHub Trending', handler: 'github-trending', params: { since: 'daily' }, intervalMinutes: 360 },
-  { id: 'trendshift', title: 'Trendshift', handler: 'trendshift', params: {}, intervalMinutes: 360 },
+  {
+    id: 'devto-top-week',
+    title: 'dev.to 주간 인기글',
+    handler: 'devto',
+    params: { topDays: 7 },
+    intervalMinutes: 360,
+    kind: 'ranked',
+    rankLimit: 60,
+  },
+  // 정보원이 개수를 정해 준다(비로그인 9개, 첫 화면 25개). rankLimit은 그보다 크게 둔다.
+  {
+    id: 'github-trending-daily',
+    title: 'GitHub Trending',
+    handler: 'github-trending',
+    params: { since: 'daily' },
+    intervalMinutes: 360,
+    kind: 'ranked',
+    rankLimit: 25,
+  },
+  { id: 'trendshift', title: 'Trendshift', handler: 'trendshift', params: {}, intervalMinutes: 360, kind: 'ranked', rankLimit: 25 },
   { id: 'indiehackers-top-week', title: 'Indie Hackers 주간 인기글', handler: 'indiehackers', params: {}, intervalMinutes: 720 },
   { id: 'anthropic-news', title: 'Anthropic News', handler: 'anthropic-news', params: {}, intervalMinutes: 360 },
 ];

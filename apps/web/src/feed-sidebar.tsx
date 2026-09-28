@@ -1,5 +1,5 @@
 /**
- * 왼쪽 Feed 목록. Feed마다 안 읽음 수와 연속 실패 경고를 보여 주고, 아래쪽에 Bookmark와 테마 토글을 둔다.
+ * 왼쪽 Feed 목록. Feed마다 안 읽음 수(Ranked Feed는 NEW 수)와 연속 실패 경고를 보여 주고, 아래쪽에 Bookmark와 테마 토글을 둔다.
  * 768px 미만에서는 위쪽 가로 탭 줄이 되고, 그 줄 안에서만 가로로 스크롤한다(DESIGN.md).
  */
 import { Moon, Star, Sun, TriangleAlert } from 'lucide-react';
@@ -73,6 +73,16 @@ function FeedLink({ feed, selected }: { feed: FeedSummary; selected: boolean }) 
         <Badge className="shrink-0 rounded-full bg-brand px-2 font-mono text-numeric-badge tabular-nums text-brand-foreground">
           {feed.unreadCount}
           <span className="sr-only">개 안 읽음</span>
+        </Badge>
+      )}
+      {/* 안 읽음 수와 달리 열어 봐도 줄지 않으므로 속이 빈 알약으로 구분한다(ADR-0009). */}
+      {feed.rankSnapshotNewCount > 0 && (
+        <Badge
+          variant="outline"
+          className="shrink-0 rounded-full border-brand px-2 font-mono text-numeric-badge tabular-nums text-brand-ink"
+        >
+          NEW {feed.rankSnapshotNewCount}
+          <span className="sr-only">개가 최근 수집에서 순위에 새로 들어옴</span>
         </Badge>
       )}
     </SidebarLink>

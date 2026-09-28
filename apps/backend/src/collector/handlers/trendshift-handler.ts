@@ -1,6 +1,7 @@
 /**
  * Trendshift(GitHub 저장소 트렌드) 첫 화면에서 저장소 목록을 뽑는 Handler.
  * 공식 API는 없지만 페이지에 schema.org `ItemList` JSON-LD가 있어서, 화면 구조 대신 그것을 읽는다.
+ * 순위는 `position` 순서로 정렬해 돌려준다. 점수가 없어서 `metrics`도 없다.
  */
 import * as cheerio from 'cheerio';
 import { defineHandler } from './define-handler.ts';
@@ -31,20 +32,21 @@ export function parseTrendshiftPage(html: string) {
     .find((jsonLd) => jsonLd['@type'] === 'ItemList');
   if (!itemList) throw new Error('Trendshift 페이지에서 ItemList JSON-LD를 찾지 못했다. 페이지 구조가 바뀌었는지 확인한다.');
 
-  return (itemList.itemListElement as TrendshiftListItem[]).map((listItem) => ({
-    url: listItem.item.codeRepository,
-    title: listItem.item.name,
-    externalId: listItem.item.name,
-    author: listItem.item.author?.name,
-    summary: toSummaryText(listItem.item.description),
-    extra: {
-      rank: listItem.position,
-      language: listItem.item.programmingLanguage,
-      keywords: listItem.item.keywords,
-      trendshiftUrl: listItem.url,
-    },
-    raw: listItem,
-  }));
+  return (itemList.itemListElement as TrendshiftListItem[])
+    .toSorted((first, second) => first.position - second.position)
+    .map((listItem) => ({
+      url: listItem.item.codeRepository,
+      title: listItem.item.name,
+      externalId: listItem.item.name,
+      author: listItem.item.author?.name,
+      summary: toSummaryText(listItem.item.description),
+      extra: {
+        language: listItem.item.programmingLanguage,
+        keywords: listItem.item.keywords,
+        trendshiftUrl: listItem.url,
+      },
+      raw: listItem,
+    }));
 }
 
 export const trendshiftHandler = defineHandler<Record<string, never>>({

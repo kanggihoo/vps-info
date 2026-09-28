@@ -24,7 +24,8 @@ describe('parseTrendingPage', () => {
         title: 'owner/repo',
         externalId: 'owner/repo',
         summary: 'The open-source app for agents',
-        extra: { score: 2527, starsInPeriod: 2527, stars: 89072, language: 'TypeScript' },
+        extra: { language: 'TypeScript' },
+        metrics: { score: 2527, starsInPeriod: 2527, stars: 89072 },
       }),
     ]);
   });
