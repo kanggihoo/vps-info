@@ -8,7 +8,6 @@
 - [ADR template](./docs/adr/TEMPLATE.md): ADR을 새로 작성할 때 이 형식을 따른다.
 - [Decisions later](./docs/adr/decisions-later.md): 아직 결정하지 않은 항목을 확인한다.
 - [화면 디자인](./apps/web/DESIGN.md): `apps/web/` 화면을 만들거나 고칠 때 따른다. YAML 토큰을 바꾸면 `npm run design:tokens`로 `apps/web/src/styles/`를 다시 만든다.
-- [Handoff](./docs/handoff.md): 지금 진행 상황, 정해야 할 것, 남은 작업을 확인한다.
 - [등록된 Feed](./docs/feeds.md): 지금 수집하는 Feed 목록. Feed 선언을 바꾸면 이 문서도 고친다.
 - [새 Feed 추가하기](./docs/guides/adding-a-feed.md): Feed나 Handler를 추가·수정할 때 이 절차를 따른다.
 
