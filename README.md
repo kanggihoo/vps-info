@@ -39,6 +39,9 @@ npm run typecheck      # 타입 검사
 npm test               # 단위 테스트(DB 불필요)
 npm run test:db        # DB 통합 테스트까지 전부(컨테이너에서 로컬 postgres의 별도 테스트 DB 사용)
 npm run db:generate    # src/db/schema.ts를 바꾼 뒤 마이그레이션 SQL 생성
+npm run design:tokens  # web/DESIGN.md의 토큰으로 web/src/styles/ 생성
+npm run design:lint    # web/DESIGN.md 토큰 참조·대비 검사
+npm run ui:add -- button  # shadcn/ui 컴포넌트를 web/src/components/ui/에 추가
 ```
 
 ## 결정 기록
@@ -49,3 +52,4 @@ npm run db:generate    # src/db/schema.ts를 바꾼 뒤 마이그레이션 SQL �
 - 아키텍처 결정: [docs/adr/](./docs/adr/)
 - 미결 항목: [docs/adr/decisions-later.md](./docs/adr/decisions-later.md)
 - 코드 규칙: [docs/conventions/typescript.md](./docs/conventions/typescript.md)
+- 화면 디자인: [web/DESIGN.md](./web/DESIGN.md)

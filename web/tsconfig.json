@@ -1,0 +1,19 @@
+{
+  // 화면 코드 전용 설정. Vite가 번들하므로 bundler 해석을 쓰고, shadcn/ui가 만드는 `@/` import와 확장자 없는 import를 허용한다.
+  // 서버·수집기는 Node가 .ts를 직접 실행하므로 루트 tsconfig.json(nodenext)을 따로 쓴다.
+  "compilerOptions": {
+    "target": "es2023",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "types": ["vite/client"],
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "jsx": "react-jsx",
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["src"]
+}

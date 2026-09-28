@@ -10,8 +10,7 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "types": [
-      "node",
-      "vite/client"
+      "node"
     ],
     "lib": [
       "es2023",
@@ -22,7 +21,7 @@
   },
   "include": [
     "src",
-    "web/src",
+    "scripts",
     "drizzle.config.ts",
     "vite.config.ts",
     "vitest.config.ts"

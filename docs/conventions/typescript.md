@@ -42,6 +42,13 @@
 ## 프론트엔드
 
 - 브라우저의 HTTP 호출과 응답 타입은 프론트엔드의 API 모듈 한 곳에 둔다. 요청 경로는 상대 `/api`를 쓴다.
+- 화면 코드는 `web/tsconfig.json`(bundler 해석)으로 검사한다. `npm run typecheck`가 루트 설정과 함께 돌린다 (ADR-0007).
+- `web/src` 안의 모듈은 `@/` 별칭으로 확장자 없이 import한다(`@/components/ui/button`). 같은 디렉터리의 상대 import는 지금처럼 확장자를 붙인다.
+- 스타일은 [web/DESIGN.md](../../web/DESIGN.md)를 따른다. 색·글자·모서리는 토큰 유틸리티(`bg-brand`, `text-entry-title`, `rounded-lg`)로만 쓰고, Tailwind 기본 팔레트(`bg-zinc-100`)와 임의 색 값(`bg-[#123456]`)은 쓰지 않는다.
+- 토큰을 바꿀 때는 `web/DESIGN.md`의 YAML을 고치고 `npm run design:tokens`를 돌린다. `web/src/styles/`의 생성 파일은 손으로 고치지 않는다.
+- 클래스 이름을 합칠 때는 `cn`(`@/lib/class-names`)을 쓴다.
+- 공통 컴포넌트는 shadcn/ui를 `npm run ui:add -- <이름>`으로 받아 `web/src/components/ui/`에 둔다. 이 디렉터리는 shadcn 원본을 거의 그대로 두는 곳이라 이름·주석 규칙을 적용하지 않는다. 화면 전용 컴포넌트는 `web/src/`에 둔다.
+- 아이콘은 `lucide-react`만 쓴다. 이모지와 유니코드 기호를 아이콘 대신 쓰지 않는다.
 
 ## 테스트
 
