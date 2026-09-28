@@ -49,7 +49,7 @@ npm run test:db        # DB 통합 테스트까지 전부(컨테이너에서 로
 npm run db:generate    # apps/backend/src/db/schema.ts를 바꾼 뒤 마이그레이션 SQL 생성
 npm run design:tokens  # apps/web/DESIGN.md의 토큰으로 apps/web/src/styles/ 생성
 npm run design:lint    # apps/web/DESIGN.md 토큰 참조·대비 검사
-npm run ui:add -- button  # shadcn/ui 컴포넌트를 apps/web/src/components/ui/에 추가
+(cd apps/web && npx shadcn@latest add button)  # shadcn/ui 컴포넌트 추가
 ```
 
 ## 결정 기록

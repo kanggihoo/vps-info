@@ -60,8 +60,8 @@ npm workspaces 모노레포다(ADR-0008). 루트 package.json은 워크스페이
 - `apps/web/src` 안의 모듈은 `@/` 별칭으로 확장자 없이 import한다(`@/components/ui/button`). 같은 디렉터리의 상대 import는 지금처럼 확장자를 붙인다.
 - 스타일은 [apps/web/DESIGN.md](../../apps/web/DESIGN.md)를 따른다. 색·글자·모서리는 토큰 유틸리티(`bg-brand`, `text-entry-title`, `rounded-lg`)로만 쓰고, Tailwind 기본 팔레트(`bg-zinc-100`)와 임의 색 값(`bg-[#123456]`)은 쓰지 않는다.
 - 토큰을 바꿀 때는 `apps/web/DESIGN.md`의 YAML을 고치고 `npm run design:tokens`를 돌린다. `apps/web/src/styles/`의 생성 파일은 손으로 고치지 않는다.
-- 클래스 이름을 합칠 때는 `cn`(`@/lib/class-names`)을 쓴다.
-- 공통 컴포넌트는 shadcn/ui를 `npm run ui:add -- <이름>`으로 받아 `apps/web/src/components/ui/`에 둔다. 이 디렉터리는 shadcn 원본을 거의 그대로 두는 곳이라 이름·주석 규칙을 적용하지 않는다. 화면 전용 컴포넌트는 `apps/web/src/`에 둔다.
+- 클래스 이름을 합칠 때는 `import { cn } from "cn"`을 쓴다. 별칭으로 `src/lib/class-names.ts`(DESIGN.md 글자 단계를 등록한 `cn`)에 연결된다 (ADR-0007).
+- 공통 컴포넌트는 `apps/web`에서 공식 CLI(`npx shadcn@latest add <이름>`)로 받아 `apps/web/src/components/ui/`에 둔다. 이 디렉터리는 shadcn 원본을 거의 그대로 두는 곳이라 이름·주석 규칙을 적용하지 않는다. 화면 전용 컴포넌트는 `apps/web/src/`에 둔다.
 - 아이콘은 `lucide-react`만 쓴다. 이모지와 유니코드 기호를 아이콘 대신 쓰지 않는다.
 
 ## 테스트

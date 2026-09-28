@@ -60,7 +60,8 @@ Feed별 출처, 가져오는 방식, 주기는 [feeds.md](./feeds.md)에 있다.
 - 확인: 타입 검사, 단위 테스트, `vite build`, Docker 이미지 빌드, headless Chrome으로 라이트·다크·390px 화면.
   연속 실패 툴팁과 키보드 포커스 링은 화면으로 확인하지 못했다(실패 중인 Feed가 없었다).
 - 도구 문제
-  - shadcn 컴포넌트는 `npm run ui:add -- <이름>`으로 받는다. 레지스트리 파일이 shadcn의 새 `cn` 패키지를 직접 import해서, 그대로 두면 우리 글자 단계 등록을 거치지 않는다(ADR-0007).
+  - shadcn은 공식 CLI(`apps/web`에서 `npx shadcn@latest add`)로 쓴다. 레지스트리 파일의 `import { cn } from "cn"`은 별칭으로 우리 `cn`(글자 단계 등록)에 연결된다(ADR-0007).
+  - 공식 `init`은 `index.css`에 기본 팔레트·Inter·모서리를 덮어쓴다. 다시 돌리면 그 블록을 지우고 `shadcn/tailwind.css` import만 남긴다.
   - Windows에서 `npx @google/design.md`는 아무 출력 없이 끝난다(실행 파일 이름이 `.md`라서로 보임). `npm run design:lint`는 `designmd` 별칭으로 부른다.
 
 ### 모노레포 분리 (ADR-0008)
@@ -145,9 +146,6 @@ Feed별 출처, 가져오는 방식, 주기는 [feeds.md](./feeds.md)에 있다.
   - 메인 체크아웃과 worktree에서 동시에 띄우면 `postgres` 이름이 두 컨테이너로 풀려 요청이 무작위로 갈린다.
     `test:db`가 "테스트 DB가 없다"며 간헐적으로 실패한 원인이었다.
   - `name:`을 지워 네트워크를 Compose 프로젝트별로 만들면 된다. 운영 compose.yml의 외부 네트워크 이름과는 무관하다.
-- [ ] **shadcn의 새 `cn` 패키지로 옮길지**
-  - `cn`(shadcn·aidenybai, 2026-09-22 공개)은 clsx + tailwind-merge를 대체한다. 커스텀 글자 단계는 `cn/config`의 `createCn`으로 등록한다.
-  - `cn/vite` 플러그인은 `@theme`의 `--text-*`를 읽어 자동 등록한다고 한다(확인 전). 되면 `design-token-names.ts` 생성과 `ui:add`의 import 바꾸기가 필요 없어질 수 있다.
 - [ ] **모바일 Feed 탭 줄이 선택한 Feed로 스크롤되지 않는다.**
   - 탭이 많아 선택한 Feed가 화면 밖에 있으면 직접 옆으로 밀어야 한다. 선택 시 `scrollIntoView({ inline: nearest })`로 맞추면 된다.
 - [ ] **알려진 한계: 타임라인 맨 아래를 보고 있을 때 새 Entry가 자동으로 붙지 않는다.**

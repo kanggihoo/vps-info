@@ -7,12 +7,19 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-/** `@/`는 `src`를 가리킨다. `tsconfig.json`의 `paths`와 맞춘다. */
-export const WEB_SOURCE_ALIAS = { '@': resolve(import.meta.dirname, 'src') };
+/**
+ * import 별칭. `tsconfig.json`의 `paths`와 맞춘다.
+ * - `@/` → `src/`
+ * - `cn`(정확히 이 이름만) → 글자 단계를 등록한 이 앱의 `cn`. `cn/config` 같은 하위 경로는 패키지 그대로 쓴다(ADR-0007).
+ */
+export const WEB_ALIASES = [
+  { find: /^cn$/, replacement: resolve(import.meta.dirname, 'src/lib/class-names.ts') },
+  { find: '@', replacement: resolve(import.meta.dirname, 'src') },
+];
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  resolve: { alias: WEB_SOURCE_ALIAS },
+  resolve: { alias: WEB_ALIASES },
   build: { outDir: 'dist', emptyOutDir: true },
   server: {
     proxy: { '/api': `http://localhost:${process.env.APP_PORT ?? 8000}` },

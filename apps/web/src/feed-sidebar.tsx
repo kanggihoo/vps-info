@@ -8,7 +8,7 @@ import type { FeedSummary } from '@signal-archive/api-types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/class-names';
+import { cn } from 'cn';
 import { makeScreenHash, type Screen } from './screen-route.ts';
 import { useColorTheme } from './use-color-theme.ts';
 

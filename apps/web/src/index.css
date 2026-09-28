@@ -1,6 +1,8 @@
 /* 화면 스타일 진입점. 값은 design-tokens.css(DESIGN.md에서 생성)에만 있고, 여기서는 Tailwind를 켜고 기본 스타일만 둔다. */
 @import "tailwindcss";
 @import "tw-animate-css";
+/* shadcn 컴포넌트가 쓰는 변형(data-open:, data-closed: 등)과 아코디언 키프레임. 공식 init이 넣는 줄이다. */
+@import "shadcn/tailwind.css";
 @import "./styles/design-tokens.css";
 
 /* 다크 모드는 OS 설정이 아니라 <html class="dark"> 토글로 켠다(DESIGN.md). */

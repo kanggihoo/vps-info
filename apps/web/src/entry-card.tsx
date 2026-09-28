@@ -2,7 +2,7 @@
 import { ArrowUp, MessageSquare, Star } from 'lucide-react';
 import type { EntryView } from '@signal-archive/api-types';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/class-names';
+import { cn } from 'cn';
 import { apiClient } from './api-client.ts';
 
 const dateFormatter = new Intl.DateTimeFormat('ko', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
