@@ -349,6 +349,8 @@ components:
   - 빈 상태: "아직 순위표가 없습니다. 다음 수집은 14:30입니다."
 - **Bookmark 토글** (`bookmark-toggle`): 32px 원형 탭 영역(모바일 44px). 꺼짐은 `subtle-foreground` 외곽선 별, 켜짐은 `brand-ink` 채운 별.
 - **새 글 구분선** (`unread-divider`): 가운데 `text-caption-bold` 라벨(`brand-ink`), 양쪽으로 1px `brand` 선. 화면에 하나.
+- **목록 끝** (`timeline-end`): Stream 타임라인의 마지막 Entry 아래에 화면 높이(`h-dvh`)만큼 빈 공간을 두고, 맨 위에 "마지막 Entry입니다. 다음 수집은 14:30입니다."를 `text-caption` `muted-foreground`로 쓴다.
+  Read Cursor는 Entry가 화면 위쪽 밖으로 나가야 움직이므로, 이 공간이 없으면 마지막 화면의 Entry가 영원히 안 읽음으로 남는다.
 - **안 읽음으로 이동** (`jump-to-latest`): 검정 알약(다크 모드에서는 흰 알약). 화면에서 유일하게 그림자를 갖는다. 누르면 `translate-y-px`.
 - **버튼**: shadcn `Button`을 쓴다. 기본은 알약(`rounded-full`), 사이드바 안의 ghost 버튼만 `rounded-md`. 주 버튼 검정, 보조 버튼은 1px `border`만.
 - **다크 모드 토글**: 사이드바 아래쪽 ghost 아이콘 버튼(Lucide `Sun` / `Moon`). 기본은 라이트, 선택은 `localStorage`에 남긴다. OS 설정(`prefers-color-scheme`)은 따르지 않는다.

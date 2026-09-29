@@ -3,6 +3,9 @@
  *
  * 열면 Read Cursor 바로 다음(첫 안 읽음)에서 시작하고, 그 위에 "여기부터 새 글" 구분선을 둔다.
  * 위로 끝까지 올리면 더 오래된 Entry를, 아래로 끝까지 내리면 더 새로운 Entry를 불러온다.
+ *
+ * Read Cursor는 Entry가 화면 위쪽 밖으로 나가거나, 그 Entry의 원문을 열 때 움직인다(CONTEXT.md).
+ * 마지막 Entry도 위로 밀어 올릴 수 있도록 목록 끝에 화면 높이만큼 빈 공간을 둔다.
  */
 import { ArrowDown } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -41,7 +44,7 @@ export function FeedTimeline({ feed, onReadCursorSaved }: FeedTimelineProps) {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const pendingScrollRef = useRef<PendingScroll | undefined>(undefined);
   const loadingRef = useRef(false);
-  const { observeEntryElements, jumpTo } = useReadCursorTracker(feed.id, scrollAreaRef, openedCursorEntryId, onReadCursorSaved);
+  const { trackPassedEntries, jumpTo } = useReadCursorTracker(feed.id, scrollAreaRef, openedCursorEntryId, onReadCursorSaved);
 
   // 처음 열 때: 커서 위쪽 맥락 몇 개 + 커서 뒤의 안 읽음.
   useEffect(() => {
@@ -62,7 +65,7 @@ export function FeedTimeline({ feed, onReadCursorSaved }: FeedTimelineProps) {
       });
   }, [feed.id, openedCursorEntryId, loadAttempt]);
 
-  // 렌더 직후: 예약된 스크롤을 적용하고, 새로 그린 Entry를 커서 추적 대상에 넣는다.
+  // 렌더 직후: 예약된 스크롤을 적용한다.
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
     const pendingScroll = pendingScrollRef.current;
@@ -73,8 +76,7 @@ export function FeedTimeline({ feed, onReadCursorSaved }: FeedTimelineProps) {
       if (pendingScroll.kind === 'keep-position-after-prepend')
         scrollArea.scrollTop += scrollArea.scrollHeight - pendingScroll.previousScrollHeight;
     }
-    observeEntryElements();
-  }, [entries, observeEntryElements]);
+  }, [entries]);
 
   const loadOlder = useCallback(async () => {
     if (loadingRef.current || !entries?.length) return;
@@ -125,7 +127,7 @@ export function FeedTimeline({ feed, onReadCursorSaved }: FeedTimelineProps) {
 
   return (
     <div className="relative h-full">
-      <div className="h-full overflow-y-auto" ref={scrollAreaRef}>
+      <div className="h-full overflow-y-auto" ref={scrollAreaRef} onScroll={trackPassedEntries}>
         <div className="mx-auto flex max-w-[760px] flex-col gap-2 p-4">
           {hasOlder && <LoadTrigger scrollAreaRef={scrollAreaRef} onVisible={loadOlder} />}
           {entries.map((entry) => (
@@ -140,13 +142,22 @@ export function FeedTimeline({ feed, onReadCursorSaved }: FeedTimelineProps) {
               )}
               <EntryCard
                 entry={entry}
+                // 아래 Entry의 원문을 열었다면 위 Entry는 이미 훑었다(CONTEXT.md의 Read Cursor).
+                onOpen={(openedEntry) => jumpTo(openedEntry.id)}
                 onEntryChange={(changedEntry) =>
                   setEntries((current) => current?.map((item) => (item.id === changedEntry.id ? changedEntry : item)))
                 }
               />
             </div>
           ))}
-          {hasNewer && <LoadTrigger scrollAreaRef={scrollAreaRef} onVisible={loadNewer} />}
+          {hasNewer ? (
+            <LoadTrigger scrollAreaRef={scrollAreaRef} onVisible={loadNewer} />
+          ) : (
+            // 마지막 Entry도 화면 위쪽 밖으로 밀어 올려 지나갈 수 있게 하는 빈 공간.
+            <p className="h-dvh pt-6 text-center text-caption text-muted-foreground">
+              마지막 Entry입니다. 다음 수집은 <span className="font-mono tabular-nums">{nextRunFormatter.format(new Date(feed.nextRunAt))}</span>입니다.
+            </p>
+          )}
         </div>
       </div>
       {feed.unreadCount > 0 && (

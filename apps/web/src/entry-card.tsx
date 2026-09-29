@@ -13,6 +13,8 @@ type EntryCardProps = {
   feedTitle?: string;
   /** Opened At이나 Bookmark가 바뀌면 바뀐 Entry로 부른다. */
   onEntryChange: (changedEntry: EntryView) => void;
+  /** 원문을 열 때마다 부른다. 이미 연 Entry를 다시 열어도 부른다(Stream Feed의 Read Cursor 이동용). */
+  onOpen?: (openedEntry: EntryView) => void;
   /** 점수 옆에 보여 줄 직전 수집 대비 증감(Ranked Feed). */
   scoreChange?: number;
 };
@@ -23,13 +25,14 @@ function readNumber(extra: EntryView['extra'], key: string): number | undefined 
   return typeof value === 'number' ? value : undefined;
 }
 
-export function EntryCard({ entry, feedTitle, onEntryChange, scoreChange }: EntryCardProps) {
+export function EntryCard({ entry, feedTitle, onEntryChange, onOpen, scoreChange }: EntryCardProps) {
   const score = readNumber(entry.extra, 'score');
   const commentCount = readNumber(entry.extra, 'commentCount');
   const commentsUrl = typeof entry.extra?.commentsUrl === 'string' ? entry.extra.commentsUrl : undefined;
   const bookmarked = Boolean(entry.bookmarkedAt);
 
   const openOriginal = () => {
+    onOpen?.(entry);
     if (entry.openedAt) return;
     onEntryChange({ ...entry, openedAt: new Date().toISOString() });
     apiClient.markOpened(entry.id).catch(console.error);
