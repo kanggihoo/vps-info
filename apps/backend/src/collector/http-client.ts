@@ -16,7 +16,7 @@ export const httpClient = ofetch.create({
   retry: 2,
   retryDelay: 1_000,
   retryStatusCodes: [408, 425, 429, 500, 502, 503, 504],
-  headers: { 'User-Agent': 'signal-archive/1.0 (+personal feed reader)' },
+  headers: { 'User-Agent': 'trendboda/1.0 (+personal feed reader)' },
 });
 
 /** Handler가 받는 HTTP 클라이언트의 타입. 테스트에서는 가짜 구현을 넣는다. */

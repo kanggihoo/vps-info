@@ -3,7 +3,7 @@
  */
 import { and, asc, desc, eq, exists, gt, lt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import type { EntryView, FeedSummary, MoveReadCursorRequest, RankSnapshotView } from '@signal-archive/api-types';
+import type { EntryView, FeedSummary, MoveReadCursorRequest, RankSnapshotView } from '@trendboda/api-types';
 import { database } from '../db/database-client.ts';
 import { entry, feed } from '../db/schema.ts';
 import { feedDefinitions } from '../feed-definitions.ts';

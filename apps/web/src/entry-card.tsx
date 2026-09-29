@@ -1,6 +1,6 @@
 /** Entry 하나. 제목을 누르면 원문이 새 탭에서 열리고 Opened At이 기록된다. */
 import { ArrowUp, MessageSquare, Star } from 'lucide-react';
-import type { EntryView } from '@signal-archive/api-types';
+import type { EntryView } from '@trendboda/api-types';
 import { Button } from '@/components/ui/button';
 import { cn } from 'cn';
 import { apiClient } from './api-client.ts';

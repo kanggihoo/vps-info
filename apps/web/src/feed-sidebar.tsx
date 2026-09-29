@@ -4,7 +4,7 @@
  */
 import { Moon, Star, Sun, TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { FeedSummary } from '@signal-archive/api-types';
+import type { FeedSummary } from '@trendboda/api-types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -30,7 +30,7 @@ export function FeedSidebar({ feeds, screen }: FeedSidebarProps) {
         'md:flex-col md:gap-0 md:overflow-x-visible md:overflow-y-auto md:border-r md:border-b-0 md:p-3',
       )}
     >
-      <h1 className="hidden px-3 pt-1 pb-4 text-app-title text-foreground md:block">Signal Archive</h1>
+      <h1 className="hidden px-3 pt-1 pb-4 text-app-title text-foreground md:block">Trendboda</h1>
       <ul className="flex gap-1 md:mb-3 md:flex-col">
         {feeds.map((feed) => (
           <li key={feed.id}>

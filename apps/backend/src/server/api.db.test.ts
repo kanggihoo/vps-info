@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { BookmarkedEntryView, EntryView, FeedSummary, RankSnapshotView } from '@signal-archive/api-types';
+import type { BookmarkedEntryView, EntryView, FeedSummary, RankSnapshotView } from '@trendboda/api-types';
 import { runFetchAttempt } from '../collector/fetch-attempt.ts';
 import type { EntryDraft } from '../collector/handlers/define-handler.ts';
 import { connectionPool, database } from '../db/database-client.ts';

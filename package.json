@@ -1,5 +1,5 @@
 {
-  "name": "signal-archive",
+  "name": "trendboda",
   "private": true,
   "type": "module",
   "engines": {
@@ -12,11 +12,11 @@
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "dev:web": "npm run dev -w @signal-archive/web",
-    "build:web": "npm run build -w @signal-archive/web",
-    "db:generate": "npm run db:generate -w @signal-archive/backend",
-    "design:tokens": "npm run design:tokens -w @signal-archive/web",
-    "design:lint": "npm run design:lint -w @signal-archive/web",
+    "dev:web": "npm run dev -w @trendboda/web",
+    "build:web": "npm run build -w @trendboda/web",
+    "db:generate": "npm run db:generate -w @trendboda/backend",
+    "design:tokens": "npm run design:tokens -w @trendboda/web",
+    "design:lint": "npm run design:lint -w @trendboda/web",
     "test:db": "docker compose -f compose.yml -f compose.local.yml run --rm --build test"
   }
 }

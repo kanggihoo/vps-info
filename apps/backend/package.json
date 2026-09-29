@@ -1,5 +1,5 @@
 {
-  "name": "@signal-archive/backend",
+  "name": "@trendboda/backend",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
-    "@signal-archive/api-types": "*",
+    "@trendboda/api-types": "*",
     "@fastify/static": "^10.1.4",
     "cheerio": "^1.2.0",
     "drizzle-orm": "^0.45.3",

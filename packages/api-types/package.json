@@ -1,5 +1,5 @@
 {
-  "name": "@signal-archive/api-types",
+  "name": "@trendboda/api-types",
   "private": true,
   "type": "module",
   "exports": {

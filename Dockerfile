@@ -14,7 +14,7 @@ COPY packages/api-types/package.json packages/api-types/
 # 서버·수집기 실행 이미지의 바탕. 백엔드의 운영 의존성만 설치한다.
 FROM workspace-manifests AS base
 ENV NODE_ENV=production
-RUN npm ci --omit=dev -w @signal-archive/backend
+RUN npm ci --omit=dev -w @trendboda/backend
 COPY packages/api-types ./packages/api-types
 COPY apps/backend/drizzle ./apps/backend/drizzle
 COPY apps/backend/src ./apps/backend/src
@@ -22,12 +22,12 @@ WORKDIR /app/apps/backend
 
 # 화면 빌드. 화면 워크스페이스의 의존성만 설치한다.
 FROM workspace-manifests AS web-build
-RUN npm ci -w @signal-archive/web
+RUN npm ci -w @trendboda/web
 # Vite가 tsconfig.json을 읽고, 그 파일이 루트의 공통 설정을 extends한다.
 COPY tsconfig.base.json ./
 COPY packages/api-types ./packages/api-types
 COPY apps/web ./apps/web
-RUN npm run build -w @signal-archive/web
+RUN npm run build -w @trendboda/web
 
 # 테스트용. 모든 워크스페이스의 개발 의존성까지 설치한다. compose.local.yml의 test 서비스가 쓴다.
 FROM workspace-manifests AS test

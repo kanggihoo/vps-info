@@ -3,7 +3,7 @@
  */
 import { desc, eq, isNotNull, sql } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply } from 'fastify';
-import type { BookmarkedEntryView } from '@signal-archive/api-types';
+import type { BookmarkedEntryView } from '@trendboda/api-types';
 import { database } from '../db/database-client.ts';
 import { entry } from '../db/schema.ts';
 import { feedDefinitions } from '../feed-definitions.ts';

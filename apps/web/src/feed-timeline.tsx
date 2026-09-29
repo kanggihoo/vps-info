@@ -6,7 +6,7 @@
  */
 import { ArrowDown } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { EntryView, FeedSummary } from '@signal-archive/api-types';
+import type { EntryView, FeedSummary } from '@trendboda/api-types';
 import { Button } from '@/components/ui/button';
 import { apiClient } from './api-client.ts';
 import { EntryCard } from './entry-card.tsx';

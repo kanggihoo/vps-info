@@ -17,10 +17,10 @@ server와 collector는 DB 스키마(`src/db`), Feed 선언(`src/feed-definitions
 
 1. **구조**: 루트는 워크스페이스를 묶고 명령을 넘기기만 한다. 코드는 `apps/backend`(server + collector), `apps/web`(화면), `packages/api-types`(API 응답 타입)에 둔다.
 2. **경계**: server와 collector는 한 워크스페이스로 둔다. 진입점만 둘이다(`src/server/main.ts`, `src/collector/main.ts`).
-3. **공유**: 화면과 서버는 `@signal-archive/api-types`를 패키지 이름으로 import한다. 이 패키지는 타입만 export하고 빌드하지 않는다(`exports`가 `.ts`를 가리킨다).
+3. **공유**: 화면과 서버는 `@trendboda/api-types`를 패키지 이름으로 import한다. 이 패키지는 타입만 export하고 빌드하지 않는다(`exports`가 `.ts`를 가리킨다).
 4. **의존성**: 각 워크스페이스가 쓰는 것만 자기 package.json에 둔다. 화면의 React·lucide 등은 화면의 `dependencies`다. lockfile은 루트 하나다.
 5. **타입 설정**: 공통 옵션은 `tsconfig.base.json`, 모듈 해석은 워크스페이스별(backend·api-types는 nodenext, web은 bundler + Node용 `tsconfig.node.json`).
-6. **Docker**: 모든 워크스페이스의 package.json을 복사한 뒤 단계마다 필요한 워크스페이스만 설치한다(`npm ci --omit=dev -w @signal-archive/backend`, `npm ci -w @signal-archive/web`). 서버·수집기 컨테이너의 작업 디렉터리는 `/app/apps/backend`다.
+6. **Docker**: 모든 워크스페이스의 package.json을 복사한 뒤 단계마다 필요한 워크스페이스만 설치한다(`npm ci --omit=dev -w @trendboda/backend`, `npm ci -w @trendboda/web`). 서버·수집기 컨테이너의 작업 디렉터리는 `/app/apps/backend`다.
 7. **경로 해석**: 마이그레이션 폴더와 화면 빌드 결과는 실행 위치(cwd)가 아니라 파일 위치(`import.meta.dirname`) 기준으로 찾는다.
 
 ### 경로 대응
@@ -55,7 +55,7 @@ server와 collector는 DB 스키마(`src/db`), Feed 선언(`src/feed-definitions
 
 ## 결과
 
-- 의존성을 추가할 때 워크스페이스를 지정한다(`npm i <패키지> -w @signal-archive/web`).
+- 의존성을 추가할 때 워크스페이스를 지정한다(`npm i <패키지> -w @trendboda/web`).
 - `npm ci`가 lockfile과 워크스페이스 목록을 맞춰 보므로 Docker의 모든 단계가 모든 워크스페이스의 package.json을 복사한다. 그래서 화면의 의존성만 바뀌어도 서버·수집기 이미지의 설치 단계 캐시가 깨진다. 화면 소스만 바뀐 배포에서는 여전히 수집기 이미지가 그대로다(ADR-0004).
 - 서버는 화면 빌드 결과를 `apps/web/dist`에서 찾는다. 두 워크스페이스의 상대 위치에 기대는 유일한 곳이다.
 - 컨테이너 안 명령의 경로는 `/app/apps/backend` 기준이라 그대로다(`node src/collector/main.ts --once hn-best`).

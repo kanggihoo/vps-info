@@ -5,7 +5,7 @@
  */
 import { ChevronDown, ChevronUp, Minus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import type { EntryView, FeedSummary, RankedEntryView, RankSnapshotView } from '@signal-archive/api-types';
+import type { EntryView, FeedSummary, RankedEntryView, RankSnapshotView } from '@trendboda/api-types';
 import { Badge } from '@/components/ui/badge';
 import { apiClient } from './api-client.ts';
 import { EntryCard } from './entry-card.tsx';

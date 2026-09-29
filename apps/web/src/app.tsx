@@ -3,7 +3,7 @@
  * 어떤 화면을 보는지는 URL 해시(`#/feeds/<id>`, `#/bookmarks`)에 두어 새로고침해도 유지한다.
  */
 import { useCallback, useEffect, useState } from 'react';
-import type { FeedSummary } from '@signal-archive/api-types';
+import type { FeedSummary } from '@trendboda/api-types';
 import { apiClient } from './api-client.ts';
 import { BookmarkList } from './bookmark-list.tsx';
 import { FeedSidebar } from './feed-sidebar.tsx';

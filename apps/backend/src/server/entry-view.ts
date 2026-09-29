@@ -2,7 +2,7 @@
  * DB의 Entry 행을 API 응답(`EntryView`)으로 바꾸는 규칙.
  * 조회 컬럼을 여기 한 곳에 모아 `raw`가 응답에 섞이지 않게 한다(ADR-0003).
  */
-import type { EntryView } from '@signal-archive/api-types';
+import type { EntryView } from '@trendboda/api-types';
 import { entry } from '../db/schema.ts';
 
 /** Entry를 조회할 때 쓰는 컬럼 목록. `raw`는 일부러 뺐다. */

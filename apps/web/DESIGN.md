@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: Signal Archive
+name: Trendboda
 description: 여러 Feed의 새 Entry를 매일 훑어보는 개인용 읽기 도구. Mintlify의 무채색 바탕과 민트 강조색을 가져오되 마케팅 요소는 버리고, 사이드바 + 채팅형 타임라인 2열 구조에 맞춰 촘촘하게 다듬었다. UI는 Geist(한글 Pretendard), 숫자는 Geist Mono. 기본은 라이트 모드이고 토글로 다크 모드를 켠다.
 
 fonts:
@@ -243,7 +243,7 @@ components:
     padding: "6px 10px"
 ---
 
-# Design System: Signal Archive
+# Design System: Trendboda
 
 화면(`apps/web`)을 만들거나 고칠 때 따르는 디자인 기준이다. Google Stitch로 새 화면을 생성할 때도 이 문서를 그대로 넣는다.
 

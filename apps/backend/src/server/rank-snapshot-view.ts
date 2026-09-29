@@ -2,7 +2,7 @@
  * Ranked Feed의 최신 Rank Snapshot을 직전 Snapshot과 비교해 화면용 순위표로 만든다(ADR-0009).
  */
 import { and, asc, desc, eq, exists, inArray } from 'drizzle-orm';
-import type { DroppedEntryView, RankedEntryView, RankMovement, RankSnapshotView } from '@signal-archive/api-types';
+import type { DroppedEntryView, RankedEntryView, RankMovement, RankSnapshotView } from '@trendboda/api-types';
 import { database } from '../db/database-client.ts';
 import { entry, fetchAttempt, rankSnapshot } from '../db/schema.ts';
 import { entryViewColumns, toEntryView } from './entry-view.ts';

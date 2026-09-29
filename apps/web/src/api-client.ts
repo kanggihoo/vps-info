@@ -2,7 +2,7 @@
  * 화면에서 부르는 API 모음. 브라우저의 HTTP 호출은 모두 이 파일을 거친다.
  * 요청 경로는 상대 `/api`라서 운영(같은 서버)과 로컬(Vite 프록시)에서 똑같이 동작한다.
  */
-import type { BookmarkedEntryView, EntryView, FeedSummary, MoveReadCursorRequest, RankSnapshotView } from '@signal-archive/api-types';
+import type { BookmarkedEntryView, EntryView, FeedSummary, MoveReadCursorRequest, RankSnapshotView } from '@trendboda/api-types';
 
 /**
  * JSON API를 호출한다. 실패 응답이면 예외를 던진다.

@@ -1,6 +1,6 @@
 /** 여러 Feed의 Bookmark를 최근에 Bookmark한 순서로 모아 보여 준다. */
 import { useCallback, useEffect, useState } from 'react';
-import type { BookmarkedEntryView } from '@signal-archive/api-types';
+import type { BookmarkedEntryView } from '@trendboda/api-types';
 import { apiClient } from './api-client.ts';
 import { EntryCard } from './entry-card.tsx';
 import { EmptyMessage, EntryListSkeleton, LoadError } from './load-states.tsx';

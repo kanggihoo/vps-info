@@ -8,12 +8,12 @@ npm workspaces 모노레포다(ADR-0008). 루트 package.json은 워크스페이
 
 | 워크스페이스 | 이름 | 내용 |
 |---|---|---|
-| `apps/backend` | `@signal-archive/backend` | 서버(`src/server`)와 수집기(`src/collector`), DB 스키마·마이그레이션 |
-| `apps/web` | `@signal-archive/web` | React 화면, DESIGN.md, 토큰 생성·컴포넌트 추가 스크립트 |
-| `packages/api-types` | `@signal-archive/api-types` | 서버와 화면이 함께 쓰는 API 응답 타입(타입만) |
+| `apps/backend` | `@trendboda/backend` | 서버(`src/server`)와 수집기(`src/collector`), DB 스키마·마이그레이션 |
+| `apps/web` | `@trendboda/web` | React 화면, DESIGN.md, 토큰 생성·컴포넌트 추가 스크립트 |
+| `packages/api-types` | `@trendboda/api-types` | 서버와 화면이 함께 쓰는 API 응답 타입(타입만) |
 
-- 의존성은 쓰는 워크스페이스의 package.json에 넣는다(`npm i <패키지> -w @signal-archive/web`). 루트에는 넣지 않는다.
-- 워크스페이스끼리는 패키지 이름으로 import한다(`@signal-archive/api-types`). `../../`로 다른 워크스페이스 파일을 가리키지 않는다.
+- 의존성은 쓰는 워크스페이스의 package.json에 넣는다(`npm i <패키지> -w @trendboda/web`). 루트에는 넣지 않는다.
+- 워크스페이스끼리는 패키지 이름으로 import한다(`@trendboda/api-types`). `../../`로 다른 워크스페이스 파일을 가리키지 않는다.
 - 공통 컴파일 옵션은 `tsconfig.base.json`에 두고, 모듈 해석과 대상 환경은 워크스페이스의 tsconfig가 정한다.
 
 ## 실행과 타입
