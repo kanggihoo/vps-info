@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { BookmarkedEntryView, EntryView, FeedSummary, RankSnapshotView } from '@trendboda/api-types';
+import type { BookmarkedEntryView, EntryView, FeedGroupView, FeedSummary, RankSnapshotView } from '@trendboda/api-types';
 import { runFetchAttempt } from '../collector/fetch-attempt.ts';
 import type { EntryDraft } from '../collector/handlers/define-handler.ts';
 import { connectionPool, database } from '../db/database-client.ts';
@@ -56,6 +56,22 @@ describe('GET /api/feeds', () => {
       ['hn-best', 'ranked', 0, null, null],
       ['geeknews', 'stream', 3, 2, 5],
       ['producthunt', 'stream', 2, null, 7],
+    ]);
+  });
+
+  it('Feed Group에 든 Feed는 Group과 축 위의 값을 함께 준다 (ADR-0010)', async () => {
+    const feeds = (await server.inject('/api/feeds')).json<FeedSummary[]>();
+    expect(feeds.find((summary) => summary.id === 'hn-best')?.group).toEqual({ id: 'hacker-news', variant: { section: 'best' } });
+    expect(feeds.find((summary) => summary.id === 'geeknews')?.group).toBeNull();
+  });
+});
+
+describe('GET /api/feed-groups', () => {
+  it('Group과 축을 선언 순서대로 준다', async () => {
+    const groups = (await server.inject('/api/feed-groups')).json<FeedGroupView[]>();
+    expect(groups.map((group) => [group.id, group.axes.map((axis) => axis.key)])).toEqual([
+      ['hacker-news', ['section']],
+      ['trendshift', ['period', 'language']],
     ]);
   });
 });

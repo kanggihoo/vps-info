@@ -112,7 +112,18 @@ export const feedDefinitions: FeedDefinition[] = [
 
 - `id`: 소문자와 `-`로 짓는다. 바꾸면 기존 Entry와 연결이 끊긴 **새 Feed**가 된다.
 - `intervalMinutes`: Feed를 **처음 DB에 넣을 때만** 쓰인다. 이후 주기는 DB 값이 원본이다(7장 참고).
-- 배열 순서가 화면 왼쪽 목록의 순서다.
+- 화면 왼쪽 목록은 Stream과 Ranked 두 구역으로 나뉘고, 구역 안에서는 배열 순서대로 놓인다.
+
+### 한 정보원이 기간·언어별 목록을 여러 개 주면: Feed Group
+
+변형(주간·월간, 언어별) 하나마다 Feed를 따로 선언하고, 화면에서는 Feed Group으로 한 줄에 묶는다(ADR-0010).
+
+1. `feedGroupDefinitions`에 Group과 축을 선언한다. 첫 번째 축이 가운데 위쪽 탭, 나머지 축이 드롭다운이 된다. `values` 순서가 탭·선택지 순서다.
+2. 각 Feed 선언에 `group: { id: '<Group id>', variant: { <축 key>: '<값>' } }`을 넣는다. 모든 축의 값을 빠짐없이 적는다.
+3. 한 Group의 Feed는 종류(`kind`)가 같아야 한다. `feed-definitions.test.ts`가 축·값·종류가 어긋나면 실패한다.
+4. Bookmark 목록처럼 Feed 이름이 따로 보이는 곳이 있으므로 `title`에는 변형까지 적는다(`Trendshift 주간 · Python`).
+
+변형이 많으면 Trendshift처럼 기간 × 언어 목록에서 선언을 만들어 펼친다(`makeTrendshiftFeedDefinitions`). id는 한 번 정하면 바꾸지 않는다.
 
 ### 순위표를 주는 정보원이면: Ranked Feed
 

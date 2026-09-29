@@ -301,7 +301,7 @@ components:
   - `entry-title` 16/600 — Entry 제목. 연 Entry는 `body-sm-medium` + `muted-foreground`
   - `body-sm` 14/400/1.5 — Feed 이름, Entry 요약
   - `caption` 13 — 메타데이터, `caption-bold`는 구분선 라벨
-  - `micro-uppercase` 11/600 — 사이드바 섹션 머리글(Feed 분류가 생기면)
+  - `micro-uppercase` 11/600 — 사이드바 구역 머리글(Stream, Ranked)
   - `button-md` 14/500 — 버튼 라벨
   - `numeric-sm` 13, `numeric-badge` 12/600 — 숫자(`font-mono`와 함께)
 - 위계는 크기보다 **굵기와 색**으로 만든다. 요약 줄 간격은 1.5 아래로 내리지 않는다.
@@ -328,7 +328,13 @@ components:
 
 ## Components
 
+- **사이드바 구역** (`sidebar-section`): Stream 구역을 위에, Ranked 구역을 아래에 둔다. 머리글은 `text-micro-uppercase` + `muted-foreground`이며 데스크톱에서만 보인다(모바일 가로 탭 줄에서는 스크린 리더용).
 - **Feed 행** (`feed-nav-item`): `rounded-sm`, `px-3 py-2`, 한 줄 말줄임. 선택되면 `sidebar-accent` 바탕 + `text-body-sm-medium`. 오른쪽 끝에 배지.
+- **Group 행** (`feed-nav-group`): Feed Group 한 줄(ADR-0010). Feed 행과 같은 모양이고, 묶인 Feed 중 하나라도 안 읽음·NEW가 있으면 오른쪽 끝에 8px 민트 점(`bg-brand`)만 찍는다. 숫자는 가운데 탭에서 보인다.
+  묶인 Feed가 실패 중이면 가장 큰 연속 실패 수를 경고로 보이고, 툴팁에 실패한 Feed를 한 줄씩 적는다.
+- **Feed Group 탭 줄** (`feed-group-bar`): Group에 든 Feed를 볼 때 본문 위에 붙는 줄. 아래쪽 1px `border`, 안쪽은 읽기 칼럼 폭.
+  첫 번째 축(기간, 구역)은 알약 탭(`rounded-full px-3 py-1.5`)이고 선택은 `sidebar-accent` 바탕이다. 탭 글자 옆에 그 Feed의 안 읽음·NEW 배지.
+  나머지 축(언어)은 오른쪽 끝의 알약 모양 기본 `<select>`(1px `input` 테두리)이고, 선택지 글자에 ` · NEW 3`을 붙인다. 모바일에서는 탭과 드롭다운이 줄을 바꿔 44px 높이가 된다.
 - **안 읽음 배지** (`badge-unread`): 민트 알약 + 검정 Mono 숫자. 0이면 그리지 않는다.
 - **NEW 수 배지** (`badge-rank-new`): Ranked Feed 행에 쓴다. 속이 빈 알약(1px `brand` 테두리) + `brand-ink` Mono 글자 `NEW 3`. 안 읽음 배지와 달리 열어 봐도 줄지 않으므로 채운 알약과 구분한다. 0이면 그리지 않는다.
 - **연속 실패** (`badge-failure`): 바탕 없이 경고 아이콘(`text-warn`) + Mono 숫자(`text-warn-ink`). 툴팁으로 다음 시도 시각을 보여 준다.

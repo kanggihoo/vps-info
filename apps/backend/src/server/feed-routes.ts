@@ -1,12 +1,12 @@
 /**
- * Feed 단위 API: Feed 목록, Feed의 Entry 조회, Read Cursor 이동, Ranked Feed의 순위표.
+ * Feed 단위 API: Feed 목록, Feed Group 목록, Feed의 Entry 조회, Read Cursor 이동, Ranked Feed의 순위표.
  */
 import { and, asc, desc, eq, exists, gt, lt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import type { EntryView, FeedSummary, MoveReadCursorRequest, RankSnapshotView } from '@trendboda/api-types';
+import type { EntryView, FeedGroupView, FeedSummary, MoveReadCursorRequest, RankSnapshotView } from '@trendboda/api-types';
 import { database } from '../db/database-client.ts';
 import { entry, feed } from '../db/schema.ts';
-import { feedDefinitions } from '../feed-definitions.ts';
+import { feedDefinitions, feedGroupDefinitions } from '../feed-definitions.ts';
 import { entryViewColumns, toEntryView } from './entry-view.ts';
 import { loadRankSnapshotView } from './rank-snapshot-view.ts';
 
@@ -63,6 +63,7 @@ export async function registerFeedRoutes(server: FastifyInstance): Promise<void>
           ...row,
           title: definition.title,
           kind,
+          group: definition.group ?? null,
           // Ranked Feed에는 Read Cursor가 없다(ADR-0009). Stream Feed였던 때의 커서가 남아 있어도 세지 않는다.
           unreadCount: kind === 'ranked' ? 0 : row.unreadCount,
           nextRunAt: row.nextRunAt.toISOString(),
@@ -70,6 +71,9 @@ export async function registerFeedRoutes(server: FastifyInstance): Promise<void>
       ];
     });
   });
+
+  /** Feed Group 선언을 그대로 돌려준다(ADR-0010). 코드에만 있는 값이라 DB를 읽지 않는다. */
+  server.get('/api/feed-groups', async (): Promise<FeedGroupView[]> => feedGroupDefinitions);
 
   /**
    * Feed의 Entry를 id 오름차순(오래된 것 → 새것)으로 돌려준다.

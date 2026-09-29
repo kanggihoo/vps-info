@@ -4,7 +4,10 @@
  * 수집기가 시작할 때 DB에 없는 Feed만 넣는다. `intervalMinutes`와 `rankLimit`은 그때 한 번만 쓰이고,
  * 이후에는 DB의 `feed.interval_minutes`, `feed.rank_limit`을 바꿔서 조정한다(ADR-0009).
  * `id`는 한 번 정하면 바꾸지 않는다. 바꾸면 기존 Entry와 연결이 끊긴 새 Feed가 된다.
+ *
+ * 한 정보원의 여러 Feed는 Feed Group으로 묶어 화면 왼쪽에 한 줄로 보인다(ADR-0010). 묶음은 화면에만 쓰이고 수집과는 무관하다.
  */
+import type { FeedGroupMembership, FeedGroupView } from '@trendboda/api-types';
 import type { HandlerName, HandlerParams } from './collector/handlers/index.ts';
 
 type FeedDefinitionUsing<Name extends HandlerName> = {
@@ -18,6 +21,8 @@ type FeedDefinitionUsing<Name extends HandlerName> = {
   intervalMinutes: number;
   /** 새 글이 원래 드문 Feed라서 0건을 실패로 보지 않을지 여부(ADR-0005). */
   allowEmpty?: boolean;
+  /** 속한 Feed Group과 축 위의 값. `feedGroupDefinitions`에 있는 Group이어야 한다(ADR-0010). */
+  group?: FeedGroupMembership;
 } & FeedKindDeclaration;
 
 /** Feed 종류(ADR-0009). 생략하면 Stream Feed다. */
@@ -31,6 +36,51 @@ type FeedKindDeclaration =
 
 /** Feed 하나의 정의. `handler` 값에 따라 `params` 타입이 정해진다. */
 export type FeedDefinition = { [Name in HandlerName]: FeedDefinitionUsing<Name> }[HandlerName];
+
+/**
+ * Feed Group 선언. 왼쪽 목록에서는 첫 번째 Feed가 있던 자리에 한 줄로 보인다.
+ * 첫 번째 축은 가운데 위쪽 탭으로, 나머지 축은 드롭다운으로 고른다.
+ */
+export const feedGroupDefinitions: FeedGroupView[] = [
+  {
+    id: 'hacker-news',
+    title: 'Hacker News',
+    axes: [
+      {
+        key: 'section',
+        title: '구역',
+        values: [
+          { value: 'best', title: 'Best' },
+          { value: 'show', title: 'Show' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'trendshift',
+    title: 'Trendshift',
+    axes: [
+      {
+        key: 'period',
+        title: '기간',
+        values: [
+          { value: 'weekly', title: '주간' },
+          { value: 'monthly', title: '월간' },
+          { value: 'yearly', title: '연간' },
+        ],
+      },
+      {
+        key: 'language',
+        title: '언어',
+        values: [
+          { value: 'all', title: '전체 언어' },
+          { value: 'typescript', title: 'TypeScript' },
+          { value: 'python', title: 'Python' },
+        ],
+      },
+    ],
+  },
+];
 
 /**
  * Trendshift 순위표의 기간과 처음 수집 주기(분). 기간이 길수록 순위가 천천히 바뀌어 덜 자주 가져온다.
@@ -57,6 +107,7 @@ function makeTrendshiftFeedDefinitions(): FeedDefinition[] {
         intervalMinutes,
         kind: 'ranked',
         rankLimit: 25,
+        group: { id: 'trendshift', variant: { period, language: language?.toLowerCase() ?? 'all' } },
       }),
     ),
   );
@@ -71,8 +122,18 @@ export const feedDefinitions: FeedDefinition[] = [
     intervalMinutes: 360,
     kind: 'ranked',
     rankLimit: 100,
+    group: { id: 'hacker-news', variant: { section: 'best' } },
   },
-  { id: 'hn-show', title: 'Show HN', handler: 'hackernews', params: { section: 'show' }, intervalMinutes: 360, kind: 'ranked', rankLimit: 60 },
+  {
+    id: 'hn-show',
+    title: 'Show HN',
+    handler: 'hackernews',
+    params: { section: 'show' },
+    intervalMinutes: 360,
+    kind: 'ranked',
+    rankLimit: 60,
+    group: { id: 'hacker-news', variant: { section: 'show' } },
+  },
   { id: 'geeknews', title: 'GeekNews', handler: 'rss', params: { url: 'https://news.hada.io/rss/news' }, intervalMinutes: 60 },
   { id: 'producthunt', title: 'Product Hunt', handler: 'rss', params: { url: 'https://www.producthunt.com/feed' }, intervalMinutes: 180 },
   { id: 'techcrunch', title: 'TechCrunch', handler: 'rss', params: { url: 'https://techcrunch.com/feed/' }, intervalMinutes: 60 },

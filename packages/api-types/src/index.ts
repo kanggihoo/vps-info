@@ -6,12 +6,39 @@
 /** Feed 종류(ADR-0009). Stream Feed는 시간순 타임라인, Ranked Feed는 순위표로 본다. */
 export type FeedKind = 'stream' | 'ranked';
 
+/** Feed Group의 축 하나(기간, 언어, 구역). `values`의 순서가 화면의 탭·선택지 순서다(ADR-0010). */
+export type FeedGroupAxis = {
+  key: string;
+  /** 화면에 보이는 축 이름(`기간`). */
+  title: string;
+  values: { value: string; title: string }[];
+};
+
+/**
+ * `GET /api/feed-groups`의 항목 하나. 한 정보원의 여러 Feed를 화면에서 한 줄로 묶는다(ADR-0010).
+ * 첫 번째 축은 탭으로, 나머지 축은 드롭다운으로 고른다.
+ */
+export type FeedGroupView = {
+  id: string;
+  /** 왼쪽 목록에 보이는 이름(`Trendshift`). */
+  title: string;
+  axes: FeedGroupAxis[];
+};
+
+/** Feed가 어느 Feed Group의 어느 변형인지. `variant`는 축 key → 값이다(`{ period: 'weekly', language: 'all' }`). */
+export type FeedGroupMembership = {
+  id: string;
+  variant: Record<string, string>;
+};
+
 /** `GET /api/feeds`의 항목 하나. */
 export type FeedSummary = {
   id: string;
-  /** 화면에 보이는 이름. 코드의 Feed 선언에서 온다. */
+  /** 화면에 보이는 이름. 코드의 Feed 선언에서 온다. Group에 든 Feed도 변형까지 적은 전체 이름이다. */
   title: string;
   kind: FeedKind;
+  /** 속한 Feed Group. 없으면 `null`이고 왼쪽 목록에 혼자 한 줄로 보인다. */
+  group: FeedGroupMembership | null;
   /** Read Cursor보다 새로운 Entry 수. Ranked Feed는 Read Cursor가 없어서 항상 0이다. */
   unreadCount: number;
   /** 최신 Rank Snapshot의 NEW 수. 열어 봐도 줄지 않고 다음 수집 때 바뀐다. Stream Feed는 0이다. */

@@ -2,7 +2,7 @@
  * 화면에서 부르는 API 모음. 브라우저의 HTTP 호출은 모두 이 파일을 거친다.
  * 요청 경로는 상대 `/api`라서 운영(같은 서버)과 로컬(Vite 프록시)에서 똑같이 동작한다.
  */
-import type { BookmarkedEntryView, EntryView, FeedSummary, MoveReadCursorRequest, RankSnapshotView } from '@trendboda/api-types';
+import type { BookmarkedEntryView, EntryView, FeedGroupView, FeedSummary, MoveReadCursorRequest, RankSnapshotView } from '@trendboda/api-types';
 
 /**
  * JSON API를 호출한다. 실패 응답이면 예외를 던진다.
@@ -20,6 +20,9 @@ async function requestApi<Response>(path: string, init: RequestInit = {}): Promi
 
 export const apiClient = {
   listFeeds: () => requestApi<FeedSummary[]>('/feeds'),
+
+  /** Feed Group 선언(ADR-0010). 코드에만 있는 값이라 배포 사이에는 바뀌지 않는다. */
+  listFeedGroups: () => requestApi<FeedGroupView[]>('/feed-groups'),
 
   /** 이 id보다 새로운 Entry를 오래된 것부터. */
   listEntriesAfter: (feedId: string, afterEntryId: number, limit: number) =>
