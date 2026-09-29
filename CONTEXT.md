@@ -1,16 +1,23 @@
-# Signal Archive
+# Trendboda
 
-Signal Archive는 여러 외부 정보원에서 링크와 메타데이터를 주기적으로 수집해 보관하고,
-정보원별로 시간순으로 읽을 수 있게 하는 컨텍스트다.
+Trendboda는 여러 외부 정보원에서 링크와 메타데이터를 주기적으로 수집해 보관하고,
+정보원별로 새 글과 순위 변동을 읽을 수 있게 하는 컨텍스트다.
 
 ## Language
 
 **Feed**:
-한 정보원에서 주기적으로 수집하는 항목 목록 하나. 수집의 단위이자 화면에서 사용자가 선택하는 축이다.
-한 사이트가 여러 Feed를 가질 수 있다(Hacker News의 best와 show, YouTube 관심 채널 각각).
-Feed 위에 Site 같은 상위 묶음은 없고, 주제로 분류하지도 않는다. 종류는 Stream Feed와 Ranked Feed 둘뿐이다.
+한 정보원에서 주기적으로 수집하는 항목 목록 하나. 수집의 단위이자 화면에서 사용자가 고르는 대상이다.
+한 사이트가 여러 Feed를 가질 수 있다(Hacker News의 best와 show, Trendshift의 기간·언어별 순위, YouTube 관심 채널 각각).
+주제로 분류하지 않는다. 종류는 Stream Feed와 Ranked Feed 둘뿐이다.
 RSS 제공 여부와 무관하다 — 어떻게 가져오는지는 Feed의 성질이 아니다.
 _Avoid_: Source, Channel, Provider, Subscription
+
+**Feed Group**:
+한 정보원이 주는 여러 목록의 Feed를 화면에서 한 줄로 묶은 것. 각 Feed는 기간·언어·구역 같은 축 위의 한 점이다
+(Trendshift의 주간·Python 목록, Hacker News의 Best와 Show).
+묶는 것은 보여 주는 방식뿐이다. 수집, Rank Snapshot, Read Cursor는 여전히 Feed마다 따로다.
+묶인 Feed는 종류가 모두 같고, 정보원이 다르면 주제가 같아도 묶지 않는다. 목록이 하나뿐인 정보원은 Group 없이 Feed 하나다.
+_Avoid_: Site, Source, Category
 
 **Stream Feed**:
 새 Entry가 나타난 순서대로 쌓아 읽는 Feed. RSS처럼 새 글이 계속 올라오는 정보원이 여기에 해당한다.
@@ -57,6 +64,8 @@ _Avoid_: Created At, Collected At
 **Read Cursor**:
 Stream Feed마다 "여기까지 훑었다"를 나타내는 지점. 이보다 새로운 Entry가 안 읽음이다.
 최신 쪽으로만 이동하며, 제목만 보고 넘긴 Entry도 지나간 이상 훑은 것으로 친다.
+Entry가 지나갔다는 것은 스크롤되어 화면 위쪽 밖으로 나갔다는 뜻이다. 화면에 보이기만 한 Entry는 아직 지나가지 않았다.
+원문을 연 Entry가 있으면 그 Entry와 그보다 오래된 Entry도 지나간 것으로 친다 — 아래 Entry를 열었다면 위 Entry는 이미 훑었다.
 Ranked Feed에는 없다 — 순위표에서는 새로 들어온 Entry가 어느 자리에 나타날지 정해져 있지 않다.
 _Avoid_: Read Flag, Last Read, Watermark
 
