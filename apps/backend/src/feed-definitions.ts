@@ -32,6 +32,36 @@ type FeedKindDeclaration =
 /** Feed 하나의 정의. `handler` 값에 따라 `params` 타입이 정해진다. */
 export type FeedDefinition = { [Name in HandlerName]: FeedDefinitionUsing<Name> }[HandlerName];
 
+/**
+ * Trendshift 순위표의 기간과 처음 수집 주기(분). 기간이 길수록 순위가 천천히 바뀌어 덜 자주 가져온다.
+ * 일간은 수집하지 않는다(docs/feeds.md).
+ */
+const trendshiftPeriods = [
+  { period: 'weekly', title: '주간', intervalMinutes: 360 },
+  { period: 'monthly', title: '월간', intervalMinutes: 720 },
+  { period: 'yearly', title: '연간', intervalMinutes: 1440 },
+] as const;
+
+/** 수집하는 Trendshift 언어. `undefined`는 전체 언어다. 하나를 더하면 기간 수만큼 Feed가 는다. */
+const trendshiftLanguages = [undefined, 'TypeScript', 'Python'] as const;
+
+/** Trendshift의 기간 × 언어마다 Ranked Feed 하나를 만든다. 정보원이 한 번에 25개를 준다. */
+function makeTrendshiftFeedDefinitions(): FeedDefinition[] {
+  return trendshiftPeriods.flatMap(({ period, title, intervalMinutes }) =>
+    trendshiftLanguages.map(
+      (language): FeedDefinition => ({
+        id: language ? `trendshift-${period}-${language.toLowerCase()}` : `trendshift-${period}`,
+        title: language ? `Trendshift ${title} · ${language}` : `Trendshift ${title}`,
+        handler: 'trendshift',
+        params: { period, language },
+        intervalMinutes,
+        kind: 'ranked',
+        rankLimit: 25,
+      }),
+    ),
+  );
+}
+
 export const feedDefinitions: FeedDefinition[] = [
   {
     id: 'hn-best',
@@ -66,17 +96,7 @@ export const feedDefinitions: FeedDefinition[] = [
     kind: 'ranked',
     rankLimit: 60,
   },
-  // 정보원이 개수를 정해 준다(비로그인 9개, 첫 화면 25개). rankLimit은 그보다 크게 둔다.
-  {
-    id: 'github-trending-daily',
-    title: 'GitHub Trending',
-    handler: 'github-trending',
-    params: { since: 'daily' },
-    intervalMinutes: 360,
-    kind: 'ranked',
-    rankLimit: 25,
-  },
-  { id: 'trendshift', title: 'Trendshift', handler: 'trendshift', params: {}, intervalMinutes: 360, kind: 'ranked', rankLimit: 25 },
+  ...makeTrendshiftFeedDefinitions(),
   { id: 'indiehackers-top-week', title: 'Indie Hackers 주간 인기글', handler: 'indiehackers', params: {}, intervalMinutes: 720 },
   { id: 'anthropic-news', title: 'Anthropic News', handler: 'anthropic-news', params: {}, intervalMinutes: 360 },
 ];

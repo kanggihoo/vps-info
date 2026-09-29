@@ -4,7 +4,6 @@
  */
 import { anthropicNewsHandler } from './anthropic-news-handler.ts';
 import { devtoHandler } from './devto-handler.ts';
-import { githubTrendingHandler } from './github-trending-handler.ts';
 import { hackernewsHandler } from './hackernews-handler.ts';
 import { hellogithubHandler } from './hellogithub-handler.ts';
 import { huggingfacePapersHandler } from './huggingface-papers-handler.ts';
@@ -20,7 +19,6 @@ export const handlers = {
   'huggingface-papers': huggingfacePapersHandler,
   hellogithub: hellogithubHandler,
   devto: devtoHandler,
-  'github-trending': githubTrendingHandler,
   trendshift: trendshiftHandler,
   indiehackers: indiehackersHandler,
   'anthropic-news': anthropicNewsHandler,

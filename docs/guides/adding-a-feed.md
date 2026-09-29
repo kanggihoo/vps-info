@@ -85,8 +85,7 @@ Stream Feed는 `extra`와 `metrics`가 합쳐진 처음 값을, Ranked Feed 순�
 | `huggingface-papers` | `huggingface-papers-handler.ts` | `{ period: 'week' \| 'month' }` | HF Papers API. 지난주·지난달 추천수 상위 30편 |
 | `hellogithub` | `hellogithub-handler.ts` | `{}` | HelloGitHub 추천 저장소 API |
 | `devto` | `devto-handler.ts` | `{ topDays }` | dev.to API. 최근 N일 반응 상위 `rankLimit`개 |
-| `github-trending` | `github-trending-handler.ts` | `{ since: 'daily' \| 'weekly' \| 'monthly' }` | GitHub Trending HTML |
-| `trendshift` | `trendshift-handler.ts` | `{}` | Trendshift 첫 화면의 JSON-LD |
+| `trendshift` | `trendshift-handler.ts` | `{ period: 'weekly' \| 'monthly' \| 'yearly', language? }` | Trendshift 기간·언어별 순위표. RSC 데이터를 읽고, 실패하면 JSON-LD |
 | `indiehackers` | `indiehackers-handler.ts` | `{}` | Indie Hackers 지난주 인기글 HTML |
 | `anthropic-news` | `anthropic-news-handler.ts` | `{}` | Anthropic 뉴스 목록 HTML |
 
@@ -132,7 +131,7 @@ export const feedDefinitions: FeedDefinition[] = [
 ```
 
 - 정보원이 준 목록 순서가 그대로 Rank다. Handler는 순서를 바꾸지 않는다(점수로 다시 정렬하지 않는다).
-- 개수가 정해져 있는 정보원(GitHub Trending 9개 등)도 `rankLimit`은 적는다. 코어가 그 개수로 자를 뿐이다.
+- 개수가 정해져 있는 정보원(Trendshift 25개 등)도 `rankLimit`은 적는다. 코어가 그 개수로 자를 뿐이다.
 - 끝난 기간의 확정 목록(지난주 인기 논문 등)은 순위가 바뀌지 않으므로 Stream Feed로 둔다.
 - Ranked Feed에는 Read Cursor가 없다. 왼쪽 목록에는 안 읽음 수 대신 최신 Snapshot의 NEW 수가 뜬다.
 
@@ -172,7 +171,7 @@ export const exampleHandler = defineHandler<{ period: 'day' | 'week' }>({
 
 - 파라미터 타입(`defineHandler<{ … }>`)을 반드시 선언한다. Feed 선언이 이 타입으로 검사된다.
 - HTML은 `httpClient(url, { responseType: 'text' })`로 받아 `cheerio`로 파싱한다.
-  파싱은 `parse…Page(html)` 함수로 따로 export해서 HTML 조각으로 테스트한다(`github-trending-handler.ts` 참고).
+  파싱은 `parse…Page(html)` 함수로 따로 export해서 HTML 조각으로 테스트한다(`indiehackers-handler.ts` 참고).
   페이지에 JSON-LD나 내장 JSON이 있으면 클래스 이름 대신 그것을 읽는다(`trendshift-handler.ts`). 화면 구조가 바뀌어도 덜 깨진다.
   RSS·Atom 문자열은 `rss-parser`의 `parseString`을 쓴다(`rss-handler.ts` 참고).
 - 순위 목록(트렌드, 주간 인기)은 "끝난 기간"을 가져오면 몇 번을 수집해도 결과가 같다

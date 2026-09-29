@@ -388,4 +388,4 @@ components:
 - `top` / `left` / `width` / `height` 애니메이션
 - `100vh` / `h-screen`, 페이지 가로 스크롤
 - Hero, CTA, "스크롤해 보세요" 류 문구
-- 가짜 이름·숫자 — 예시는 실제 Feed(`hn-best`, `github-trending-daily`)를 쓴다
+- 가짜 이름·숫자 — 예시는 실제 Feed(`hn-best`, `trendshift-weekly`)를 쓴다

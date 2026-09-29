@@ -7,7 +7,9 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - **주기**와 Ranked Feed의 **순위 수**는 처음 등록할 때의 값이다. 운영 중에 DB에서 바꿨다면 DB 값이 우선한다
   ([지침서 7장](./guides/adding-a-feed.md) 참고).
 - **새 Entry가 생기는 때**는 수집한 목록에 이전에 없던 항목이 나타난 때다. 같은 항목은 한 Feed 안에서 한 번만 저장된다(ADR-0002).
-- **첫 수집**은 로컬에서 처음 수집했을 때(2026-09-28) 저장된 건수다. HN은 그 전부터 수집하던 것이라 비워 둔다.
+- **첫 수집**은 로컬에서 처음 수집했을 때(2026-09-28, Trendshift는 2026-09-29) 저장된 건수다. HN은 그 전부터 수집하던 것이라 비워 둔다.
+- **Feed Group**: 한 정보원의 여러 Feed는 화면 왼쪽에서 한 줄로 묶이고, 가운데 위쪽 탭·드롭다운으로 고른다(ADR-0010).
+  지금 Group은 Hacker News(Best·Show)와 Trendshift(기간 × 언어 9개) 둘이다.
 
 ## 한눈에 보기
 
@@ -24,8 +26,9 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 | Hugging Face 주간 인기 논문 | 지난주 추천수 상위 AI 논문 30편 | Stream | 공개 API | 12시간 | 30 |
 | HelloGitHub | 사람이 골라 소개하는 오픈소스 저장소 | Stream | 공개 API | 1일 | 20 |
 | dev.to 주간 인기글 | 최근 7일 반응 상위 개발 글 60개 | Ranked | 공개 API | 6시간 | 30 |
-| GitHub Trending | 오늘 스타가 많이 늘어난 저장소 | Ranked | HTML 파싱 | 6시간 | 9 |
-| Trendshift | 떠오르는 GitHub 저장소 순위 | Ranked | HTML 안의 구조화 데이터 | 6시간 | 25 |
+| Trendshift 주간 (전체·TypeScript·Python) | 이번 주 Trendshift 점수 상위 GitHub 저장소 25개 | Ranked | HTML 안의 RSC 데이터 | 6시간 | 25씩 |
+| Trendshift 월간 (전체·TypeScript·Python) | 이번 달 점수 상위 저장소 25개 | Ranked | HTML 안의 RSC 데이터 | 12시간 | 25씩 |
+| Trendshift 연간 (전체·TypeScript·Python) | 올해 점수 상위 저장소 25개 | Ranked | HTML 안의 RSC 데이터 | 1일 | 25씩 |
 | Indie Hackers 주간 인기글 | 지난주 인기 1인 창업·사이드 프로젝트 글 | Stream | HTML 파싱 | 12시간 | 20 |
 | Anthropic News | Anthropic 공지·연구 | Stream | HTML 파싱 | 6시간 | 10 |
 
@@ -75,18 +78,20 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 새 Entry: 추천 목록에 새로 오른 제품. 목록의 게시일이 몇 주씩 섞여 있어 "오늘 출시"와는 다르다.
 - 참고: 추천수(vote)는 피드에 없다. 요약 끝에 "Discussion | Link"가 붙는다.
 
-**GitHub Trending** (`github-trending-daily`, Ranked)
-- 출처: [github.com/trending](https://github.com/trending?since=daily)
-- 가져오기: `?since=daily` 페이지의 HTML을 파싱한다. 로그인하지 않은 요청이라 9개 정도만 온다(`rank_limit` 25는 상한일 뿐이다).
-- 새 Entry: 오늘 순위에 처음 오른 저장소. 며칠 연속으로 순위에 있어도 Entry는 하나다.
-- 순위: GitHub가 순위를 얼마나 자주 다시 계산하는지는 공개돼 있지 않다. 쌓인 Snapshot을 보고 주기를 조정한다.
-- 화면: 순위표. 오늘 늘어난 스타 수를 ▲로, 직전 대비 증감을 함께 보여 준다. 전체 스타 수는 `metrics`에, 언어는 `extra`에 저장만 하고 아직 화면에 보이지 않는다.
-
-**Trendshift** (`trendshift`, Ranked)
-- 출처: [trendshift.io](https://trendshift.io)
-- 가져오기: 첫 화면 HTML에 들어 있는 schema.org `ItemList`(JSON-LD)를 읽는다. 25개가 온다. `position` 순서가 Rank다.
-- 새 Entry: 순위에 처음 오른 저장소. GitHub Trending과 많이 겹친다.
-- 참고: 링크는 GitHub 저장소로 가고, Trendshift 페이지 주소와 키워드는 `extra`에 저장한다. 점수가 없어서 화면에는 순위 변동만 보인다.
+**Trendshift** (Feed Group, Ranked Feed 9개)
+- Feed: 기간(`weekly`·`monthly`·`yearly`) × 언어(전체·TypeScript·Python).
+  id는 `trendshift-<기간>`(전체 언어)과 `trendshift-<기간>-<언어 소문자>`다(`trendshift-weekly`, `trendshift-yearly-python`).
+- 출처: [trendshift.io/weekly](https://trendshift.io/weekly), `/monthly`, `/yearly`. 언어는 `?language=TypeScript`처럼 붙인다.
+- 가져오기: 페이지 HTML에 들어 있는 Next.js RSC 데이터(`self.__next_f.push`)의 `initialData`를 읽는다. 25개가 온다.
+  순위, Trendshift 점수, 그 기간에 늘어난 스타, 전체 스타·포크, 설명, 태그가 여기에만 있다.
+  RSC 데이터를 읽지 못하면 schema.org `ItemList`(JSON-LD)로 순위와 저장소만 읽고 수집기 로그에 `[trendshift] … JSON-LD로 읽었다`를 남긴다.
+  그 회차의 Rank Snapshot에는 수치가 없어 화면에 순위 변동만 보인다. 경고가 보이면 Handler를 고친다.
+- 순위: GitHub Trending과 다른, Trendshift 자체 점수 순위다. 주간은 월요일(UTC), 월간은 매달 1일, 연간은 1월 1일에 새 기간이 시작된다.
+- 새 Entry: 순위에 처음 오른 저장소. **기간이 바뀐 뒤 첫 수집에서는 순위표 대부분이 한꺼번에 NEW로 뜬다.** 고장이 아니라 새 기간의 순위표라서다.
+- 주기: 기간이 길수록 순위가 천천히 바뀌어 주간 6시간, 월간 12시간, 연간 1일로 둔다.
+- 참고: 일간(첫 화면)은 수집하지 않는다. 링크는 GitHub 저장소로 가고, Trendshift 저장소 페이지 주소·언어·태그는 `extra`에, 점수·스타·포크는 `metrics`에 저장한다.
+  예전의 `github-trending-daily`(GitHub Trending 일간)와 `trendshift`(Trendshift 첫 화면) Feed는 2026-09-29에 이 Feed들로 바꾸면서 지웠다(마이그레이션 `0003`).
+- 화면: 저장소 카드의 순위표. 언어, 전체 스타, 그 기간에 늘어난 스타와 직전 대비 증감, 포크, 태그를 보여 준다.
 
 **HelloGitHub** (`hellogithub`)
 - 출처: [hellogithub.com](https://hellogithub.com)
