@@ -77,7 +77,7 @@ export function App() {
         )}
         <div className="relative min-h-0 flex-1">
           {showFeedListError && <LoadError message="Feed 목록을 불러오지 못했습니다." onRetry={refreshFeeds} />}
-          {effectiveScreen.kind === 'bookmarks' && <BookmarkList />}
+          {effectiveScreen.kind === 'bookmarks' && <BookmarkList feeds={feeds} />}
           {selectedFeed?.kind === 'stream' && <FeedTimeline key={selectedFeed.id} feed={selectedFeed} onReadCursorSaved={refreshFeeds} />}
           {selectedFeed?.kind === 'ranked' && <RankTable key={selectedFeed.id} feed={selectedFeed} />}
           {effectiveScreen.kind === 'feed' && !selectedFeed && feeds.length > 0 && (

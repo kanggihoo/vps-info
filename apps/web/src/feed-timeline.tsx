@@ -12,6 +12,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { EntryView, FeedSummary } from '@trendboda/api-types';
 import { Button } from '@/components/ui/button';
 import { apiClient } from './api-client.ts';
+import { findCardKind } from './card-kind.ts';
 import { EntryCard } from './entry-card.tsx';
 import { EmptyMessage, EntryListSkeleton, LoadError } from './load-states.tsx';
 import { useReadCursorTracker } from './use-read-cursor-tracker.ts';
@@ -142,6 +143,7 @@ export function FeedTimeline({ feed, onReadCursorSaved }: FeedTimelineProps) {
               )}
               <EntryCard
                 entry={entry}
+                cardKind={findCardKind(feed.id, feed.group?.id)}
                 // 아래 Entry의 원문을 열었다면 위 Entry는 이미 훑었다(CONTEXT.md의 Read Cursor).
                 onOpen={(openedEntry) => jumpTo(openedEntry.id)}
                 onEntryChange={(changedEntry) =>

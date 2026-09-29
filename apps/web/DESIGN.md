@@ -339,7 +339,13 @@ components:
 - **NEW 수 배지** (`badge-rank-new`): Ranked Feed 행에 쓴다. 속이 빈 알약(1px `brand` 테두리) + `brand-ink` Mono 글자 `NEW 3`. 안 읽음 배지와 달리 열어 봐도 줄지 않으므로 채운 알약과 구분한다. 0이면 그리지 않는다.
 - **연속 실패** (`badge-failure`): 바탕 없이 경고 아이콘(`text-warn`) + Mono 숫자(`text-warn-ink`). 툴팁으로 다음 시도 시각을 보여 준다.
 - **Entry 카드** (`entry-card`): `bg-card`, 1px `border`, `rounded-lg`, `px-4 py-3`, 그림자 없음. 카드 사이 8px. Mintlify 카드 여백(24px)은 밀도 때문에 줄였다.
-- **Entry 메타** (`entry-meta`): 호스트 · 작성자 · 시각 · 점수 · 댓글을 `text-caption`으로, 사이 간격 12px(`gap-x-3`). 숫자는 `font-mono`.
+- **Entry 메타** (`entry-meta`): 제목 아래 한 줄. `text-caption`, 사이 간격 12px(`gap-x-3`), 숫자는 `font-mono`. 카드 종류(`src/card-kind.ts`)마다 보이는 것이 다르다.
+  - 글(`article`): 호스트 · 작성자 · 시각 · 점수(`ArrowUp`) · 댓글(`MessageSquare`)
+  - 저장소(`repository`): 언어(`foreground`) · 전체 스타(`Star`) · 기간 동안 늘어난 스타(`TrendingUp`, `+4.2K`) · 포크(`GitFork`) · 정보원 페이지 링크. 요약 아래에 태그 4개까지(`Tag` 아이콘 + 글자)
+  - 모델(`model`): 시각 · 컨텍스트 길이 · 입력·출력 가격(1M 토큰당 달러, 0이면 "무료")
+  - 논문(`paper`): 저자 · 시각 · 추천(`ArrowUp`) · 댓글 · arXiv 링크
+  - 릴리스(`release`): 시각 · 작성자. 요약(변경 사항)을 4줄까지 보인다
+  - 큰 수는 `44K`, `1M`처럼 줄인다. 순위표의 직전 대비 증감은 대표 수치 옆 괄호에 쓴다(저장소는 늘어난 스타, 나머지는 점수).
 - **순위표** (`rank-table`): Ranked Feed 화면. 맨 위에 수집 시각과 비교한 직전 수집 시각을 `text-caption`으로, 그 아래에 순위순 Entry 카드. 카드 왼쪽에 순위 칸(모바일 32px, 데스크톱 48px)을 둔다.
   - 순위 숫자는 `text-entry-title` Mono. 그 아래에 변동 표시 하나.
   - NEW는 민트 알약(`bg-brand` + 검정 글자), 재진입은 1px `border` 알약 + `muted-foreground` 글자.

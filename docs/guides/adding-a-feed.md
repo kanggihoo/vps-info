@@ -10,7 +10,7 @@
 ```
 
 - **collector**(`apps/backend/src/collector/`)와 **app**(`apps/backend/src/server/`, `apps/web/`)은 별도 컨테이너다. 둘은 DB로만 연결된다.
-  Feed를 추가하는 일은 거의 전부 collector 쪽이다. app과 화면은 고칠 필요가 없다.
+  Feed를 추가하는 일은 거의 전부 collector 쪽이다. 화면은 글이 아닌 Feed의 카드 종류를 적을 때만 고친다(2장).
 - collector는 상주하면서 30초마다 `feed.next_run_at`이 지난 Feed를 찾아 **하나씩** 수집한다.
 - Feed 하나를 한 번 수집하는 것을 **Fetch Attempt**라 하고, 성공이든 실패든 `fetch_attempt`에 한 행이 남는다.
 - Feed는 **Stream Feed**(새 글이 쌓이는 목록, 기본)와 **Ranked Feed**(정보원이 매기는 순위표) 둘 중 하나다(ADR-0009).
@@ -60,10 +60,20 @@ Handler 안에서 재시도·타임아웃·저장·중복 확인을 직접 구�
 | `metrics` | | 수집할 때마다 바뀌는 수치(예: HN의 `score`, `commentCount`). Ranked Feed는 매번 Rank Snapshot에 남긴다 |
 | `raw` | ✅ | 정보원이 준 원본 그대로. 내부 보존용이며 API로 나가지 않는다(ADR-0003) |
 
-화면(`apps/web/src/entry-card.tsx`)은 `score`, `commentCount`, `commentsUrl`을 알아서 보여 준다.
-그래서 인기도(추천수, 좋아요, 기간 내 스타 수)는 `score`에, 댓글 수는 `commentCount`에 넣는다.
+화면은 **카드 종류**에 따라 `extra`·`metrics`에서 정해진 이름의 필드를 꺼내 보여 준다(`apps/web/src/entry-meta.tsx`).
+Feed의 카드 종류는 화면 쪽 표 `apps/web/src/card-kind.ts`에 Feed id(또는 Feed Group id)로 적는다. 적지 않으면 글 카드다.
+
+| 카드 종류 | 이런 Feed | 화면이 읽는 필드 |
+|---|---|---|
+| `article` (기본) | 뉴스·글 | `score`(인기도: 추천수, 좋아요), `commentCount`, `commentsUrl` |
+| `repository` | GitHub 저장소 | `language`, `stars`, `starsGained`(기간 내 스타), `forks`, `tags`(문자열 배열), `trendshiftUrl`·`hellogithubUrl` |
+| `model` | LLM 모델 | `contextLength`, `promptPricePerToken`·`completionPricePerToken`(토큰 1개당 달러, 문자열) |
+| `paper` | 논문 | `score`(추천수), `commentCount`, `arxivUrl` |
+| `release` | 버전 릴리스 | 따로 읽는 필드 없음. 요약을 4줄까지 보인다 |
+
 Stream Feed는 `extra`와 `metrics`가 합쳐진 처음 값을, Ranked Feed 순위표는 최신 Snapshot의 `metrics`를 보여 준다.
-두 곳 중 어디에 넣을지 헷갈리면 "다음 수집 때 값이 바뀌는가"로 정한다. 다른 필드를 화면에 보이려면 그때 `entry-card.tsx`를 고친다.
+순위표의 직전 대비 증감은 저장소 카드면 `starsGained`, 나머지는 `score`로 계산한다.
+두 곳 중 어디에 넣을지 헷갈리면 "다음 수집 때 값이 바뀌는가"로 정한다. 표에 없는 필드를 화면에 보이려면 `entry-meta.tsx`를 고친다.
 
 ## 3. 어떤 경우인가
 
@@ -349,5 +359,6 @@ Stream Feed를 Ranked Feed로 바꾸면서 주기도 바꾸는 경우가 여기�
 - [ ] `npm run typecheck`, `npm test`, `npm run test:db` 통과
 - [ ] `--once`로 N건 저장, 한 번 더 실행해 0건 확인
 - [ ] DB에서 `dedup_key`, `title`, `url`, `published_at`, `extra` 확인
+- [ ] 글이 아닌 Feed(저장소, 모델, 논문, 릴리스)면 `apps/web/src/card-kind.ts`에 카드 종류를 적음
 - [ ] 화면 왼쪽 목록에 보이고 제목을 누르면 원문이 열림
 - [ ] [docs/feeds.md](../feeds.md)에 이 Feed의 출처·가져오는 방식·주기·새 Entry가 생기는 때를 적음

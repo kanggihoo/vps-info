@@ -1,11 +1,13 @@
-/** 여러 Feed의 Bookmark를 최근에 Bookmark한 순서로 모아 보여 준다. */
+/** 여러 Feed의 Bookmark를 최근에 Bookmark한 순서로 모아 보여 준다. 카드 모양은 Entry가 온 Feed를 따른다. */
 import { useCallback, useEffect, useState } from 'react';
-import type { BookmarkedEntryView } from '@trendboda/api-types';
+import type { BookmarkedEntryView, FeedSummary } from '@trendboda/api-types';
 import { apiClient } from './api-client.ts';
+import { findCardKind } from './card-kind.ts';
 import { EntryCard } from './entry-card.tsx';
 import { EmptyMessage, EntryListSkeleton, LoadError } from './load-states.tsx';
 
-export function BookmarkList() {
+/** @param feeds - 카드 모양을 정하려고 Entry가 온 Feed의 Feed Group을 찾는 데 쓴다. */
+export function BookmarkList({ feeds }: { feeds: FeedSummary[] }) {
   const [bookmarks, setBookmarks] = useState<BookmarkedEntryView[] | undefined>();
   const [loadFailed, setLoadFailed] = useState(false);
 
@@ -32,6 +34,7 @@ export function BookmarkList() {
           <EntryCard
             key={bookmark.id}
             entry={bookmark}
+            cardKind={findCardKind(bookmark.feedId, feeds.find((feed) => feed.id === bookmark.feedId)?.group?.id)}
             feedTitle={bookmark.feedTitle}
             onEntryChange={(changedEntry) =>
               setBookmarks((current) =>

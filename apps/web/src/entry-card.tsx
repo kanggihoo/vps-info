@@ -1,34 +1,30 @@
-/** Entry 하나. 제목을 누르면 원문이 새 탭에서 열리고 Opened At이 기록된다. */
-import { ArrowUp, MessageSquare, Star } from 'lucide-react';
+/**
+ * Entry 하나. 제목을 누르면 원문이 새 탭에서 열리고 Opened At이 기록된다.
+ * 제목·Bookmark·요약은 모든 카드가 같고, 제목 아래 메타 줄은 카드 종류(글, 저장소, 모델, 논문, 릴리스)에 따라 다르다.
+ */
+import { Star } from 'lucide-react';
 import type { EntryView } from '@trendboda/api-types';
 import { Button } from '@/components/ui/button';
 import { cn } from 'cn';
 import { apiClient } from './api-client.ts';
-
-const dateFormatter = new Intl.DateTimeFormat('ko', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+import type { CardKind } from './card-kind.ts';
+import { EntryMeta, EntryTags } from './entry-meta.tsx';
 
 type EntryCardProps = {
   entry: EntryView;
+  /** 메타 줄 모양. 생략하면 글 카드다. */
+  cardKind?: CardKind;
   /** Bookmark 목록처럼 여러 Feed가 섞일 때 보여 줄 Feed 이름. */
   feedTitle?: string;
   /** Opened At이나 Bookmark가 바뀌면 바뀐 Entry로 부른다. */
   onEntryChange: (changedEntry: EntryView) => void;
   /** 원문을 열 때마다 부른다. 이미 연 Entry를 다시 열어도 부른다(Stream Feed의 Read Cursor 이동용). */
   onOpen?: (openedEntry: EntryView) => void;
-  /** 점수 옆에 보여 줄 직전 수집 대비 증감(Ranked Feed). */
-  scoreChange?: number;
+  /** 대표 수치(점수, 늘어난 스타) 옆에 보여 줄 직전 수집 대비 증감(Ranked Feed). */
+  metricChange?: number;
 };
 
-/** `extra`에서 숫자 필드를 꺼낸다. Feed마다 필드가 달라서 타입을 확인하고 쓴다. */
-function readNumber(extra: EntryView['extra'], key: string): number | undefined {
-  const value = extra?.[key];
-  return typeof value === 'number' ? value : undefined;
-}
-
-export function EntryCard({ entry, feedTitle, onEntryChange, onOpen, scoreChange }: EntryCardProps) {
-  const score = readNumber(entry.extra, 'score');
-  const commentCount = readNumber(entry.extra, 'commentCount');
-  const commentsUrl = typeof entry.extra?.commentsUrl === 'string' ? entry.extra.commentsUrl : undefined;
+export function EntryCard({ entry, cardKind = 'article', feedTitle, onEntryChange, onOpen, metricChange }: EntryCardProps) {
   const bookmarked = Boolean(entry.bookmarkedAt);
 
   const openOriginal = () => {
@@ -49,6 +45,8 @@ export function EntryCard({ entry, feedTitle, onEntryChange, onOpen, scoreChange
         <a
           className={cn(
             'flex-1 rounded-xs underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring',
+            // 긴 저장소 이름(owner/name)은 한 단어라 칸을 넘치지 않게 필요할 때만 중간에서 끊는다.
+            'break-words',
             entry.openedAt ? 'text-body-sm-medium text-muted-foreground' : 'text-entry-title text-foreground',
           )}
           href={entry.url}
@@ -74,46 +72,13 @@ export function EntryCard({ entry, feedTitle, onEntryChange, onOpen, scoreChange
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
         {feedTitle && <span className="text-foreground">{feedTitle}</span>}
-        <span>{new URL(entry.url).hostname}</span>
-        {entry.author && <span>{entry.author}</span>}
-        <span className="font-mono tabular-nums">{dateFormatter.format(new Date(entry.publishedAt ?? entry.firstSeenAt))}</span>
-        {score !== undefined && (
-          <span className="flex items-center gap-0.5 font-mono tabular-nums">
-            <ArrowUp className="size-3.5" strokeWidth={1.5} aria-label="점수" />
-            {score}
-            {scoreChange !== undefined && scoreChange !== 0 && (
-              <span className="ml-1">
-                ({scoreChange > 0 ? '+' : ''}
-                {scoreChange})
-              </span>
-            )}
-          </span>
-        )}
-        {commentCount !== undefined && <CommentCount count={commentCount} url={commentsUrl} />}
+        <EntryMeta entry={entry} cardKind={cardKind} metricChange={metricChange} />
       </div>
-      {entry.summary && <p className="mt-2 line-clamp-2 text-body-sm text-muted-foreground">{entry.summary}</p>}
+      {entry.summary && (
+        // 릴리스는 요약이 곧 변경 사항이라 조금 더 길게 보여 준다.
+        <p className={cn('mt-2 text-body-sm text-muted-foreground', cardKind === 'release' ? 'line-clamp-4' : 'line-clamp-2')}>{entry.summary}</p>
+      )}
+      {cardKind === 'repository' && <EntryTags entry={entry} />}
     </article>
-  );
-}
-
-/** 댓글 수. 댓글 페이지 주소가 있으면 링크로 만든다. */
-function CommentCount({ count, url }: { count: number; url: string | undefined }) {
-  const content = (
-    <>
-      <MessageSquare className="size-3.5" strokeWidth={1.5} aria-label="댓글" />
-      <span className="font-mono tabular-nums">{count}</span>
-    </>
-  );
-  if (!url)
-    return <span className="flex items-center gap-1">{content}</span>;
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-1 rounded-xs outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      {content}
-    </a>
   );
 }

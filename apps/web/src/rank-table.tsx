@@ -8,7 +8,9 @@ import { useCallback, useEffect, useState } from 'react';
 import type { EntryView, FeedSummary, RankedEntryView, RankSnapshotView } from '@trendboda/api-types';
 import { Badge } from '@/components/ui/badge';
 import { apiClient } from './api-client.ts';
+import { findCardKind, findChangeMetricKey } from './card-kind.ts';
 import { EntryCard } from './entry-card.tsx';
+import { readNumber } from './entry-meta.tsx';
 import { EmptyMessage, EntryListSkeleton, LoadError } from './load-states.tsx';
 
 const takenAtFormatter = new Intl.DateTimeFormat('ko', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
@@ -18,13 +20,7 @@ type RankTableProps = {
   feed: FeedSummary;
 };
 
-/** 수치 객체에서 숫자 필드를 꺼낸다. Feed마다 필드가 달라서 타입을 확인하고 쓴다. */
-function readNumber(values: Record<string, unknown> | null, key: string): number | undefined {
-  const value = values?.[key];
-  return typeof value === 'number' ? value : undefined;
-}
-
-/** 카드에 보여 줄 Entry. 점수·댓글 수는 처음 봤을 때의 값(`extra`) 대신 최신 수치로 덮는다. */
+/** 카드에 보여 줄 Entry. 점수·댓글 수·스타 수는 처음 봤을 때의 값(`extra`) 대신 최신 수치로 덮는다. */
 function withLatestMetrics(rankedEntry: RankedEntryView): EntryView {
   return { ...rankedEntry, extra: { ...rankedEntry.extra, ...rankedEntry.metrics } };
 }
@@ -32,6 +28,8 @@ function withLatestMetrics(rankedEntry: RankedEntryView): EntryView {
 export function RankTable({ feed }: RankTableProps) {
   const [snapshot, setSnapshot] = useState<RankSnapshotView | undefined>();
   const [loadFailed, setLoadFailed] = useState(false);
+  const cardKind = findCardKind(feed.id, feed.group?.id);
+  const changeMetricKey = findChangeMetricKey(cardKind);
 
   const loadSnapshot = useCallback(() => {
     setLoadFailed(false);
@@ -78,15 +76,16 @@ export function RankTable({ feed }: RankTableProps) {
         </p>
         <ol className="flex flex-col gap-2">
           {snapshot.entries.map((rankedEntry) => {
-            const score = readNumber(rankedEntry.metrics, 'score');
-            const previousScore = readNumber(rankedEntry.previousMetrics, 'score');
+            const metric = readNumber(rankedEntry.metrics, changeMetricKey);
+            const previousMetric = readNumber(rankedEntry.previousMetrics, changeMetricKey);
             return (
               <li key={rankedEntry.id} className="flex items-start gap-2 md:gap-3">
                 <RankLabel rankedEntry={rankedEntry} />
                 <div className="min-w-0 flex-1">
                   <EntryCard
                     entry={withLatestMetrics(rankedEntry)}
-                    scoreChange={score !== undefined && previousScore !== undefined ? score - previousScore : undefined}
+                    cardKind={cardKind}
+                    metricChange={metric !== undefined && previousMetric !== undefined ? metric - previousMetric : undefined}
                     onEntryChange={applyEntryChange}
                   />
                 </div>
@@ -106,7 +105,7 @@ export function RankTable({ feed }: RankTableProps) {
                     직전 <span className="font-mono tabular-nums">{droppedEntry.previousRank}</span>위
                   </div>
                   <div className="min-w-0 flex-1">
-                    <EntryCard entry={droppedEntry} onEntryChange={applyEntryChange} />
+                    <EntryCard entry={droppedEntry} cardKind={cardKind} onEntryChange={applyEntryChange} />
                   </div>
                 </li>
               ))}
