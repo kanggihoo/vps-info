@@ -6,6 +6,8 @@
 import { configDefaults, defineConfig } from 'vitest/config';
 
 const runDatabaseTests = Boolean(process.env.RUN_DB_TESTS);
+// Jenkins가 테스트 결과 그래프를 그리도록 JUnit XML을 남긴다. 설정하지 않으면 콘솔 출력만 한다.
+const junitDirectory = process.env.JUNIT_OUTPUT_DIR;
 
 export default defineConfig({
   test: {
@@ -14,5 +16,7 @@ export default defineConfig({
     globalSetup: runDatabaseTests ? ['src/test-support/prepare-test-database.ts'] : [],
     // DB 통합 테스트는 같은 테스트 DB를 비우고 채우므로 파일을 하나씩 돌린다.
     fileParallelism: !runDatabaseTests,
+    reporters: junitDirectory ? ['default', 'junit'] : ['default'],
+    outputFile: junitDirectory ? { junit: `${junitDirectory}/backend.xml` } : undefined,
   },
 });
