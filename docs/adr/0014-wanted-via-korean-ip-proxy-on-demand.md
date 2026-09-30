@@ -25,8 +25,8 @@ Jenkins 배포는 성공했고 collector도 떠 있었다. 원인은 코드가 �
    VPS와 맥은 이미 같은 Tailscale 계정에 있어서, 공유기 포트 개방이나 SSH 역방향 터널, VPS의 `sshd` 설정 변경이 필요 없다.
    `compose.yml`의 기본값은 `http://100.66.95.61:18888`(맥의 Tailscale 주소)이고, `compose.local.yml`은 빈 값이다.
 3. **맥이 켜져 있을 때만 수집한다**: 원티드 Feed의 `interval_minutes`를 DB에서 525600(1년)으로 두어 VPS가 스스로 시도하지 않게 한다.
-   맥의 `launchd` 작업(`wake-wanted.sh`)이 로그인할 때와 켜져 있는 동안 3시간마다 VPS에 SSH로 들어가 원티드 Feed의 `next_run_at`을 지금으로 바꾼다.
-   collector가 30초 안에 그것을 보고 수집한다. 맥이 꺼져 있는 동안은 시도도 실패도 없다.
+   맥의 `launchd` 작업(`com.kkh.wanted-wake`, `install-launchd.sh`가 등록)이 로그인할 때와 켜져 있는 동안 3시간마다 VPS에 SSH로 들어가 원티드 Feed의 `next_run_at`을 지금으로 바꾼다.
+   collector가 30초 안에 그것을 보고 수집한다. 깨우기는 스크립트 파일 없이 `launchd`가 `ssh`를 직접 실행한다. `~/Desktop` 안의 스크립트는 macOS 폴더 보호 때문에 `launchd`가 열 수 없었다. 맥이 꺼져 있는 동안은 시도도 실패도 없다.
 4. **맥에는 프록시와 깨우기를 `launchd`로 한 번 등록한다**: `scripts/wanted-proxy/install-launchd.sh`.
 
 ## 검토한 대안들

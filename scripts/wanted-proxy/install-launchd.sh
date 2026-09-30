@@ -8,7 +8,6 @@ TS_IP="${1:-100.66.95.61}"
 SCRIPT="$(cd "$(dirname "$0")" && pwd)/connect-proxy.py"
 PLIST="$HOME/Library/LaunchAgents/com.kkh.wanted-proxy.plist"
 WAKE_PLIST="$HOME/Library/LaunchAgents/com.kkh.wanted-wake.plist"
-WAKE="$(cd "$(dirname "$0")" && pwd)/wake-wanted.sh"
 LOG="$HOME/Library/Logs/wanted-proxy.log"
 PY="$(command -v python3)"
 
@@ -27,12 +26,17 @@ cat > "$PLIST" <<EOF
 </dict></plist>
 EOF
 
+# 깨우기: 원티드 Feed의 next_run_at을 지금으로 바꿔 collector가 곧바로 수집하게 한다.
+# 스크립트 파일 없이 ssh를 직접 실행한다. ~/Desktop 안의 파일은 launchd가 열 수 없다(macOS 폴더 보호).
 cat > "$WAKE_PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>Label</key><string>com.kkh.wanted-wake</string>
-  <key>ProgramArguments</key><array><string>/bin/bash</string><string>$WAKE</string></array>
+  <key>ProgramArguments</key><array>
+    <string>/usr/bin/ssh</string><string>-o</string><string>BatchMode=yes</string><string>-o</string><string>ConnectTimeout=15</string><string>vps</string>
+    <string>docker exec vps-postgres psql -U postgres -d vps_info -qc "update feed set next_run_at = now() where id like 'wanted-%' and next_run_at > now()"</string>
+  </array>
   <key>RunAtLoad</key><true/>
   <key>StartInterval</key><integer>10800</integer>
   <key>StandardErrorPath</key><string>$HOME/Library/Logs/wanted-wake.log</string>

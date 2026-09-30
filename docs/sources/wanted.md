@@ -209,7 +209,7 @@ collector·app 컨테이너 ──▶ 맥의 프록시(Tailscale 주소:18888) �
 - 설정: `compose.yml`의 기본값은 `http://100.66.95.61:18888`(맥의 Tailscale 주소), `compose.local.yml`은 빈 값(직접 호출)이다. 비우면 프록시 없이 나간다.
 - 프록시: `scripts/wanted-proxy/connect-proxy.py`. Tailscale 주소에서만 받고 `www.wanted.co.kr:443`만 중계한다. 맥에서 `scripts/wanted-proxy/install-launchd.sh`를 한 번 실행하면 프록시와 깨우기 작업이 로그인할 때 자동으로 켜진다. **배포가 끝난 뒤에 실행한다**(먼저 하면 프록시 코드가 없는 이전 collector가 원티드를 직접 불러 실패한다).
 - **맥이 켜져 있을 때만 수집한다.** 원티드 Feed의 주기는 DB에서 525600분(1년)이라 VPS는 스스로 시도하지 않는다.
-  대신 맥의 `scripts/wanted-proxy/wake-wanted.sh`가 로그인할 때와 켜져 있는 동안 3시간마다 VPS의 `feed.next_run_at`을 지금으로 바꿔서 collector가 곧바로 수집하게 한다.
+  대신 맥의 `launchd` 작업(`com.kkh.wanted-wake`, `install-launchd.sh`가 등록)이 로그인할 때와 켜져 있는 동안 3시간마다 VPS의 `feed.next_run_at`을 지금으로 바꿔서 collector가 곧바로 수집하게 한다.
   맥이 꺼져 있는 동안은 시도도 실패도 없다. 꺼져 있던 사이에 올라온 공고는 다음 수집 때 한꺼번에 들어온다(최신순 100개씩 최대 10페이지).
 - 맥이 켜졌는데 프록시나 Tailscale이 죽어서 실패하면 재시도 간격이 5분, 15분, 45분…으로 늘어난다. 다음에 맥이 깨우면 다시 시도한다.
 - 프록시 기기를 항상 켜진 것으로 바꾸려면(예: 라즈베리파이) 그 기기에서 같은 프록시를 돌리고 `WANTED_PROXY_URL`의 주소를 바꾼 뒤, 깨우기 작업을 지우고 원티드 주기를 DB에서 다시 720으로 돌린다.

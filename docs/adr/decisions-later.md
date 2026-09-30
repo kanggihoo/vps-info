@@ -23,5 +23,5 @@ Ranked Feed는 성공할 때마다 Rank Snapshot을 쌓는다(ADR-0009). 100개�
 
 원티드는 맥의 프록시를 거치고 맥이 켜졌을 때만 수집한다(ADR-0014). 맥이 꺼져 있으면 원티드 공고와 읽기 버튼이 멈춘다.
 항상 켜진 한국 IP 출구(국내 저가 VPS, 한국 IP 유료 프록시, 집에 전원이 있는 기기)가 생기면 그쪽으로 `WANTED_PROXY_URL`을 옮긴다.
-옮기면 맥의 깨우기 작업(`scripts/wanted-proxy/wake-wanted.sh`)과 원티드 Feed의 525600분 주기를 없애고 주기를 720분으로 되돌린다.
+옮기면 맥의 깨우기 작업(`scripts/wanted-proxy/install-launchd.sh`가 등록한 `com.kkh.wanted-wake`)과 원티드 Feed의 525600분 주기를 없애고 주기를 720분으로 되돌린다.
 국내 호스팅 IP가 원티드에 막히는지는 써 봐야 알 수 있다. 막히면 주거용 IP 프록시만 선택지가 된다.
