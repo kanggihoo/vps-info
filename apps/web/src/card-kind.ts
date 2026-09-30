@@ -1,9 +1,9 @@
 /**
- * Entry 카드 종류. Entry가 무엇을 가리키는지(글, 저장소, 모델, 논문, 릴리스)에 따라 카드의 메타 줄이 달라진다.
+ * Entry 카드 종류. Entry가 무엇을 가리키는지(글, 저장소, 모델, 논문, 릴리스, 채용 공고)에 따라 카드의 메타 줄이 달라진다.
  * 화면이 정하는 값이라 Feed 선언이 아니라 여기에 둔다. 새 Feed가 글이 아니면 이 표에 한 줄을 더한다.
  */
 
-export type CardKind = 'article' | 'repository' | 'model' | 'paper' | 'release';
+export type CardKind = 'article' | 'repository' | 'model' | 'paper' | 'release' | 'job';
 
 /** Feed id 또는 Feed Group id → 카드 종류. 여기 없는 Feed는 `article`이다. Group으로 적으면 그 Group의 Feed 모두에 쓴다. */
 const CARD_KINDS: Record<string, CardKind> = {
@@ -12,6 +12,10 @@ const CARD_KINDS: Record<string, CardKind> = {
   'openrouter-models': 'model',
   'hf-papers-weekly': 'paper',
   'claude-code-releases': 'release',
+  wanted: 'job',
+  'jumpit-backend': 'job',
+  'saramin-backend': 'job',
+  'linkareer-backend': 'job',
 };
 
 /**

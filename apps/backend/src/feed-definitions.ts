@@ -43,6 +43,35 @@ type FeedKindDeclaration =
 export type FeedDefinition = { [Name in HandlerName]: FeedDefinitionUsing<Name> }[HandlerName];
 
 /**
+ * 원티드 개발 직군(518)의 직무를 직무군으로 묶은 것. 직무군마다 Stream Feed 하나가 된다.
+ * 직무 ID는 원티드 직군·직무 선택 창의 값이고, 이름은 `wanted-handler.ts`의 `JOB_NAMES`에 있다.
+ * 한 공고가 두 직무군에 걸리면 Feed마다 Entry가 따로 생긴다(ADR-0002). `wanted-backend`는 예전 Feed id를 이어 쓴다.
+ */
+const wantedRoleGroups = [
+  { role: 'backend', title: '백엔드', feedId: 'wanted-backend', jobIds: [872, 10110, 660, 895, 899, 10231] },
+  { role: 'web', title: '웹·프론트', feedId: 'wanted-web', jobIds: [873, 669] },
+  { role: 'ai-data', title: 'AI·데이터', feedId: 'wanted-ai-data', jobIds: [1634, 655, 1025, 1024] },
+  { role: 'infra', title: '인프라·운영', feedId: 'wanted-infra', jobIds: [674, 665] },
+  { role: 'qa-manager', title: 'QA·매니지먼트', feedId: 'wanted-qa-manager', jobIds: [676, 877] },
+  { role: 'app', title: '앱', feedId: 'wanted-app', jobIds: [677, 678, 10111] },
+] as const;
+
+/** 원티드 직무군마다 Stream Feed 하나를 만든다. */
+function makeWantedFeedDefinitions(): FeedDefinition[] {
+  return wantedRoleGroups.map(
+    ({ role, title, feedId, jobIds }): FeedDefinition => ({
+      id: feedId,
+      title: `원티드 신입 · ${title}`,
+      handler: 'wanted',
+      params: { jobIds: [...jobIds] },
+      // 공고는 천천히 올라오고, 매번 열린 공고 전체를 받으므로 주기를 늘려도 놓치지 않는다.
+      intervalMinutes: 720,
+      group: { id: 'wanted', variant: { role } },
+    }),
+  );
+}
+
+/**
  * Feed Group 선언. 왼쪽 목록에서는 첫 번째 Feed가 있던 자리에 한 줄로 보인다.
  * 첫 번째 축은 가운데 위쪽 탭으로, 나머지 축은 드롭다운으로 고른다.
  */
@@ -82,6 +111,17 @@ export const feedGroupDefinitions: FeedGroupView[] = [
           { value: 'typescript', title: 'TypeScript' },
           { value: 'python', title: 'Python' },
         ],
+      },
+    ],
+  },
+  {
+    id: 'wanted',
+    title: '원티드 신입',
+    axes: [
+      {
+        key: 'role',
+        title: '직무군',
+        values: wantedRoleGroups.map(({ role, title }) => ({ value: role, title })),
       },
     ],
   },
@@ -181,4 +221,8 @@ export const feedDefinitions: FeedDefinition[] = [
   ...makeTrendshiftFeedDefinitions(),
   { id: 'indiehackers-top-week', title: 'Indie Hackers 주간 인기글', handler: 'indiehackers', params: {}, intervalMinutes: 720 },
   { id: 'anthropic-news', title: 'Anthropic News', handler: 'anthropic-news', params: {}, intervalMinutes: 360 },
+  ...makeWantedFeedDefinitions(),
+  { id: 'jumpit-backend', title: '점핏 백엔드 신입', handler: 'jumpit', params: {}, intervalMinutes: 360 },
+  { id: 'saramin-backend', title: '사람인 백엔드 신입', handler: 'saramin', params: {}, intervalMinutes: 360 },
+  { id: 'linkareer-backend', title: '링커리어 백엔드 신입', handler: 'linkareer', params: {}, intervalMinutes: 360 },
 ];

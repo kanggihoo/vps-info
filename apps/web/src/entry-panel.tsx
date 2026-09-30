@@ -129,7 +129,11 @@ export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelPro
     setReader({ status: 'loading' });
     apiClient
       .readOriginal(entry.id, request.signal)
-      .then((view) => setReader({ status: 'loaded', view }))
+      .then((view) => {
+        setReader({ status: 'loaded', view });
+        // 서버가 마감일을 Entry에 저장했으니 목록 카드에도 바로 보이게 한다.
+        if (view.deadline) publishChange({ ...entry, extra: { ...entry.extra, deadline: view.deadline } });
+      })
       .catch((error: unknown) => {
         if (request.signal.aborted) return;
         console.error(error);
@@ -213,7 +217,7 @@ export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelPro
             <span className="text-foreground">{feed?.title ?? loadedFeedTitle ?? entry.feedId}</span>
             <EntryMeta entry={entry} cardKind={cardKind} metricChange={selection?.metricChange} />
           </div>
-          {cardKind === 'repository' && <EntryTags entry={entry} />}
+          {(cardKind === 'repository' || cardKind === 'job') && <EntryTags entry={entry} />}
           {translationFailure && (
             <p role="alert" className="mt-3 text-caption text-destructive">
               {TRANSLATION_FAILURE_MESSAGES[translationFailure]}

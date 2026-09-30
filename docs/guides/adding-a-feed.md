@@ -71,6 +71,7 @@ Feed의 카드 종류는 화면 쪽 표 `apps/web/src/card-kind.ts`에 Feed id(�
 | `model` | LLM 모델 | `contextLength`, `promptPricePerToken`·`completionPricePerToken`(토큰 1개당 달러, 문자열) |
 | `paper` | 논문 | `score`(추천수), `commentCount`, `arxivUrl` |
 | `release` | 버전 릴리스 | 따로 읽는 필드 없음. 요약을 4줄까지 보인다 |
+| `job` | 채용 공고 | `author`(회사), `location`, `career`, `deadline`(`YYYY-MM-DD`), `alwaysOpen`, `tags`(기술스택·직무). 채용 Handler는 `job-posting.ts`의 변환을 함께 쓴다 |
 
 Stream Feed는 `extra`와 `metrics`가 합쳐진 처음 값을, Ranked Feed 순위표는 최신 Snapshot의 `metrics`를 보여 준다.
 순위표의 직전 대비 증감은 저장소 카드면 `starsGained`, 나머지는 `score`로 계산한다.
@@ -99,6 +100,10 @@ Stream Feed는 `extra`와 `metrics`가 합쳐진 처음 값을, Ranked Feed 순�
 | `trendshift` | `trendshift-handler.ts` | `{ period: 'weekly' \| 'monthly' \| 'yearly', language? }` | Trendshift 기간·언어별 순위표. RSC 데이터를 읽고, 실패하면 JSON-LD |
 | `indiehackers` | `indiehackers-handler.ts` | `{}` | Indie Hackers 지난주 인기글 HTML |
 | `anthropic-news` | `anthropic-news-handler.ts` | `{}` | Anthropic 뉴스 목록 HTML |
+| `wanted` | `wanted-handler.ts` | `{ jobIds }` | 원티드 개발 직군 신입 공고 목록 API. 직무 ID 여러 개를 페이지 끝까지 |
+| `jumpit` | `jumpit-handler.ts` | `{}` | 점핏 서버/백엔드 신입 공고 JSON API |
+| `saramin` | `saramin-handler.ts` | `{}` | 사람인 "백엔드" 신입 검색 결과 HTML |
+| `linkareer` | `linkareer-handler.ts` | `{}` | 링커리어 백엔드 신입 공고 GraphQL |
 
 RSS가 없는 사이트는 RSSHub 라우트(`lib/routes/<site>/`)를 열어 **어떤 주소를 호출하는지만** 참고한다.
 RSSHub는 AGPL-3.0이므로 코드를 복사하지 않는다(ADR-0006). 공식 RSS가 있으면 RSSHub를 거치지 말고 그것을 쓴다.

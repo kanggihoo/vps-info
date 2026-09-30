@@ -72,6 +72,7 @@ describe('GET /api/feed-groups', () => {
     expect(groups.map((group) => [group.id, group.axes.map((axis) => axis.key)])).toEqual([
       ['hacker-news', ['section']],
       ['trendshift', ['period', 'language']],
+      ['wanted', ['role']],
     ]);
   });
 });

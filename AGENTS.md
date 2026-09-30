@@ -10,6 +10,7 @@
 - [화면 디자인](./apps/web/DESIGN.md): `apps/web/` 화면을 만들거나 고칠 때 따른다. YAML 토큰을 바꾸면 `npm run design:tokens`로 `apps/web/src/styles/`를 다시 만든다.
 - [등록된 Feed](./docs/feeds.md): 지금 수집하는 Feed 목록. Feed 선언을 바꾸면 이 문서도 고친다.
 - [새 Feed 추가하기](./docs/guides/adding-a-feed.md): Feed나 Handler를 추가·수정할 때 이 절차를 따른다.
+- [원티드 데이터 가져오기](./docs/sources/wanted.md): 원티드 Feed·Handler를 고칠 때 API 파라미터, 직군·직무 ID 표, 응답 필드 대응을 확인한다.
 
 사용자가 반복 적용 가능한 코드 구조나 스타일 변경을 요청하면 코드와 convention 문서를 함께 갱신한다. 특정 기능에만 해당하는 일회성 지시는 convention으로 기록하지 않는다.
 

@@ -87,7 +87,7 @@ export function EntryCard({ entry: loadedEntry, cardKind = 'article', feedTitle,
         // 릴리스는 요약이 곧 변경 사항이라 조금 더 길게 보여 준다.
         <p className={cn('mt-2 text-body-sm text-muted-foreground', cardKind === 'release' ? 'line-clamp-4' : 'line-clamp-2')}>{entry.summary}</p>
       )}
-      {cardKind === 'repository' && <EntryTags entry={entry} />}
+      {(cardKind === 'repository' || cardKind === 'job') && <EntryTags entry={entry} />}
     </article>
   );
 }

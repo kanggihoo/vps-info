@@ -7,6 +7,8 @@ describe('findCardKind', () => {
     expect(findCardKind('trendshift-weekly-python', 'trendshift')).toBe('repository');
     expect(findCardKind('hn-best', 'hacker-news')).toBe('article');
     expect(findCardKind('geeknews')).toBe('article');
+    expect(findCardKind('wanted-backend', 'wanted')).toBe('job');
+    expect(findCardKind('jumpit-backend')).toBe('job');
   });
 });
 

@@ -128,6 +128,57 @@ describe('GET /api/entries/:entryId/reader (ADR-0011)', () => {
   });
 });
 
+describe('GET /api/entries/:entryId/reader: 원티드 공고의 마감일 (ADR-0013)', () => {
+  // 공유 시드 Entry(1, 2) 다음이라 원티드 공고는 3(extra 있음), 4(extra 없음)가 된다.
+  beforeEach(async () => {
+    await database.insert(feed).values({ id: 'wanted-backend', intervalMinutes: 360 });
+    await database.insert(entry).values([
+      { feedId: 'wanted-backend', dedupKey: 'ext:389506', url: 'https://www.wanted.co.kr/wd/389506', title: '백엔드 개발자', extra: { career: '신입', tags: ['서버 개발자'] }, raw: {} },
+      { feedId: 'wanted-backend', dedupKey: 'ext:389507', url: 'https://www.wanted.co.kr/wd/389507', title: '상시 채용 개발자', raw: {} },
+    ]);
+  });
+
+  const wantedPage = (dueTime: string | null): OriginalPage =>
+    page({
+      finalUrl: 'https://www.wanted.co.kr/wd/389506',
+      html: `<html><body><script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+        props: { pageProps: { initialData: { position: '백엔드 개발자', company: { company_name: '회사' }, main_tasks: 'ㆍ서버 개발', due_time: dueTime } } },
+      })}</script></body></html>`,
+    });
+
+  it('마감일이 있으면 응답에 주고 Entry의 extra에 남기며, 기존 extra는 지키고 본문은 저장하지 않는다', async () => {
+    const app = await useServer({ fetchOriginalPage: async () => wantedPage('2026-10-31T00:00:00') });
+    const response = await app.inject('/api/entries/3/reader');
+    expect(response.statusCode).toBe(200);
+    expect(response.json<ReaderView>()).toMatchObject({ deadline: '2026-10-31', siteName: '원티드' });
+    expect(response.json<ReaderView>().markdown).toContain('마감 2026-10-31');
+
+    const stored = (await app.inject('/api/entries/3')).json<EntryView>();
+    expect(stored.extra).toEqual({ career: '신입', tags: ['서버 개발자'], deadline: '2026-10-31' });
+    expect(response.body).not.toContain('secret');
+  });
+
+  it('마감이 연장되면 다음에 열 때 최신 값으로 바뀐다', async () => {
+    await (await useServer({ fetchOriginalPage: async () => wantedPage('2026-10-31T00:00:00') })).inject('/api/entries/3/reader');
+    const app = await useServer({ fetchOriginalPage: async () => wantedPage('2026-11-15T00:00:00') });
+    await app.inject('/api/entries/3/reader');
+    expect((await app.inject('/api/entries/3')).json<EntryView>().extra).toMatchObject({ deadline: '2026-11-15' });
+  });
+
+  it('마감일이 없으면 extra를 건드리지 않는다(extra가 비어 있어도 그대로다)', async () => {
+    const app = await useServer({ fetchOriginalPage: async () => wantedPage(null) });
+    const response = await app.inject('/api/entries/4/reader');
+    expect(response.json<ReaderView>().deadline).toBeUndefined();
+    expect((await app.inject('/api/entries/4')).json<EntryView>().extra).toBeNull();
+  });
+
+  it('extra가 비어 있던 Entry에도 마감일을 저장한다', async () => {
+    const app = await useServer({ fetchOriginalPage: async () => wantedPage('2026-10-31T00:00:00') });
+    await app.inject('/api/entries/4/reader');
+    expect((await app.inject('/api/entries/4')).json<EntryView>().extra).toEqual({ deadline: '2026-10-31' });
+  });
+});
+
 describe('POST /api/entries/:entryId/translation (ADR-0011)', () => {
   const fakeTranslator = () => vi.fn<TextTranslator>(async (texts) => texts.map((text) => `번역: ${text}`));
 

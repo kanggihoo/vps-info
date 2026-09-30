@@ -99,7 +99,8 @@ export async function registerEntryRoutes(server: FastifyInstance, options: Entr
   });
 
   /**
-   * 원문 페이지를 가져와 본문을 Markdown으로 뽑아 돌려준다. 저장하지 않으므로 부를 때마다 원문을 다시 가져온다.
+   * 원문 페이지를 가져와 본문을 Markdown으로 뽑아 돌려준다. 본문은 저장하지 않으므로 부를 때마다 원문을 다시 가져온다.
+   * 채용 공고의 마감일을 찾았으면 Entry의 `extra.deadline`에는 저장한다.
    * 받지 못했거나 본문이 비었으면 502와 실패 이유를 준다.
    */
   server.get<EntryIdRequest>(
@@ -109,7 +110,15 @@ export async function registerEntryRoutes(server: FastifyInstance, options: Entr
       const [row] = await database.select({ url: entry.url }).from(entry).where(eq(entry.id, request.params.entryId));
       if (!row) return reply.code(404).send(entryNotFound);
       try {
-        return await readOriginal(row.url, options.fetchOriginalPage);
+        const view = await readOriginal(row.url, options.fetchOriginalPage);
+        // 마감일은 목록 카드에도 보이도록 Entry에 남긴다. 마감이 연장될 수 있어 열 때마다 최신 값으로 덮어쓴다(ADR-0013).
+        if (view.deadline) {
+          await database
+            .update(entry)
+            .set({ extra: sql`coalesce(${entry.extra}, '{}'::jsonb) || ${JSON.stringify({ deadline: view.deadline })}::jsonb` })
+            .where(eq(entry.id, request.params.entryId));
+        }
+        return view;
       } catch (error) {
         if (!(error instanceof ReaderFailure)) throw error;
         request.log.warn({ url: row.url, reason: error.reason }, error.message);

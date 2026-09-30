@@ -8,6 +8,7 @@ import { Defuddle } from 'defuddle/node';
 import { parseHTML } from 'linkedom';
 import type { ReaderView } from '@trendboda/api-types';
 import { type OriginalPageFetcher, ReaderFailure } from './original-page.ts';
+import { isWantedJobUrl, readWantedJob } from './wanted-job-page.ts';
 
 /** defuddle이 빈 값을 `""`로 주므로 `null`로 바꾼다. */
 const emptyToNull = (value: string | undefined) => (value?.trim() ? value.trim() : null);
@@ -22,6 +23,9 @@ export async function readOriginal(url: string, fetchPage: OriginalPageFetcher):
   const page = await fetchPage(url);
   if (page.status < 200 || page.status >= 300) throw new ReaderFailure('upstream-status', `원문이 ${page.status}로 응답했습니다`);
   if (page.contentType && !/html/i.test(page.contentType)) throw new ReaderFailure('not-html', `HTML이 아닙니다: ${page.contentType}`);
+
+  // 원티드 공고는 화면을 긁지 않고 페이지에 실린 공고 데이터를 읽는다(ADR-0013).
+  if (isWantedJobUrl(page.finalUrl)) return readWantedJob(page.html);
 
   const { document } = parseHTML(page.html);
   // useAsync: false — X·YouTube 같은 사이트에서 제3자 API를 부르지 않는다.

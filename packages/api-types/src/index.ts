@@ -123,6 +123,11 @@ export type ReaderView = {
   markdown: string;
   siteName: string | null;
   byline: string | null;
+  /**
+   * 정보원이 공고에 준 마감일(`YYYY-MM-DD`). 채용 공고에서 마감이 있을 때만 준다.
+   * 서버가 Entry의 `extra.deadline`에도 저장하므로 다음부터는 목록 카드에 보인다(ADR-0013).
+   */
+  deadline?: string;
 };
 
 /**

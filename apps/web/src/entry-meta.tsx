@@ -6,6 +6,7 @@ import { ArrowUp, GitFork, MessageSquare, Star, Tag, TrendingUp } from 'lucide-r
 import type { ReactNode } from 'react';
 import type { EntryView } from '@trendboda/api-types';
 import type { CardKind } from './card-kind.ts';
+import { describeJobDeadline, getTodayInKorea } from './job-deadline.ts';
 
 const dateFormatter = new Intl.DateTimeFormat('ko', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 /** 스타·포크·컨텍스트 길이처럼 큰 수는 GitHub·모델 문서처럼 "44K", "1M"으로 줄인다. */
@@ -61,6 +62,15 @@ export function EntryMeta({ entry, cardKind, metricChange }: EntryMetaProps) {
         <ExternalLink url={readString(extra, 'arxivUrl')}>arXiv</ExternalLink>
       </>
     );
+  if (cardKind === 'job')
+    return (
+      <>
+        {entry.author && <span className="text-foreground">{entry.author}</span>}
+        {readString(extra, 'location') && <span>{readString(extra, 'location')}</span>}
+        {readString(extra, 'career') && <span>{readString(extra, 'career')}</span>}
+        <JobDeadline deadline={readString(extra, 'deadline')} alwaysOpen={extra?.alwaysOpen === true} />
+      </>
+    );
   if (cardKind === 'release')
     return (
       <>
@@ -79,7 +89,13 @@ export function EntryMeta({ entry, cardKind, metricChange }: EntryMetaProps) {
   );
 }
 
-/** 저장소 카드의 태그 줄. 앞의 몇 개만 보여 준다. */
+/** 공고의 마감. 날짜가 있으면 "~10/30", 지났으면 "마감", 상시·채용 시 마감이면 "상시", 모르면 그리지 않는다. */
+function JobDeadline({ deadline, alwaysOpen }: { deadline: string | undefined; alwaysOpen: boolean }) {
+  const label = describeJobDeadline(deadline, alwaysOpen, getTodayInKorea());
+  return label ? <span className="font-mono tabular-nums">{label}</span> : null;
+}
+
+/** 저장소·채용 공고 카드의 태그 줄(언어·기술스택·직무). 앞의 몇 개만 보여 준다. */
 export function EntryTags({ entry }: { entry: EntryView }) {
   const tags = readStringList(entry.extra, 'tags').slice(0, VISIBLE_TAG_COUNT);
   if (tags.length === 0) return null;

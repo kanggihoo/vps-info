@@ -10,6 +10,10 @@ const READER_HIDDEN_IDS = new Set([
   'producthunt',
   // 원문이 가격표·가동률 대시보드다.
   'openrouter-models',
+  // 원문이 지원 화면이 붙은 SPA·이미지 공고라 본문을 추출해도 쓸모가 없다. 원티드는 서버가 공고 데이터를 직접 읽어 준다(ADR-0013).
+  'jumpit-backend',
+  'saramin-backend',
+  'linkareer-backend',
 ]);
 
 /**

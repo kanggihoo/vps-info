@@ -9,7 +9,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - **새 Entry가 생기는 때**는 수집한 목록에 이전에 없던 항목이 나타난 때다. 같은 항목은 한 Feed 안에서 한 번만 저장된다(ADR-0002).
 - **첫 수집**은 로컬에서 처음 수집했을 때(2026-09-28, Trendshift는 2026-09-29) 저장된 건수다. HN은 그 전부터 수집하던 것이라 비워 둔다.
 - **Feed Group**: 한 정보원의 여러 Feed는 화면 왼쪽에서 한 줄로 묶이고, 가운데 위쪽 탭·드롭다운으로 고른다(ADR-0010).
-  지금 Group은 Hacker News(Best·Show)와 Trendshift(기간 × 언어 9개) 둘이다.
+  지금 Group은 Hacker News(Best·Show), Trendshift(기간 × 언어 9개), 원티드(직무군 6개) 셋이다.
 
 ## 한눈에 보기
 
@@ -31,6 +31,10 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 | Trendshift 연간 (전체·TypeScript·Python) | 올해 점수 상위 저장소 25개 | Ranked | HTML 안의 RSC 데이터 | 1일 | 25씩 |
 | Indie Hackers 주간 인기글 | 지난주 인기 1인 창업·사이드 프로젝트 글 | Stream | HTML 파싱 | 12시간 | 20 |
 | Anthropic News | Anthropic 공지·연구 | Stream | HTML 파싱 | 6시간 | 10 |
+| 원티드 신입 (백엔드·웹·프론트·AI·데이터·인프라·QA·앱) | 개발 직군 신입 지원 가능 공고, 직무군별 Feed 6개 | Stream | 사이트 내부 JSON API | 12시간 | – |
+| 점핏 백엔드 신입 | 서버/백엔드 신입 공고 | Stream | 사이트 내부 JSON API | 6시간 | – |
+| 사람인 백엔드 신입 | "백엔드" 검색 신입 공고 중 백엔드/서버개발 직무 | Stream | HTML 파싱 | 6시간 | – |
+| 링커리어 백엔드 신입 | 백엔드/서버개발 신입 채용 공고 | Stream | 사이트 내부 GraphQL API | 6시간 | – |
 
 ## Feed별 설명
 
@@ -131,3 +135,44 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 가져오기: 공개 API `https://huggingface.co/api/daily_papers?week=<지난주>&limit=30`. 지난 ISO 주(UTC)의 추천수 상위 30편이다.
 - 새 Entry: 주가 바뀐 뒤 첫 수집 때 30편이 한꺼번에 들어온다. 그 주 동안은 0건이다.
 - 화면: 추천수(▲)와 댓글 수를 보여 준다. 링크는 HF 논문 페이지로 가고, arXiv 주소는 `extra.arxivUrl`에 저장한다.
+
+### 채용 공고
+
+신입 개발 공고를 모으는 Stream Feed다(원티드 직무군 6개, 점핏·사람인·링커리어 각 1개). 화면에서는 `job` 카드로 회사, 지역, 경력, 마감(`~10/30`, 마감일이 없으면 `상시`)과 기술스택·직무 태그를 보여 준다.
+공고 링크는 지원 화면이 붙은 페이지라 읽기 버튼은 원티드(공고 데이터를 직접 읽음, ADR-0013)만 보이고 나머지는 숨긴다. 네 Feed 모두 `extra`의 필드 이름이 같다(`location`, `career`, `deadline`, `alwaysOpen`, `tags`).
+공식 API가 아니라 사이트가 자기 화면에서 부르는 주소를 쓰므로, 응답이 바뀌면 해당 Handler를 고친다. 같은 공고가 여러 사이트에 올라오면 Feed마다 Entry가 따로 생긴다(ADR-0002).
+
+**원티드 신입** (Feed Group `wanted`, Stream Feed 6개)
+- Feed: 직무군별 `wanted-backend`(백엔드), `wanted-web`(웹·프론트), `wanted-ai-data`(AI·데이터), `wanted-infra`(인프라·운영), `wanted-qa-manager`(QA·매니지먼트), `wanted-app`(앱).
+  직무군에 든 직무는 `feed-definitions.ts`의 `wantedRoleGroups`에 있다(예: 백엔드는 서버 개발자·소프트웨어 엔지니어·자바·Node.js·파이썬·DBA).
+- 출처: [wanted.co.kr](https://www.wanted.co.kr)
+- 가져오기: 원티드 웹이 목록 화면에서 부르는 `https://www.wanted.co.kr/api/chaos/navigation/v1/results`에 `job_group_id=518`(개발), `job_ids`(직무 ID를 반복해서 붙임), `years=0`(신입 지원 가능), 최신 등록순.
+  한 번에 100개씩, 다음 페이지가 없을 때까지 받는다(최대 10페이지). 직무 하나가 아니라 여러 직무를 한꺼번에 묻는다.
+- 새 Entry: 새로 등록된 공고. 경력 범위가 신입을 포함하는 공고(`신입~5년`, `경력 무관`)라 신입 전용은 아니다. **마감일은 수집에 쓰는 목록(chaos)에 없고 상세 페이지에만 있다(마감이 있는 공고는 일부).** 상세를 열면 마감일을 `extra.deadline`에 저장해 다음부터 카드에 `~10/31`로 보이고, 지나면 `마감`으로 보인다.
+- 태그: 공고의 세부 직무(응답의 `category_tag`)와, 정규직이 아니면 `인턴`·`계약직`. 세부 직무는 공고가 가진 여러 직무 중 하나라서 Feed의 직무군과 다를 수 있다(예: 백엔드 Feed의 머신러닝 엔지니어).
+- 겹침: 한 공고가 두 직무군에 걸리면 Feed마다 Entry가 따로 생긴다(ADR-0002). 전체 고유 공고는 340여 건이다(2026-09-30 확인).
+- API 파라미터, 직군·직무 ID 표, 응답 필드 대응은 [원티드 데이터 가져오기](./sources/wanted.md)에 따로 정리했다.
+- 상세: 읽기 버튼을 누르면 상세 페이지(`/wd/<id>`)의 `__NEXT_DATA__` 공고 데이터로 자격 요건, 주요 업무, 우대 사항, 채용 전형, 복지, 회사 소개를 보여 준다. 기업 자체 채용 사이트로 지원하는 공고는 `out_link`를 "기업 채용 사이트에서 지원" 링크로 붙인다.
+  본문은 저장하지 않고 열 때 가져오며, 마감일만 Entry에 저장한다(ADR-0013).
+- 주기: 12시간. 공고는 천천히 올라오고 Handler가 매번 열린 공고 전체(직무군당 1~2페이지)를 받아서, 주기를 늘려도 놓치는 공고가 없다. 이전에 6시간으로 들어간 Feed는 마이그레이션 `0006`이 바꾼다.
+- 참고: 공식 API가 아니어서 응답이 바뀌면 깨질 수 있다. 첫 수집에서는 직무군별로 수십~170건이 한꺼번에 들어온다.
+
+**점핏 백엔드 신입** (`jumpit-backend`)
+- 출처: [jumpit.saramin.co.kr](https://jumpit.saramin.co.kr)
+- 가져오기: `https://jumpit-api.saramin.co.kr/api/positions`에 `jobCategory=1`(서버/백엔드), `career=0`(신입), 최신 등록순, 첫 페이지.
+- 새 Entry: 새 공고. 기술스택은 `extra.tags`, 마감일은 `extra.deadline`에 저장한다. 신입 공고가 적어서 한 번에 열 개 안팎이 온다.
+
+**사람인 백엔드 신입** (`saramin-backend`)
+- 출처: [saramin.co.kr](https://www.saramin.co.kr)
+- 가져오기: 검색 결과 `/zf_user/search/recruit?searchword=백엔드&exp_cd=1&recruitSort=reg_dt`(30개)의 HTML을 파싱한다. `robots.txt`가 막지 않는 경로다.
+- 새 Entry: 새 공고. 키워드 검색이 프론트엔드 공고까지 돌려주므로 직무 태그에 `백엔드/서버개발`이 있는 것만 남긴다(30개 중 25개 안팎).
+- 참고: 마감 표기("~ 10/30(금)", "오늘마감", "상시채용")는 날짜나 상시로 바꾸고, 연도가 없어 한 달 넘게 지난 날짜는 다음 해로 본다. 경력은 "경력무관"이라고만 적힌 공고가 많다.
+
+**링커리어 백엔드 신입** (`linkareer-backend`)
+- 출처: [linkareer.com](https://linkareer.com/list/recruit)
+- 가져오기: `https://api.linkareer.com/graphql`의 `activities` 질의(채용 `activityTypeID=5`, 진행 중, 직무 `103002` 백엔드/서버개발, 지원 자격 `NEW`, 최신순, 30개).
+- 새 Entry: 새 공고. 직무 필터가 "모든 직무"로 표시한 공고도 돌려주므로 백엔드 직무를 직접 단 공고만 남긴다(30개 중 5개 안팎). 마감일이 없는 공고(상시·채용 시 마감)는 상시로 본다.
+
+**수집하지 않는 곳**
+- 로켓펀치: Cloudflare가 Node의 요청을 막는다(403). 같은 주소가 curl에서는 열려서 헤더 문제가 아니라 클라이언트 식별로 막는 것이다. 우회하지 않는다.
+- 캐치·자소설닷컴: 캐치는 봇 확인 화면이 뜨고, 자소설닷컴은 목록을 브라우저가 나중에 채워서 HTML만으로는 공고가 없다.
