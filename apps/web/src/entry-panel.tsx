@@ -9,7 +9,6 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import type { EntryView, FeedSummary, ReaderFailureReason, ReaderView, TranslationFailureReason } from '@trendboda/api-types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -198,7 +197,7 @@ export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelPro
         </div>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <article className="mx-auto max-w-[760px] px-4 py-6 lg:px-8">
           {rankedEntry && (
             <div className="mb-3 flex items-center gap-2 text-caption text-muted-foreground">
@@ -227,7 +226,7 @@ export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelPro
             <ReaderBody reader={reader} url={entry.url} translated={translated} />
           )}
         </article>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

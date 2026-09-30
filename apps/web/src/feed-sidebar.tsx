@@ -56,16 +56,16 @@ export function FeedSidebar({ sections, screen }: FeedSidebarProps) {
           <Star className="size-4 shrink-0" strokeWidth={1.5} aria-hidden />
           <span className="flex-1 truncate">Bookmark</span>
         </SidebarLink>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="shrink-0 rounded-md text-sidebar-foreground max-md:size-11 md:ml-1"
-          onClick={toggleColorTheme}
-          aria-label={colorTheme === 'dark' ? '라이트 모드로 바꾸기' : '다크 모드로 바꾸기'}
-        >
-          {colorTheme === 'dark' ? <Sun strokeWidth={1.5} /> : <Moon strokeWidth={1.5} />}
-        </Button>
       </div>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="shrink-0 rounded-md text-sidebar-foreground max-md:size-11 md:absolute md:top-3 md:right-3"
+        onClick={toggleColorTheme}
+        aria-label={colorTheme === 'dark' ? '라이트 모드로 바꾸기' : '다크 모드로 바꾸기'}
+      >
+        {colorTheme === 'dark' ? <Sun strokeWidth={1.5} /> : <Moon strokeWidth={1.5} />}
+      </Button>
     </nav>
   );
 }
