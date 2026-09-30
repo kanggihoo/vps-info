@@ -50,6 +50,13 @@
       "when": 1790756600070,
       "tag": "0006_wanted_feed_interval",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790777276687,
+      "tag": "0007_table_comments",
+      "breakpoints": true
     }
   ]
 }
