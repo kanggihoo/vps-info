@@ -1,0 +1,2 @@
+# SOPS 암호화 파일은 줄 끝이 바뀌면 sops가 메타데이터(sops_lastmodified 등)를 읽지 못한다. Windows(autocrlf)에서도 LF로 둔다.
+secrets/** text eol=lf
