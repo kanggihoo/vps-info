@@ -9,6 +9,7 @@ import { lookup as lookupDns } from 'node:dns';
 import { BlockList, isIP, type LookupFunction } from 'node:net';
 import { Agent, request } from 'undici';
 import type { ReaderFailureReason } from '@trendboda/api-types';
+import { isWantedUrl, wantedProxyAgent } from '../wanted-proxy.ts';
 
 /** 원문 페이지 전체를 받기까지 기다리는 시간. Indie Hackers는 첫 바이트까지 6~7초 걸린다. */
 const TIMEOUT_MILLISECONDS = 15_000;
@@ -127,7 +128,11 @@ export const fetchOriginalPage: OriginalPageFetcher = async (url) => {
   try {
     for (let redirectCount = 0; ; redirectCount += 1) {
       assertFetchableUrl(currentUrl);
-      const response = await request(currentUrl, { dispatcher, headers: BROWSER_HEADERS, signal });
+      const response = await request(currentUrl, {
+        dispatcher: (isWantedUrl(currentUrl) && wantedProxyAgent) || dispatcher,
+        headers: BROWSER_HEADERS,
+        signal,
+      });
       const location = response.headers.location;
       if (response.statusCode >= 300 && response.statusCode < 400 && typeof location === 'string') {
         response.body.destroy();

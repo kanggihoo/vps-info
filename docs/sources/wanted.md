@@ -196,7 +196,25 @@ curl -s -A "trendboda/1.0" "https://www.wanted.co.kr/api/chaos/navigation/v1/res
 curl -s -A "trendboda/1.0" "https://www.wanted.co.kr/api/v4/tags?parent_id=518"
 ```
 
-## 8. 알려진 한계
+## 8. 한국 IP 프록시 (운영, ADR-0014)
+
+원티드의 CloudFront는 VPS(자카르타 Hostinger)의 IP를 403으로 막는다. 헤더나 경로를 바꿔도 같고, 한국 IP에서는 200이다(2026-09-30 확인).
+그래서 원티드 요청(`www.wanted.co.kr`)만 집 맥의 한국 IP로 나간다. 수집 Handler와 원문 읽기 둘 다 같은 경로를 쓴다.
+
+```
+collector·app 컨테이너 ──▶ 맥의 프록시(Tailscale 주소:18888) ──▶ wanted.co.kr
+```
+
+- 코드: `apps/backend/src/wanted-proxy.ts`. `WANTED_PROXY_URL`이 있으면 undici `ProxyAgent`를 만들고, 호스트가 정확히 `www.wanted.co.kr`인 요청에만 붙인다.
+- 설정: `compose.yml`의 기본값은 `http://100.66.95.61:18888`(맥의 Tailscale 주소), `compose.local.yml`은 빈 값(직접 호출)이다. 비우면 프록시 없이 나간다.
+- 프록시: `scripts/wanted-proxy/connect-proxy.py`. Tailscale 주소에서만 받고 `www.wanted.co.kr:443`만 중계한다. 맥에서 `scripts/wanted-proxy/install-launchd.sh`를 한 번 실행하면 프록시와 깨우기 작업이 로그인할 때 자동으로 켜진다. **배포가 끝난 뒤에 실행한다**(먼저 하면 프록시 코드가 없는 이전 collector가 원티드를 직접 불러 실패한다).
+- **맥이 켜져 있을 때만 수집한다.** 원티드 Feed의 주기는 DB에서 525600분(1년)이라 VPS는 스스로 시도하지 않는다.
+  대신 맥의 `scripts/wanted-proxy/wake-wanted.sh`가 로그인할 때와 켜져 있는 동안 3시간마다 VPS의 `feed.next_run_at`을 지금으로 바꿔서 collector가 곧바로 수집하게 한다.
+  맥이 꺼져 있는 동안은 시도도 실패도 없다. 꺼져 있던 사이에 올라온 공고는 다음 수집 때 한꺼번에 들어온다(최신순 100개씩 최대 10페이지).
+- 맥이 켜졌는데 프록시나 Tailscale이 죽어서 실패하면 재시도 간격이 5분, 15분, 45분…으로 늘어난다. 다음에 맥이 깨우면 다시 시도한다.
+- 프록시 기기를 항상 켜진 것으로 바꾸려면(예: 라즈베리파이) 그 기기에서 같은 프록시를 돌리고 `WANTED_PROXY_URL`의 주소를 바꾼 뒤, 깨우기 작업을 지우고 원티드 주기를 DB에서 다시 720으로 돌린다.
+
+## 9. 알려진 한계
 
 - 공식 API가 아니어서 주소, 파라미터, 응답 필드가 바뀔 수 있다. 바뀌면 Handler가 0건이나 `empty`로 실패하고 화면에 경고가 뜬다.
 - 수집 목록에는 마감일이 없어서 **열어 본 공고만** 카드에 마감이 보인다(상세에는 있다). 기술스택 이름도 가져오지 못한다.

@@ -146,6 +146,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - Feed: 직무군별 `wanted-backend`(백엔드), `wanted-web`(웹·프론트), `wanted-ai-data`(AI·데이터), `wanted-infra`(인프라·운영), `wanted-qa-manager`(QA·매니지먼트), `wanted-app`(앱).
   직무군에 든 직무는 `feed-definitions.ts`의 `wantedRoleGroups`에 있다(예: 백엔드는 서버 개발자·소프트웨어 엔지니어·자바·Node.js·파이썬·DBA).
 - 출처: [wanted.co.kr](https://www.wanted.co.kr)
+- **VPS IP는 원티드가 막아서 한국 IP의 프록시를 거친다**(맥에서 실행, ADR-0014, [원티드 데이터 가져오기](./sources/wanted.md)의 8장). 맥이 켜져 있을 때만 수집한다(맥이 VPS를 깨운다).
 - 가져오기: 원티드 웹이 목록 화면에서 부르는 `https://www.wanted.co.kr/api/chaos/navigation/v1/results`에 `job_group_id=518`(개발), `job_ids`(직무 ID를 반복해서 붙임), `years=0`(신입 지원 가능), 최신 등록순.
   한 번에 100개씩, 다음 페이지가 없을 때까지 받는다(최대 10페이지). 직무 하나가 아니라 여러 직무를 한꺼번에 묻는다.
 - 새 Entry: 새로 등록된 공고. 경력 범위가 신입을 포함하는 공고(`신입~5년`, `경력 무관`)라 신입 전용은 아니다. **마감일은 수집에 쓰는 목록(chaos)에 없고 상세 페이지에만 있다(마감이 있는 공고는 일부).** 상세를 열면 마감일을 `extra.deadline`에 저장해 다음부터 카드에 `~10/31`로 보이고, 지나면 `마감`으로 보인다.

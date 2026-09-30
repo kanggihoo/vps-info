@@ -4,6 +4,7 @@
  * 목록은 최신 등록순이며 새 공고만 Entry가 된다. 마감일은 목록에 없어서 저장하지 않는다.
  */
 import { defineHandler } from './define-handler.ts';
+import { wantedProxyAgent } from '../../wanted-proxy.ts';
 import { makeCareerLabel } from './job-posting.ts';
 
 const JOBS_URL = 'https://www.wanted.co.kr/api/chaos/navigation/v1/results';
@@ -62,6 +63,7 @@ export const wantedHandler = defineHandler<{ jobIds: number[] }>({
     for (let page = 0; page < MAX_PAGES; page += 1) {
       const response = await httpClient<WantedJobsResponse>(JOBS_URL, {
         query: { ...JOBS_QUERY, job_ids: jobIds, limit: PAGE_SIZE, offset: page * PAGE_SIZE },
+        dispatcher: wantedProxyAgent,
       });
       for (const job of response.data) jobs.set(job.id, job);
       if (!response.links?.next) break;

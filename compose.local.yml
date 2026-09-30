@@ -18,11 +18,13 @@ services:
 
   app:
     command: ["node", "--watch", "src/server/main.ts"]
+    environment: ["WANTED_PROXY_URL="]  # 로컬은 한국 IP라 원티드를 직접 부른다
     ports: ["${APP_PORT:-8000}:8000"]  # 호스트 포트가 겹치면 .env의 APP_PORT로 바꾼다
     volumes: ["./apps/backend/src:/app/apps/backend/src"]
 
   collector:
     command: ["node", "--watch", "src/collector/main.ts"]
+    environment: ["WANTED_PROXY_URL="]
     volumes: ["./apps/backend/src:/app/apps/backend/src"]
 
   # DB 통합 테스트. `npm run test:db`로 실행하며 평소 `up`에는 뜨지 않는다.

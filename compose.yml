@@ -16,7 +16,7 @@ services:
   app:
     build: { context: ., target: app }
     # DB 환경 변수에 더해 번역 버튼용 DeepL 키를 받는다(ADR-0011). 비어 있으면 번역만 꺼진다.
-    environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, DEEPL_API_KEY]
+    environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, DEEPL_API_KEY, "WANTED_PROXY_URL=${WANTED_PROXY_URL-http://100.66.95.61:18888}"]
     restart: unless-stopped
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -33,7 +33,8 @@ services:
 
   collector:
     build: { context: ., target: collector }
-    <<: *database-env
+    # 원티드는 VPS IP를 막아서 한국 IP의 프록시를 거친다(docs/sources/wanted.md). 비우면 직접 나간다.
+    environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, "WANTED_PROXY_URL=${WANTED_PROXY_URL-http://100.66.95.61:18888}"]
     restart: unless-stopped
     depends_on:
       migrate: { condition: service_completed_successfully }
