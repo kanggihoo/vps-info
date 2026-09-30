@@ -40,6 +40,8 @@ _Avoid_: Ranking, Standing, Leaderboard
 
 **Entry**:
 Feed에서 발견된 항목 하나. 링크와 메타데이터를 보관하며 원문 본문 자체를 의미하지 않는다.
+화면에서 원문 페이지의 본문을 그때그때 가져와 보여 줄 수 있지만, 그 본문은 저장하지 않으며 Entry의 일부가 아니다.
+제목·요약의 한국어 번역은 Entry에 딸려 저장한다.
 같은 내용이라도 Feed가 다르면 별도의 Entry다.
 _Avoid_: Archive Item, Article, Post, News, Content
 
@@ -59,19 +61,20 @@ _Avoid_: GUID, Hash, Unique Key
 Entry를 처음 수집한 시각. Stream Feed에서 Entry의 정렬 축이자 Read Cursor의 기준 축이다.
 정보원이 주는 게시 시각은 표시용 메타데이터일 뿐 순서를 정하지 않는다.
 오래전에 게시된 글이 오늘 Feed에 새로 나타나면 그 글은 오늘의 새 Entry다.
+예외로, Feed가 게시일 하한을 선언했다면 그보다 먼저 게시된 항목은 Entry가 되지 않는다(과거 글 전체를 한꺼번에 주는 정보원용).
 _Avoid_: Created At, Collected At
 
 **Read Cursor**:
 Stream Feed마다 "여기까지 훑었다"를 나타내는 지점. 이보다 새로운 Entry가 안 읽음이다.
 최신 쪽으로만 이동하며, 제목만 보고 넘긴 Entry도 지나간 이상 훑은 것으로 친다.
 Entry가 지나갔다는 것은 스크롤되어 화면 위쪽 밖으로 나갔다는 뜻이다. 화면에 보이기만 한 Entry는 아직 지나가지 않았다.
-원문을 연 Entry가 있으면 그 Entry와 그보다 오래된 Entry도 지나간 것으로 친다 — 아래 Entry를 열었다면 위 Entry는 이미 훑었다.
+연 Entry(Opened At이 있는 Entry)가 있으면 그 Entry와 그보다 오래된 Entry도 지나간 것으로 친다 — 아래 Entry를 열었다면 위 Entry는 이미 훑었다.
 Ranked Feed에는 없다 — 순위표에서는 새로 들어온 Entry가 어느 자리에 나타날지 정해져 있지 않다.
 _Avoid_: Read Flag, Last Read, Watermark
 
 **Opened At**:
-Entry의 원문 링크를 처음 열어본 시각. Read Cursor가 지나갔을 뿐인 Entry와
-실제로 읽은 Entry를 가르는 유일한 기준이다.
+Entry를 처음 열어본 시각. 앱에서 Entry를 골라 펼치거나 원문 링크를 열면 찍힌다.
+Read Cursor가 지나갔을 뿐인 Entry와 실제로 읽은 Entry를 가르는 유일한 기준이다.
 _Avoid_: Read At, Visited
 
 **Bookmark**:

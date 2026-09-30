@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { apiClient } from './api-client.ts';
+import { ApiError, apiClient } from './api-client.ts';
 
 /** fetch를 가짜로 바꾸고, 받은 요청을 돌려준다. */
 function stubFetch(response: Response) {
@@ -30,5 +30,26 @@ describe('apiClient', () => {
     await expect(apiClient.setBookmarked(1, true)).resolves.toBeUndefined();
     stubFetch(new Response(null, { status: 404 }));
     await expect(apiClient.markOpened(1)).rejects.toThrow('404');
+  });
+});
+
+describe('apiClient 원문 읽기·번역 (ADR-0011)', () => {
+  it('번역은 POST로 보내고 번역 결과를 돌려준다', async () => {
+    const fetchMock = stubFetch(Response.json({ translatedTitle: '제목', translatedSummary: null }));
+    await expect(apiClient.translateEntry(3)).resolves.toEqual({ translatedTitle: '제목', translatedSummary: null });
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/entries/3/translation');
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'POST' });
+  });
+
+  it('실패 응답의 reason을 ApiError에 담는다', async () => {
+    stubFetch(Response.json({ message: '한도 초과', reason: 'translation-quota' }, { status: 502 }));
+    await expect(apiClient.translateEntry(3)).rejects.toMatchObject({ status: 502, reason: 'translation-quota' });
+    stubFetch(Response.json({ message: '막힘', reason: 'upstream-status' }, { status: 502 }));
+    await expect(apiClient.readOriginal(3)).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it('JSON이 아닌 실패 응답은 reason 없이 던진다', async () => {
+    stubFetch(new Response('Bad Gateway', { status: 502 }));
+    await expect(apiClient.readOriginal(3)).rejects.toMatchObject({ status: 502, reason: undefined });
   });
 });

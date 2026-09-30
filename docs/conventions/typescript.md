@@ -66,6 +66,7 @@ npm workspaces 모노레포다(ADR-0008). 루트 package.json은 워크스페이
 
 ### shadcn/ui
 
+- 새 UI 요소가 필요하면 먼저 shadcn 레지스트리에 있는지 확인하고(`npx shadcn@latest view <이름>`) 있으면 `add`로 가져온다. 레지스트리에 있는 것을 화면 코드에서 직접 만들지 않는다.
 - 공통 컴포넌트는 공식 CLI로 받아 `apps/web/src/components/ui/`에 두고, 받은 파일은 고치지 않는다. 이름·주석 규칙도 적용하지 않는다. 화면 전용 컴포넌트는 `apps/web/src/`에 둔다.
 - 2026-09부터 레지스트리 파일은 `@/lib/utils`가 아니라 shadcn의 `cn` 패키지를 `import { cn } from "cn"`으로 부른다.
   이 저장소는 Vite·TypeScript 별칭으로 `"cn"`을 `src/lib/class-names.ts`에 연결한다. 그 파일이 DESIGN.md 글자 단계(`text-body-sm` 등)를 등록한 `cn`을 만든다 (ADR-0007).

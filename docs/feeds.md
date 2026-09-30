@@ -76,7 +76,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 출처: [producthunt.com](https://www.producthunt.com)
 - 가져오기: 공식 Atom `https://www.producthunt.com/feed`. 추천된 제품 50개가 온다.
 - 새 Entry: 추천 목록에 새로 오른 제품. 목록의 게시일이 몇 주씩 섞여 있어 "오늘 출시"와는 다르다.
-- 참고: 추천수(vote)는 피드에 없다. 요약 끝에 "Discussion | Link"가 붙는다.
+- 참고: 추천수(vote)는 피드에 없다. 요약 끝에 "Discussion | Link"가 붙는다. 원문 페이지가 제품 화면이라 화면에서 읽기 버튼을 숨긴다.
 
 **Trendshift** (Feed Group, Ranked Feed 9개)
 - Feed: 기간(`weekly`·`monthly`·`yearly`) × 언어(전체·TypeScript·Python).
@@ -105,7 +105,8 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 출처: [openai.com/news](https://openai.com/news)
 - 가져오기: 공식 RSS `https://openai.com/news/rss.xml`
 - 새 Entry: 새 글.
-- 참고: RSS에 2015년부터의 글 전체(1230건)가 들어 있어서 첫 수집 때 모두 안 읽음으로 뜬다.
+- 게시일 하한: `2026-01-01`. RSS에 2015년부터의 글 전체(1230건)가 들어 있어서, 그 이전 글은 저장하지 않는다.
+  처음 받아 둔 이전 글은 마이그레이션 `0004`에서 지웠다(Bookmark했거나 연 글은 남김).
 
 **Anthropic News** (`anthropic-news`)
 - 출처: [anthropic.com/news](https://www.anthropic.com/news)
@@ -121,7 +122,9 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 출처: [openrouter.ai/models](https://openrouter.ai/models)
 - 가져오기: 공개 API `https://openrouter.ai/api/v1/models`. 인증이 필요 없다. 등록된 모델 전체가 온다.
 - 새 Entry: 새로 추가된 모델. 게시일은 모델이 OpenRouter에 추가된 날이다.
-- 참고: 첫 수집 때 기존 모델 전체(458개)가 들어온다. 컨텍스트 길이와 토큰 가격은 `extra`에 저장한다.
+- 게시일 하한: `2026-01-01`. API가 매번 모델 전체를 주므로 그 이전에 추가된 모델은 저장하지 않는다. 새 모델이 없는 수집은 0건 성공이다.
+  처음 받아 둔 이전 모델은 마이그레이션 `0004`에서 지웠다.
+- 참고: 컨텍스트 길이와 토큰 가격은 `extra`에 저장한다. 원문 페이지가 가격표 대시보드라 화면에서 읽기 버튼을 숨긴다.
 
 **Hugging Face 주간 인기 논문** (`hf-papers-weekly`)
 - 출처: [huggingface.co/papers](https://huggingface.co/papers)

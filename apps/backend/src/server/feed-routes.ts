@@ -5,9 +5,9 @@ import { and, asc, desc, eq, exists, gt, lt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import type { EntryView, FeedGroupView, FeedSummary, MoveReadCursorRequest, RankSnapshotView } from '@trendboda/api-types';
 import { database } from '../db/database-client.ts';
-import { entry, feed } from '../db/schema.ts';
+import { entry, entryTranslation, feed } from '../db/schema.ts';
 import { feedDefinitions, feedGroupDefinitions } from '../feed-definitions.ts';
-import { entryViewColumns, toEntryView } from './entry-view.ts';
+import { entryViewColumns, toEntryView, translationJoin } from './entry-view.ts';
 import { loadRankSnapshotView } from './rank-snapshot-view.ts';
 
 /** 한 번에 돌려주는 Entry 수의 기본값과 상한. */
@@ -105,6 +105,7 @@ export async function registerFeedRoutes(server: FastifyInstance): Promise<void>
         const rows = await database
           .select(entryViewColumns)
           .from(entry)
+          .leftJoin(entryTranslation, translationJoin)
           .where(and(eq(entry.feedId, feedId), lt(entry.id, before)))
           .orderBy(desc(entry.id))
           .limit(limit);
@@ -113,6 +114,7 @@ export async function registerFeedRoutes(server: FastifyInstance): Promise<void>
       const rows = await database
         .select(entryViewColumns)
         .from(entry)
+        .leftJoin(entryTranslation, translationJoin)
         .where(and(eq(entry.feedId, feedId), gt(entry.id, after ?? 0)))
         .orderBy(asc(entry.id))
         .limit(limit);

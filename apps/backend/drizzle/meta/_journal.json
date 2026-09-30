@@ -29,6 +29,20 @@
       "when": 1790647363083,
       "tag": "0003_remove_replaced_trend_feeds",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790671295946,
+      "tag": "0004_remove_entries_before_published_since",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790671554089,
+      "tag": "0005_entry_translation",
+      "breakpoints": true
     }
   ]
 }

@@ -4,7 +4,7 @@
  * 열면 Read Cursor 바로 다음(첫 안 읽음)에서 시작하고, 그 위에 "여기부터 새 글" 구분선을 둔다.
  * 위로 끝까지 올리면 더 오래된 Entry를, 아래로 끝까지 내리면 더 새로운 Entry를 불러온다.
  *
- * Read Cursor는 Entry가 화면 위쪽 밖으로 나가거나, 그 Entry의 원문을 열 때 움직인다(CONTEXT.md).
+ * Read Cursor는 Entry가 화면 위쪽 밖으로 나가거나, 그 Entry를 펼칠 때 움직인다(CONTEXT.md).
  * 마지막 Entry도 위로 밀어 올릴 수 있도록 목록 끝에 화면 높이만큼 빈 공간을 둔다.
  */
 import { ArrowDown } from 'lucide-react';
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { apiClient } from './api-client.ts';
 import { findCardKind } from './card-kind.ts';
 import { EntryCard } from './entry-card.tsx';
+import type { EntrySelectionProps } from './entry-selection.ts';
 import { EmptyMessage, EntryListSkeleton, LoadError } from './load-states.tsx';
 import { useReadCursorTracker } from './use-read-cursor-tracker.ts';
 
@@ -24,7 +25,7 @@ const PAGE_SIZE = 50;
 
 const nextRunFormatter = new Intl.DateTimeFormat('ko', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
-type FeedTimelineProps = {
+type FeedTimelineProps = EntrySelectionProps & {
   feed: FeedSummary;
   onReadCursorSaved: () => void;
 };
@@ -32,7 +33,7 @@ type FeedTimelineProps = {
 /** 다음 렌더 직후에 할 스크롤 동작. */
 type PendingScroll = { kind: 'to-divider' } | { kind: 'to-bottom' } | { kind: 'keep-position-after-prepend'; previousScrollHeight: number };
 
-export function FeedTimeline({ feed, onReadCursorSaved }: FeedTimelineProps) {
+export function FeedTimeline({ feed, onReadCursorSaved, selectedEntryId, makeEntryHref, onSelectEntry }: FeedTimelineProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   // 화면을 연 순간의 커서를 기준으로 삼는다. 읽는 동안 Feed 목록이 갱신돼도 구분선 위치는 바뀌지 않는다.
   const [openedCursorEntryId] = useState(feed.readCursorEntryId ?? 0);
@@ -128,7 +129,9 @@ export function FeedTimeline({ feed, onReadCursorSaved }: FeedTimelineProps) {
 
   return (
     <div className="relative h-full">
-      <div className="h-full overflow-y-auto" ref={scrollAreaRef} onScroll={trackPassedEntries}>
+      {/* 위에 이전 Entry를 붙일 때 스크롤 위치는 keep-position-after-prepend가 직접 맞춘다.
+          브라우저의 스크롤 앵커링(overflow-anchor)까지 켜 두면 두 번 보정되어 화면이 아래로 튄다. */}
+      <div className="h-full overflow-y-auto [overflow-anchor:none]" ref={scrollAreaRef} onScroll={trackPassedEntries}>
         <div className="mx-auto flex max-w-[760px] flex-col gap-2 p-4">
           {hasOlder && <LoadTrigger scrollAreaRef={scrollAreaRef} onVisible={loadOlder} />}
           {entries.map((entry) => (
@@ -144,11 +147,13 @@ export function FeedTimeline({ feed, onReadCursorSaved }: FeedTimelineProps) {
               <EntryCard
                 entry={entry}
                 cardKind={findCardKind(feed.id, feed.group?.id)}
-                // 아래 Entry의 원문을 열었다면 위 Entry는 이미 훑었다(CONTEXT.md의 Read Cursor).
-                onOpen={(openedEntry) => jumpTo(openedEntry.id)}
-                onEntryChange={(changedEntry) =>
-                  setEntries((current) => current?.map((item) => (item.id === changedEntry.id ? changedEntry : item)))
-                }
+                href={makeEntryHref(entry.id)}
+                selected={entry.id === selectedEntryId}
+                onSelect={(selectedEntry) => {
+                  // 아래 Entry를 펼쳤다면 위 Entry는 이미 훑었다(CONTEXT.md의 Read Cursor).
+                  jumpTo(selectedEntry.id);
+                  onSelectEntry({ entry: selectedEntry });
+                }}
               />
             </div>
           ))}

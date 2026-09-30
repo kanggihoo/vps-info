@@ -162,3 +162,36 @@ describe('markInterruptedAttemptsFailed', () => {
     expect((await readAttempts()).map((attempt) => attempt.status)).toEqual(['failed', 'success']);
   });
 });
+
+describe('runFetchAttempt 게시일 하한 (CONTEXT.md First Seen)', () => {
+  const boundedDefinition: FeedDefinition = { ...definition, publishedSince: '2026-01-01' };
+  const undatedDraft: EntryDraft = { url: 'https://example.com/undated', title: '게시 시각 없음', externalId: 'undated', raw: {} };
+
+  it('하한보다 먼저 게시된 항목은 저장하지 않고, 게시 시각이 없는 항목은 저장한다', async () => {
+    const insertedCount = await runFetchAttempt(
+      boundedDefinition,
+      { intervalMinutes: 30, consecutiveFailures: 0 },
+      fetcherReturning([draft('old', '2025-12-31T23:59:59Z'), draft('new', '2026-01-01T00:00:00Z'), undatedDraft]),
+    );
+    expect(insertedCount).toBe(2);
+    const rows = await database.select({ title: entry.title }).from(entry).orderBy(asc(entry.id));
+    expect(rows.map((row) => row.title).sort()).toEqual(['게시 시각 없음', '글 new']);
+  });
+
+  it('모두 하한보다 먼저 게시됐으면 0건이지만 성공이다', async () => {
+    const insertedCount = await runFetchAttempt(boundedDefinition, { intervalMinutes: 30, consecutiveFailures: 0 }, fetcherReturning([draft('old', '2015-06-01T00:00:00Z')]));
+    expect(insertedCount).toBe(0);
+    expect(await readAttempts()).toEqual([expect.objectContaining({ status: 'success', insertedEntryCount: 0 })]);
+  });
+
+  it('Handler가 0건을 돌려주면 하한이 있어도 실패다 (ADR-0005)', async () => {
+    const insertedCount = await runFetchAttempt(boundedDefinition, { intervalMinutes: 30, consecutiveFailures: 0 }, fetcherReturning([]));
+    expect(insertedCount).toBeUndefined();
+    expect((await readAttempts())[0].status).toBe('failed');
+  });
+
+  it('하한을 선언하지 않은 Feed는 오래된 항목도 저장한다', async () => {
+    const insertedCount = await runFetchAttempt(definition, { intervalMinutes: 30, consecutiveFailures: 0 }, fetcherReturning([draft('old', '2015-06-01T00:00:00Z')]));
+    expect(insertedCount).toBe(1);
+  });
+});

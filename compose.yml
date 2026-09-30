@@ -15,7 +15,8 @@ services:
 
   app:
     build: { context: ., target: app }
-    <<: *database-env
+    # DB 환경 변수에 더해 번역 버튼용 DeepL 키를 받는다(ADR-0011). 비어 있으면 번역만 꺼진다.
+    environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, DEEPL_API_KEY]
     restart: unless-stopped
     depends_on:
       migrate: { condition: service_completed_successfully }

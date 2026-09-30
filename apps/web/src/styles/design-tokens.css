@@ -109,6 +109,10 @@
   --text-app-title--line-height: 1.4;
   --text-app-title--font-weight: 600;
   --text-app-title--letter-spacing: -0.2px;
+  --text-panel-title: 22px;
+  --text-panel-title--line-height: 1.35;
+  --text-panel-title--font-weight: 600;
+  --text-panel-title--letter-spacing: -0.3px;
   --text-entry-title: 16px;
   --text-entry-title--line-height: 1.4;
   --text-entry-title--font-weight: 600;

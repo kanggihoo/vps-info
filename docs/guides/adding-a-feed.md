@@ -26,6 +26,7 @@
 2. Feed 선언의 `handler`로 등록된 **Handler**를 부른다. Handler는 **EntryDraft 목록만** 돌려준다.
    Ranked Feed면 `feed.rank_limit`을 context의 `rankLimit`으로 넘기고, 돌려받은 목록을 앞에서부터 그 개수로 자른다.
 3. 0건이면 실패다(`allowEmpty: true`인 Feed는 예외).
+   Feed 선언에 `publishedSince`가 있으면 이 검사 **뒤에** 그보다 먼저 게시된 항목을 버린다. 그래서 걸러진 뒤 0건은 성공이다.
 4. EntryDraft를 게시 시각순으로 `entry`에 넣는다. 이미 있는 항목(같은 Dedup Key)은 조용히 건너뛴다.
    처음 넣는 Entry의 `extra`에는 `metrics`를 합쳐 처음 봤을 때의 값으로 남긴다.
 5. Ranked Feed면 Handler가 돌려준 순서대로 Rank를 매겨 `rank_snapshot`에 넣는다(Rank마다 한 행, `metrics` 포함). 순위가 직전과 같아도 넣는다.
@@ -116,6 +117,7 @@ export const feedDefinitions: FeedDefinition[] = [
     params: { url: 'https://openai.com/news/rss.xml' },  // handler에 맞지 않으면 컴파일 오류
     intervalMinutes: 120,           // 처음 만들 때의 수집 주기(분)
     // allowEmpty: true,            // 새 글이 원래 드물어 0건이 정상인 Feed만
+    // publishedSince: '2026-01-01', // 과거 글 전체를 한꺼번에 주는 정보원만. 이보다 먼저 게시된 항목은 저장하지 않는다
   },
 ];
 ```
@@ -134,6 +136,15 @@ export const feedDefinitions: FeedDefinition[] = [
 4. Bookmark 목록처럼 Feed 이름이 따로 보이는 곳이 있으므로 `title`에는 변형까지 적는다(`Trendshift 주간 · Python`).
 
 변형이 많으면 Trendshift처럼 기간 × 언어 목록에서 선언을 만들어 펼친다(`makeTrendshiftFeedDefinitions`). id는 한 번 정하면 바꾸지 않는다.
+
+### 과거 글 전체를 한꺼번에 주는 정보원이면: 게시일 하한
+
+RSS나 API가 몇 년 치 글·모델 전체를 매번 준다면(OpenAI News, OpenRouter) 첫 수집 때 그 전부가 안 읽음으로 쌓인다.
+이때만 `publishedSince: 'YYYY-MM-DD'`(UTC)를 선언한다. 수집 코어가 그보다 먼저 게시된 항목을 버린다. 게시 시각이 없는 항목은 버리지 않는다.
+
+- Handler는 고치지 않는다. 거르는 것은 저장 정책이라 코어의 일이다(ADR-0006).
+- 몇 주 전 게시일이 섞여 오는 정보원(Product Hunt)에는 쓰지 않는다. 오늘 처음 나타난 옛 글도 오늘의 새 Entry다(CONTEXT.md First Seen).
+- 이미 저장된 옛 Entry는 선언만으로 지워지지 않는다. 지우려면 마이그레이션을 쓴다(`drizzle/0004_remove_entries_before_published_since.sql` 참고).
 
 ### 순위표를 주는 정보원이면: Ranked Feed
 
@@ -359,6 +370,8 @@ Stream Feed를 Ranked Feed로 바꾸면서 주기도 바꾸는 경우가 여기�
 - [ ] `npm run typecheck`, `npm test`, `npm run test:db` 통과
 - [ ] `--once`로 N건 저장, 한 번 더 실행해 0건 확인
 - [ ] DB에서 `dedup_key`, `title`, `url`, `published_at`, `extra` 확인
+- [ ] 과거 글 전체를 한꺼번에 주는 정보원이면 `publishedSince`
 - [ ] 글이 아닌 Feed(저장소, 모델, 논문, 릴리스)면 `apps/web/src/card-kind.ts`에 카드 종류를 적음
-- [ ] 화면 왼쪽 목록에 보이고 제목을 누르면 원문이 열림
+- [ ] 원문 페이지가 본문이 아니라 제품·대시보드 화면이면 `apps/web/src/reader-availability.ts`에 읽기 버튼을 숨길 Feed로 적음(ADR-0011)
+- [ ] 화면 왼쪽 목록에 보이고, Entry를 누르면 오른쪽에 펼쳐지며, 읽기 버튼으로 본문이 보임
 - [ ] [docs/feeds.md](../feeds.md)에 이 Feed의 출처·가져오는 방식·주기·새 Entry가 생기는 때를 적음

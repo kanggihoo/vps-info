@@ -68,6 +68,10 @@ export type EntryView = {
   firstSeenAt: string;
   openedAt: string | null;
   bookmarkedAt: string | null;
+  /** 제목의 한국어 번역. 번역 버튼을 누른 적이 없으면 `null`(ADR-0011). */
+  translatedTitle: string | null;
+  /** 요약의 한국어 번역. 번역하지 않았거나 원문 요약이 없으면 `null`. */
+  translatedSummary: string | null;
 };
 
 /**
@@ -105,8 +109,54 @@ export type RankSnapshotView = {
   droppedEntries: DroppedEntryView[];
 };
 
-/** `GET /api/bookmarks`의 항목 하나. 여러 Feed가 섞이므로 Feed 이름을 함께 준다. */
-export type BookmarkedEntryView = EntryView & { feedTitle: string };
+/** Feed 이름을 함께 준 Entry. 여러 Feed가 섞이거나(Bookmark 목록) Entry 하나만 조회할 때 쓴다. */
+export type FeedTitledEntryView = EntryView & { feedTitle: string };
+
+/** `GET /api/bookmarks`의 항목 하나. */
+export type BookmarkedEntryView = FeedTitledEntryView;
+
+/** `GET /api/entries/:entryId/reader`의 성공 응답. 원문 페이지에서 뽑은 본문이며 저장하지 않는다(ADR-0011). */
+export type ReaderView = {
+  /** 원문 페이지의 제목. 페이지에서 찾지 못하면 `null`. */
+  title: string | null;
+  /** 본문 Markdown. HTML이 섞여 있을 수 있어 화면이 허용 목록으로 걸러 그린다. */
+  markdown: string;
+  siteName: string | null;
+  byline: string | null;
+};
+
+/**
+ * 원문 읽기 실패 이유(502 응답의 `reason`).
+ * - `upstream-status`: 원문 페이지가 200이 아닌 상태로 응답했다
+ * - `timeout`: 15초 안에 받지 못했다
+ * - `too-large`: 5MB를 넘었다
+ * - `not-html`: HTML이 아니다(PDF 등)
+ * - `unreachable`: 연결하지 못했다(주소 오류, 내부망 주소 등)
+ * - `empty`: 받았지만 뽑은 본문이 비었다
+ */
+export type ReaderFailureReason = 'upstream-status' | 'timeout' | 'too-large' | 'not-html' | 'unreachable' | 'empty';
+
+/** `POST /api/entries/:entryId/translation`의 성공 응답. */
+export type TranslationView = {
+  translatedTitle: string;
+  translatedSummary: string | null;
+};
+
+/**
+ * 번역 실패 이유(503·502 응답의 `reason`).
+ * - `translation-disabled`: 서버에 DeepL 키가 없다
+ * - `translation-auth`: DeepL이 키를 거부했다
+ * - `translation-quota`: 이번 달 DeepL 한도를 다 썼다
+ * - `translation-busy`: DeepL에 요청이 몰렸다. 잠시 뒤 다시 시도한다
+ * - `translation-failed`: 그 밖의 실패
+ */
+export type TranslationFailureReason = 'translation-disabled' | 'translation-auth' | 'translation-quota' | 'translation-busy' | 'translation-failed';
+
+/** API 오류 응답 본문. `reason`은 화면이 안내 문구를 고를 때 쓴다. */
+export type ApiErrorBody = {
+  message: string;
+  reason?: ReaderFailureReason | TranslationFailureReason;
+};
 
 /** `PUT /api/feeds/:feedId/read-cursor`의 요청 본문. */
 export type MoveReadCursorRequest = {

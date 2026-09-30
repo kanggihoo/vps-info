@@ -51,7 +51,7 @@ export const entry = pgTable(
     /** 정보원 원본. 내부 전용이며 API로 내보내지 않는다(ADR-0003). */
     raw: jsonb('raw').notNull(),
     firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
-    /** 원문 링크를 처음 연 시각. */
+    /** Opened At. 앱에서 Entry를 펼치거나 원문 링크를 처음 연 시각(CONTEXT.md). */
     openedAt: timestamp('opened_at', { withTimezone: true }),
     /** Bookmark한 시각. 비어 있으면 Bookmark가 아니다. */
     bookmarkedAt: timestamp('bookmarked_at', { withTimezone: true }),
@@ -61,6 +61,20 @@ export const entry = pgTable(
     index('entry_feed_id_id_index').on(table.feedId, table.id),
   ],
 );
+
+/**
+ * Entry 제목·요약의 한국어 번역(ADR-0011). Entry와 1:1이고, 번역한 Entry에만 행이 있다.
+ * DeepL로 만든 파생 데이터라 정보원에서 가져온 `entry`와 나눠 둔다. 목표 언어가 한국어 하나라 언어 컬럼은 없다.
+ */
+export const entryTranslation = pgTable('entry_translation', {
+  entryId: bigint('entry_id', { mode: 'number' })
+    .primaryKey()
+    .references(() => entry.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  /** 원문 요약이 없으면 비어 있다. */
+  summary: text('summary'),
+  translatedAt: timestamp('translated_at', { withTimezone: true }).notNull().defaultNow(),
+});
 
 /** Fetch Attempt의 상태. */
 export type FetchAttemptStatus = 'running' | 'success' | 'failed';

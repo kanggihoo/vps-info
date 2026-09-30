@@ -1,6 +1,7 @@
 /**
- * Entry 하나. 제목을 누르면 원문이 새 탭에서 열리고 Opened At이 기록된다.
+ * Entry 하나. 카드를 누르면 오른쪽에 Entry가 펼쳐진다(ADR-0011). 원문은 펼친 화면의 버튼으로 연다.
  * 제목·Bookmark·요약은 모든 카드가 같고, 제목 아래 메타 줄은 카드 종류(글, 저장소, 모델, 논문, 릴리스)에 따라 다르다.
+ * 번역한 Entry는 번역 제목만 보여 준다.
  */
 import { Star } from 'lucide-react';
 import type { EntryView } from '@trendboda/api-types';
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from 'cn';
 import { apiClient } from './api-client.ts';
 import type { CardKind } from './card-kind.ts';
+import { useEntryChanges } from './entry-changes.tsx';
 import { EntryMeta, EntryTags } from './entry-meta.tsx';
 
 type EntryCardProps = {
@@ -16,51 +18,58 @@ type EntryCardProps = {
   cardKind?: CardKind;
   /** Bookmark 목록처럼 여러 Feed가 섞일 때 보여 줄 Feed 이름. */
   feedTitle?: string;
-  /** Opened At이나 Bookmark가 바뀌면 바뀐 Entry로 부른다. */
-  onEntryChange: (changedEntry: EntryView) => void;
-  /** 원문을 열 때마다 부른다. 이미 연 Entry를 다시 열어도 부른다(Stream Feed의 Read Cursor 이동용). */
-  onOpen?: (openedEntry: EntryView) => void;
+  /** 카드를 눌렀을 때 갈 화면 해시(이 Entry를 펼친 화면). */
+  href: string;
+  /** 지금 오른쪽에 펼쳐진 Entry인지. */
+  selected: boolean;
+  /** 카드를 눌러 펼칠 때 부른다. 이미 펼친 Entry를 다시 눌러도 부른다(Stream Feed의 Read Cursor 이동용). */
+  onSelect?: (selectedEntry: EntryView) => void;
+  /** Bookmark가 바뀌면 바뀐 Entry로 부른다. */
+  onEntryChange?: (changedEntry: EntryView) => void;
   /** 대표 수치(점수, 늘어난 스타) 옆에 보여 줄 직전 수집 대비 증감(Ranked Feed). */
   metricChange?: number;
 };
 
-export function EntryCard({ entry, cardKind = 'article', feedTitle, onEntryChange, onOpen, metricChange }: EntryCardProps) {
+export function EntryCard({ entry: loadedEntry, cardKind = 'article', feedTitle, href, selected, onSelect, onEntryChange, metricChange }: EntryCardProps) {
+  const { withChanges, publishChange } = useEntryChanges();
+  const entry = withChanges(loadedEntry);
   const bookmarked = Boolean(entry.bookmarkedAt);
-
-  const openOriginal = () => {
-    onOpen?.(entry);
-    if (entry.openedAt) return;
-    onEntryChange({ ...entry, openedAt: new Date().toISOString() });
-    apiClient.markOpened(entry.id).catch(console.error);
-  };
 
   const toggleBookmark = async () => {
     await apiClient.setBookmarked(entry.id, !bookmarked);
-    onEntryChange({ ...entry, bookmarkedAt: bookmarked ? null : new Date().toISOString() });
+    const changedEntry = { ...entry, bookmarkedAt: bookmarked ? null : new Date().toISOString() };
+    publishChange(changedEntry);
+    onEntryChange?.(changedEntry);
   };
 
   return (
-    <article className="rounded-lg border bg-card px-4 py-3 text-card-foreground">
+    <article
+      className={cn(
+        'relative rounded-lg border px-4 py-3 text-card-foreground transition-colors duration-150 ease-out motion-reduce:transition-none',
+        selected ? 'border-subtle-foreground bg-accent' : 'bg-card hover:bg-accent',
+      )}
+    >
       <div className="flex items-start gap-2">
         <a
           className={cn(
-            'flex-1 rounded-xs underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring',
+            'flex-1 rounded-xs outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            // 카드 전체를 누를 수 있게 링크의 누르는 영역을 카드 크기로 넓힌다. Bookmark와 메타 줄 링크는 그 위에 올린다.
+            "after:absolute after:inset-0 after:rounded-lg after:content-['']",
             // 긴 저장소 이름(owner/name)은 한 단어라 칸을 넘치지 않게 필요할 때만 중간에서 끊는다.
             'break-words',
             entry.openedAt ? 'text-body-sm-medium text-muted-foreground' : 'text-entry-title text-foreground',
           )}
-          href={entry.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={openOriginal}
+          href={href}
+          aria-current={selected ? 'true' : undefined}
+          onClick={() => onSelect?.(entry)}
         >
-          {entry.title}
+          {entry.translatedTitle ?? entry.title}
         </a>
         <Button
           variant="ghost"
           size="icon-sm"
           className={cn(
-            '-mt-1 -mr-2 shrink-0 rounded-full max-md:size-11',
+            'relative z-10 -mt-1 -mr-2 shrink-0 rounded-full max-md:size-11',
             bookmarked ? 'text-brand-ink hover:text-brand-ink' : 'text-subtle-foreground',
           )}
           onClick={toggleBookmark}

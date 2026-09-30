@@ -10,13 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { apiClient } from './api-client.ts';
 import { findCardKind, findChangeMetricKey } from './card-kind.ts';
 import { EntryCard } from './entry-card.tsx';
+import type { EntrySelectionProps } from './entry-selection.ts';
 import { readNumber } from './entry-meta.tsx';
 import { EmptyMessage, EntryListSkeleton, LoadError } from './load-states.tsx';
 
 const takenAtFormatter = new Intl.DateTimeFormat('ko', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const nextRunFormatter = new Intl.DateTimeFormat('ko', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
-type RankTableProps = {
+type RankTableProps = EntrySelectionProps & {
   feed: FeedSummary;
 };
 
@@ -25,7 +26,7 @@ function withLatestMetrics(rankedEntry: RankedEntryView): EntryView {
   return { ...rankedEntry, extra: { ...rankedEntry.extra, ...rankedEntry.metrics } };
 }
 
-export function RankTable({ feed }: RankTableProps) {
+export function RankTable({ feed, selectedEntryId, makeEntryHref, onSelectEntry }: RankTableProps) {
   const [snapshot, setSnapshot] = useState<RankSnapshotView | undefined>();
   const [loadFailed, setLoadFailed] = useState(false);
   const cardKind = findCardKind(feed.id, feed.group?.id);
@@ -44,13 +45,6 @@ export function RankTable({ feed }: RankTableProps) {
 
   // 수집이 끝나면 nextRunAt이 바뀌므로, Feed 목록 갱신으로 새 Snapshot이 생긴 것을 알고 다시 받는다.
   useEffect(loadSnapshot, [loadSnapshot, feed.nextRunAt]);
-
-  /** Opened At이나 Bookmark가 바뀐 Entry를 순위표와 빠짐 목록 양쪽에 반영한다. */
-  const applyEntryChange = (changedEntry: EntryView) => {
-    const applyTo = <Item extends EntryView>(item: Item): Item =>
-      item.id === changedEntry.id ? { ...item, openedAt: changedEntry.openedAt, bookmarkedAt: changedEntry.bookmarkedAt } : item;
-    setSnapshot((current) => current && { ...current, entries: current.entries.map(applyTo), droppedEntries: current.droppedEntries.map(applyTo) });
-  };
 
   if (loadFailed) return <LoadError message="순위표를 불러오지 못했습니다." onRetry={loadSnapshot} />;
   if (!snapshot) return <EntryListSkeleton />;
@@ -78,15 +72,19 @@ export function RankTable({ feed }: RankTableProps) {
           {snapshot.entries.map((rankedEntry) => {
             const metric = readNumber(rankedEntry.metrics, changeMetricKey);
             const previousMetric = readNumber(rankedEntry.previousMetrics, changeMetricKey);
+            const metricChange = metric !== undefined && previousMetric !== undefined ? metric - previousMetric : undefined;
+            const entry = withLatestMetrics(rankedEntry);
             return (
               <li key={rankedEntry.id} className="flex items-start gap-2 md:gap-3">
                 <RankLabel rankedEntry={rankedEntry} />
                 <div className="min-w-0 flex-1">
                   <EntryCard
-                    entry={withLatestMetrics(rankedEntry)}
+                    entry={entry}
                     cardKind={cardKind}
-                    metricChange={metric !== undefined && previousMetric !== undefined ? metric - previousMetric : undefined}
-                    onEntryChange={applyEntryChange}
+                    metricChange={metricChange}
+                    href={makeEntryHref(entry.id)}
+                    selected={entry.id === selectedEntryId}
+                    onSelect={(selectedEntry) => onSelectEntry({ entry: selectedEntry, rankedEntry, metricChange })}
                   />
                 </div>
               </li>
@@ -105,7 +103,13 @@ export function RankTable({ feed }: RankTableProps) {
                     직전 <span className="font-mono tabular-nums">{droppedEntry.previousRank}</span>위
                   </div>
                   <div className="min-w-0 flex-1">
-                    <EntryCard entry={droppedEntry} cardKind={cardKind} onEntryChange={applyEntryChange} />
+                    <EntryCard
+                      entry={droppedEntry}
+                      cardKind={cardKind}
+                      href={makeEntryHref(droppedEntry.id)}
+                      selected={droppedEntry.id === selectedEntryId}
+                      onSelect={(selectedEntry) => onSelectEntry({ entry: selectedEntry })}
+                    />
                   </div>
                 </li>
               ))}
@@ -130,7 +134,8 @@ function RankLabel({ rankedEntry }: { rankedEntry: RankedEntryView }) {
   );
 }
 
-function RankMovementMark({ rankedEntry }: { rankedEntry: RankedEntryView }) {
+/** 순위 변동 표시. 순위표와 펼친 화면이 함께 쓴다. */
+export function RankMovementMark({ rankedEntry }: { rankedEntry: RankedEntryView }) {
   if (rankedEntry.movement === 'new')
     return <Badge className="rounded-full bg-brand px-1.5 font-mono text-numeric-badge text-brand-foreground">NEW</Badge>;
   if (rankedEntry.movement === 'reentered')

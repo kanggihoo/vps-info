@@ -4,8 +4,8 @@
 import { and, asc, desc, eq, exists, inArray } from 'drizzle-orm';
 import type { DroppedEntryView, RankedEntryView, RankMovement, RankSnapshotView } from '@trendboda/api-types';
 import { database } from '../db/database-client.ts';
-import { entry, fetchAttempt, rankSnapshot } from '../db/schema.ts';
-import { entryViewColumns, toEntryView } from './entry-view.ts';
+import { entry, entryTranslation, fetchAttempt, rankSnapshot } from '../db/schema.ts';
+import { entryViewColumns, toEntryView, translationJoin } from './entry-view.ts';
 
 /** 비교에 쓰는 Snapshot 수: 최신과 직전. */
 const COMPARED_SNAPSHOT_COUNT = 2;
@@ -33,6 +33,7 @@ export async function loadRankSnapshotView(feedId: string): Promise<RankSnapshot
     .select({ ...entryViewColumns, fetchAttemptId: rankSnapshot.fetchAttemptId, rank: rankSnapshot.rank, metrics: rankSnapshot.metrics })
     .from(rankSnapshot)
     .innerJoin(entry, eq(entry.id, rankSnapshot.entryId))
+    .leftJoin(entryTranslation, translationJoin)
     .where(inArray(rankSnapshot.fetchAttemptId, snapshots.map((snapshot) => snapshot.id)))
     .orderBy(asc(rankSnapshot.rank));
   const latestRows = rows.filter((row) => row.fetchAttemptId === latest.id);

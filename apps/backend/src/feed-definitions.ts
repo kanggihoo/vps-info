@@ -21,6 +21,11 @@ type FeedDefinitionUsing<Name extends HandlerName> = {
   intervalMinutes: number;
   /** 새 글이 원래 드문 Feed라서 0건을 실패로 보지 않을지 여부(ADR-0005). */
   allowEmpty?: boolean;
+  /**
+   * 게시일 하한(`YYYY-MM-DD`, UTC). 이보다 먼저 게시된 항목은 Entry로 저장하지 않는다.
+   * 과거 글 전체를 한꺼번에 주는 정보원에만 쓴다. 게시 시각이 없는 항목은 거르지 않는다(CONTEXT.md First Seen).
+   */
+  publishedSince?: string;
   /** 속한 Feed Group과 축 위의 값. `feedGroupDefinitions`에 있는 Group이어야 한다(ADR-0010). */
   group?: FeedGroupMembership;
 } & FeedKindDeclaration;
@@ -137,7 +142,15 @@ export const feedDefinitions: FeedDefinition[] = [
   { id: 'geeknews', title: 'GeekNews', handler: 'rss', params: { url: 'https://news.hada.io/rss/news' }, intervalMinutes: 60 },
   { id: 'producthunt', title: 'Product Hunt', handler: 'rss', params: { url: 'https://www.producthunt.com/feed' }, intervalMinutes: 180 },
   { id: 'techcrunch', title: 'TechCrunch', handler: 'rss', params: { url: 'https://techcrunch.com/feed/' }, intervalMinutes: 60 },
-  { id: 'openai-news', title: 'OpenAI News', handler: 'rss', params: { url: 'https://openai.com/news/rss.xml' }, intervalMinutes: 360 },
+  {
+    id: 'openai-news',
+    title: 'OpenAI News',
+    handler: 'rss',
+    params: { url: 'https://openai.com/news/rss.xml' },
+    intervalMinutes: 360,
+    // RSS에 2015년부터의 글 전체가 들어 있다.
+    publishedSince: '2026-01-01',
+  },
   {
     id: 'claude-code-releases',
     title: 'Claude Code 릴리스',
@@ -145,7 +158,15 @@ export const feedDefinitions: FeedDefinition[] = [
     params: { url: 'https://github.com/anthropics/claude-code/releases.atom' },
     intervalMinutes: 360,
   },
-  { id: 'openrouter-models', title: 'OpenRouter 새 모델', handler: 'openrouter-models', params: {}, intervalMinutes: 360 },
+  {
+    id: 'openrouter-models',
+    title: 'OpenRouter 새 모델',
+    handler: 'openrouter-models',
+    params: {},
+    intervalMinutes: 360,
+    // API가 매번 등록된 모델 전체를 준다. 게시 시각은 모델이 OpenRouter에 추가된 날이다.
+    publishedSince: '2026-01-01',
+  },
   { id: 'hf-papers-weekly', title: 'Hugging Face 주간 인기 논문', handler: 'huggingface-papers', params: { period: 'week' }, intervalMinutes: 720 },
   { id: 'hellogithub', title: 'HelloGitHub', handler: 'hellogithub', params: {}, intervalMinutes: 1440 },
   {

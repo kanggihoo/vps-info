@@ -4,10 +4,11 @@ import type { BookmarkedEntryView, FeedSummary } from '@trendboda/api-types';
 import { apiClient } from './api-client.ts';
 import { findCardKind } from './card-kind.ts';
 import { EntryCard } from './entry-card.tsx';
+import type { EntrySelectionProps } from './entry-selection.ts';
 import { EmptyMessage, EntryListSkeleton, LoadError } from './load-states.tsx';
 
 /** @param feeds - 카드 모양을 정하려고 Entry가 온 Feed의 Feed Group을 찾는 데 쓴다. */
-export function BookmarkList({ feeds }: { feeds: FeedSummary[] }) {
+export function BookmarkList({ feeds, selectedEntryId, makeEntryHref, onSelectEntry }: EntrySelectionProps & { feeds: FeedSummary[] }) {
   const [bookmarks, setBookmarks] = useState<BookmarkedEntryView[] | undefined>();
   const [loadFailed, setLoadFailed] = useState(false);
 
@@ -36,6 +37,9 @@ export function BookmarkList({ feeds }: { feeds: FeedSummary[] }) {
             entry={bookmark}
             cardKind={findCardKind(bookmark.feedId, feeds.find((feed) => feed.id === bookmark.feedId)?.group?.id)}
             feedTitle={bookmark.feedTitle}
+            href={makeEntryHref(bookmark.id)}
+            selected={bookmark.id === selectedEntryId}
+            onSelect={(selectedEntry) => onSelectEntry({ entry: selectedEntry })}
             onEntryChange={(changedEntry) =>
               setBookmarks((current) =>
                 // Bookmark를 해제하면 목록에서 뺀다.

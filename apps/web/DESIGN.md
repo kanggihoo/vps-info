@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Trendboda
-description: 여러 Feed의 새 Entry를 매일 훑어보는 개인용 읽기 도구. Mintlify의 무채색 바탕과 민트 강조색을 가져오되 마케팅 요소는 버리고, 사이드바 + 채팅형 타임라인 2열 구조에 맞춰 촘촘하게 다듬었다. UI는 Geist(한글 Pretendard), 숫자는 Geist Mono. 기본은 라이트 모드이고 토글로 다크 모드를 켠다.
+description: 여러 Feed의 새 Entry를 매일 훑어보는 개인용 읽기 도구. Mintlify의 무채색 바탕과 민트 강조색을 가져오되 마케팅 요소는 버리고, 사이드바 + 채팅형 타임라인 + 펼친 Entry 3열 구조에 맞춰 촘촘하게 다듬었다. UI는 Geist(한글 Pretendard), 숫자는 Geist Mono. 기본은 라이트 모드이고 토글로 다크 모드를 켠다.
 
 fonts:
   sans: '"Geist Variable", "Pretendard Variable", system-ui, sans-serif'
@@ -82,6 +82,12 @@ typography:
     fontWeight: 600
     lineHeight: 1.40
     letterSpacing: -0.2px
+  panel-title:
+    fontFamily: Geist
+    fontSize: 22px
+    fontWeight: 600
+    lineHeight: 1.35
+    letterSpacing: -0.3px
   entry-title:
     fontFamily: Geist
     fontSize: 16px
@@ -214,6 +220,17 @@ components:
     backgroundColor: "{colors.card}"
     textColor: "{colors.muted-foreground}"
     typography: "{typography.body-sm-medium}"
+  entry-card-selected:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.card-foreground}"
+    typography: "{typography.entry-title}"
+    rounded: "{rounded.lg}"
+    padding: "12px 16px"
+  entry-panel:
+    backgroundColor: "{colors.background}"
+    textColor: "{colors.foreground}"
+    typography: "{typography.panel-title}"
+    padding: "24px 32px"
   entry-meta:
     backgroundColor: "{colors.card}"
     textColor: "{colors.muted-foreground}"
@@ -298,6 +315,7 @@ components:
 - 폰트 파일은 npm 패키지(`@fontsource-variable/geist`, `@fontsource-variable/geist-mono`, `pretendard`의 dynamic subset)로 받아 앱이 직접 서빙한다. 외부 CDN을 쓰지 않는다.
 - **단계** (`text-<이름>`):
   - `app-title` 18/600 — 사이드바 앱 이름
+  - `panel-title` 22/600 — 펼친 Entry의 제목
   - `entry-title` 16/600 — Entry 제목. 연 Entry는 `body-sm-medium` + `muted-foreground`
   - `body-sm` 14/400/1.5 — Feed 이름, Entry 요약
   - `caption` 13 — 메타데이터, `caption-bold`는 구분선 라벨
@@ -310,8 +328,9 @@ components:
 
 ## Layout
 
-- **데스크톱**: CSS Grid 2열 — 사이드바 240px(`sidebar` 바탕, 오른쪽 1px `sidebar-border`) + 본문 `1fr`(`background`). 높이 `h-dvh`.
-- **본문**: 스크롤은 본문 영역 안에서만. 읽기 칼럼 `max-w-[760px] mx-auto px-4`.
+- **데스크톱**(`lg` 1024px 이상): CSS Grid 3열 — 사이드바 240px(`sidebar` 바탕, 오른쪽 1px `sidebar-border`) + Entry 목록 `minmax(340px, 440px)`(오른쪽 1px `border`) + 펼친 Entry `1fr`. 높이 `h-dvh`(ADR-0011).
+- **`md`~`lg`**: 사이드바 + Entry 목록 2열. Entry를 고르면 펼친 Entry가 목록 칸을 덮고, 뒤로(`ArrowLeft`)나 브라우저 뒤로 가기로 돌아온다. 목록은 그 아래 그대로 있어 스크롤 위치를 잃지 않는다.
+- **본문**: 스크롤은 각 칸 안에서만. 읽기 칼럼 `max-w-[760px] mx-auto px-4`.
 - **간격**: Tailwind 4px 단위만 쓴다. 사이드바 행 사이 4px(`gap-1`), 카드 사이 8px(`gap-2`), 영역 여백 16px(`p-4`).
 - 요소를 겹쳐 쌓지 않는다. 예외는 떠 있는 "안 읽음" 버튼 하나이며, 칼럼 바깥 오른쪽 아래(24px)에 둔다.
 - **768px 미만**(`md:` 아래): 1열. 사이드바는 위쪽 가로 탭 줄이 되고 그 줄 **안에서만** 가로 스크롤을 허용한다. 페이지 자체의 가로 스크롤은 실패다. 모바일 탭 대상은 최소 44px, 떠 있는 버튼은 오른쪽 아래 16px.
@@ -354,6 +373,13 @@ components:
   - 빠진 Entry는 목록 아래 `<details>`에 접어 둔다. 요약 줄은 `빠짐 N개`(`text-caption-bold`), 순위 칸에는 `직전 N위`.
   - 빈 상태: "아직 순위표가 없습니다. 다음 수집은 14:30입니다."
 - **Bookmark 토글** (`bookmark-toggle`): 32px 원형 탭 영역(모바일 44px). 꺼짐은 `subtle-foreground` 외곽선 별, 켜짐은 `brand-ink` 채운 별.
+- **선택된 Entry 카드** (`entry-card-selected`): 펼친 Entry의 카드. `accent` 바탕 + 1px `subtle-foreground` 테두리. 선택을 민트로 칠하지 않는다. 카드 전체가 눌리는 링크이고, Bookmark와 메타 줄 링크는 그 위에 올린다.
+- **펼친 Entry** (`entry-panel`): 위쪽 도구줄(아래 1px `border`) + `ScrollArea` 본문. 본문은 읽기 칼럼 폭, `px-4 py-6`(데스크톱 `px-8`).
+  - 도구줄: ghost 아이콘 버튼(`rounded-full`, 18px 아이콘) + `Tooltip`. 오른쪽 끝에 Bookmark(`Star`) · 원문 읽기(`BookOpenText`) · 번역(`Languages`) · 원문 열기(`ExternalLink`). 좁은 화면에서는 왼쪽 끝에 뒤로(`ArrowLeft`). 켜진 상태는 `accent` 바탕, 켜진 Bookmark만 `brand-ink`.
+  - 머리: Ranked Feed에서 열었으면 순위와 변동 표시 → 제목(`panel-title`) → 번역 중이면 원제목(`body-sm` `muted-foreground`) → 메타 줄(Feed 이름 `foreground` + Entry 메타) → `Separator`.
+  - 본문: 요약(`body-sm`) 또는 원문 본문. 원문을 가져오는 동안은 줄 모양 `Skeleton`, 실패하면 `Alert`(destructive)에 이유와 원문 링크.
+  - 원문 본문 (`reader-body`): typography 플러그인 `prose prose-sm`. 색은 `index.css`에서 토큰으로 바꿔 쓴다. 이 칸에 한해 플러그인의 제목·목록 크기를 쓴다(토큰에 없는 글자 크기 금지의 예외). 링크는 `foreground` 밑줄.
+  - 아무것도 고르지 않았으면 "목록에서 Entry를 고르면 여기에 펼쳐집니다."
 - **새 글 구분선** (`unread-divider`): 가운데 `text-caption-bold` 라벨(`brand-ink`), 양쪽으로 1px `brand` 선. 화면에 하나.
 - **목록 끝** (`timeline-end`): Stream 타임라인의 마지막 Entry 아래에 화면 높이(`h-dvh`)만큼 빈 공간을 두고, 맨 위에 "마지막 Entry입니다. 다음 수집은 14:30입니다."를 `text-caption` `muted-foreground`로 쓴다.
   Read Cursor는 Entry가 화면 위쪽 밖으로 나가야 움직이므로, 이 공간이 없으면 마지막 화면의 Entry가 영원히 안 읽음으로 남는다.

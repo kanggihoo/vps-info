@@ -1,5 +1,5 @@
 /**
- * Entry 카드의 메타 줄. 카드 종류마다 `extra`(Ranked Feed는 최신 `metrics`를 덮은 값)에서 보여 줄 필드가 다르다.
+ * Entry 카드와 펼친 화면의 메타 줄. 카드 종류마다 `extra`(Ranked Feed는 최신 `metrics`를 덮은 값)에서 보여 줄 필드가 다르다.
  * Handler가 `extra`·`metrics`에 넣는 필드 이름은 docs/guides/adding-a-feed.md 2장을 따른다.
  */
 import { ArrowUp, GitFork, MessageSquare, Star, Tag, TrendingUp } from 'lucide-react';
@@ -141,7 +141,7 @@ function ModelPrice({ promptPricePerToken, completionPricePerToken }: { promptPr
   );
 }
 
-/** 댓글 수. 댓글 페이지 주소가 있으면 링크로 만든다. */
+/** 댓글 수. 댓글 페이지 주소가 있으면 링크로 만든다. 카드 전체를 덮는 링크보다 위에 올린다. */
 function CommentCount({ count, url }: { count: number | undefined; url: string | undefined }) {
   if (count === undefined) return null;
   const content = (
@@ -156,7 +156,7 @@ function CommentCount({ count, url }: { count: number | undefined; url: string |
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-1 rounded-xs outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      className="relative z-10 flex items-center gap-1 rounded-xs outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
     >
       {content}
     </a>
@@ -171,7 +171,7 @@ function ExternalLink({ url, children }: { url: string | undefined; children: Re
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="rounded-xs underline-offset-2 outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+      className="relative z-10 rounded-xs underline-offset-2 outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring"
     >
       {children}
     </a>

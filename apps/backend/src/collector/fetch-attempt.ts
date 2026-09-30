@@ -55,10 +55,12 @@ export async function runFetchAttempt(
   try {
     const rankLimit = resolveRankLimit(definition, state);
     const fetchedDrafts = await fetchEntries(definition, rankLimit);
-    const drafts = rankLimit === undefined ? fetchedDrafts : fetchedDrafts.slice(0, rankLimit);
-    if (drafts.length === 0 && !definition.allowEmpty) {
+    const limitedDrafts = rankLimit === undefined ? fetchedDrafts : fetchedDrafts.slice(0, rankLimit);
+    if (limitedDrafts.length === 0 && !definition.allowEmpty) {
       throw new Error('Handler가 0건을 돌려줬습니다. 정보원 구조가 바뀌었을 수 있습니다');
     }
+    // 0건 검사는 Handler가 돌려준 목록으로 한다. 게시일 하한으로 모두 걸러져 0건이 되는 것은 정상이다.
+    const drafts = filterByPublishedSince(limitedDrafts, definition.publishedSince);
 
     return await database.transaction(async (transaction) => {
       // allowEmpty인 Feed는 0건도 성공이다. 빈 목록은 INSERT할 수 없으므로 건너뛴다.
@@ -98,6 +100,17 @@ export async function runFetchAttempt(
     console.error(`[${definition.id}] 수집 실패 (연속 ${consecutiveFailures}회): ${String(error)}`);
     return undefined;
   }
+}
+
+/**
+ * 게시일 하한보다 먼저 게시된 항목을 버린다. 게시 시각이 없는 항목은 남긴다(CONTEXT.md First Seen).
+ *
+ * @param publishedSince - Feed 선언의 `YYYY-MM-DD`(UTC). 없으면 그대로 돌려준다.
+ */
+function filterByPublishedSince(drafts: EntryDraft[], publishedSince: string | undefined): EntryDraft[] {
+  if (publishedSince === undefined) return drafts;
+  const lowerBound = new Date(`${publishedSince}T00:00:00Z`);
+  return drafts.filter((draft) => draft.publishedAt === undefined || draft.publishedAt >= lowerBound);
 }
 
 /** 트랜잭션 안에서 쓰는 DB 핸들. */
