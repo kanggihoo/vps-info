@@ -91,6 +91,21 @@ export const feedGroupDefinitions: FeedGroupView[] = [
     ],
   },
   {
+    id: 'producthunt-top',
+    title: 'Product Hunt 인기',
+    axes: [
+      {
+        key: 'period',
+        title: '기간',
+        values: [
+          { value: 'weekly', title: '주간' },
+          { value: 'monthly', title: '월간' },
+          { value: 'yearly', title: '연간' },
+        ],
+      },
+    ],
+  },
+  {
     id: 'trendshift',
     title: 'Trendshift',
     axes: [
@@ -158,6 +173,29 @@ function makeTrendshiftFeedDefinitions(): FeedDefinition[] {
   );
 }
 
+/** Product Hunt 리더보드의 기간과 처음 수집 주기(분). 일간은 수집하지 않는다. */
+const productHuntPeriods = [
+  { period: 'weekly', title: '주간', intervalMinutes: 360 },
+  { period: 'monthly', title: '월간', intervalMinutes: 720 },
+  { period: 'yearly', title: '연간', intervalMinutes: 1440 },
+] as const;
+
+/** Product Hunt의 기간마다 Ranked Feed 하나를 만든다. 이번 주·달·해에 Featured에 오른 제품의 추천수 순위다. */
+function makeProductHuntFeedDefinitions(): FeedDefinition[] {
+  return productHuntPeriods.map(
+    ({ period, title, intervalMinutes }): FeedDefinition => ({
+      id: `producthunt-${period}`,
+      title: `Product Hunt ${title}`,
+      handler: 'producthunt',
+      params: { period },
+      intervalMinutes,
+      kind: 'ranked',
+      rankLimit: 30,
+      group: { id: 'producthunt-top', variant: { period } },
+    }),
+  );
+}
+
 export const feedDefinitions: FeedDefinition[] = [
   {
     id: 'hn-best',
@@ -180,6 +218,7 @@ export const feedDefinitions: FeedDefinition[] = [
     group: { id: 'hacker-news', variant: { section: 'show' } },
   },
   { id: 'geeknews', title: 'GeekNews', handler: 'rss', params: { url: 'https://news.hada.io/rss/news' }, intervalMinutes: 60 },
+  ...makeProductHuntFeedDefinitions(),
   { id: 'producthunt', title: 'Product Hunt', handler: 'rss', params: { url: 'https://www.producthunt.com/feed' }, intervalMinutes: 180 },
   { id: 'techcrunch', title: 'TechCrunch', handler: 'rss', params: { url: 'https://techcrunch.com/feed/' }, intervalMinutes: 60 },
   {

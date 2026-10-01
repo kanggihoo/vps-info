@@ -104,6 +104,7 @@ Stream Feed는 `extra`와 `metrics`가 합쳐진 처음 값을, Ranked Feed 순�
 | `jumpit` | `jumpit-handler.ts` | `{}` | 점핏 서버/백엔드 신입 공고 JSON API |
 | `saramin` | `saramin-handler.ts` | `{}` | 사람인 "백엔드" 신입 검색 결과 HTML |
 | `linkareer` | `linkareer-handler.ts` | `{}` | 링커리어 백엔드 신입 공고 GraphQL |
+| `producthunt` | `producthunt-handler.ts` | `{ period: 'weekly' \| 'monthly' \| 'yearly' }` | Product Hunt 공식 GraphQL API. 이번 주·달·해 Featured 제품의 추천수 순위. 토큰이 필요하다 |
 
 RSS가 없는 사이트는 RSSHub 라우트(`lib/routes/<site>/`)를 열어 **어떤 주소를 호출하는지만** 참고한다.
 RSSHub는 AGPL-3.0이므로 코드를 복사하지 않는다(ADR-0006). 공식 RSS가 있으면 RSSHub를 거치지 말고 그것을 쓴다.
