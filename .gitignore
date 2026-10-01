@@ -4,3 +4,4 @@ node_modules/
 *.tsbuildinfo
 apps/web/dist/
 test-results/
+apps/web/.vitest/
