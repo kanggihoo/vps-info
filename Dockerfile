@@ -1,4 +1,4 @@
-# 서버·수집기·화면이 함께 쓰는 Dockerfile. target만 나눈다(ADR-0004, ADR-0008).
+# 서버·수집기·화면·Entry 대화 서비스가 함께 쓰는 Dockerfile. target만 나눈다(ADR-0004, ADR-0008, ADR-0015).
 # TypeScript는 빌드하지 않고 Node가 직접 실행한다(docs/conventions/typescript.md).
 #
 # npm workspaces라서 설치는 저장소 루트의 lockfile 하나로 하되, 단계마다 필요한 워크스페이스만 설치한다.
@@ -9,6 +9,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/backend/package.json apps/backend/
 COPY apps/web/package.json apps/web/
+COPY apps/llm/package.json apps/llm/
 COPY packages/api-types/package.json packages/api-types/
 
 # 서버·수집기 실행 이미지의 바탕. 백엔드의 운영 의존성만 설치한다.
@@ -28,6 +29,20 @@ COPY tsconfig.base.json ./
 COPY packages/api-types ./packages/api-types
 COPY apps/web ./apps/web
 RUN npm run build -w @trendboda/web
+
+# Entry 대화 서비스(ADR-0015). Claude·Codex CLI 바이너리(약 700MB)가 이 이미지에만 들어간다.
+# Codex(Rust)는 시스템 CA로 TLS를 검증하는데 slim 이미지에는 CA가 없어 ca-certificates를 깐다.
+# /codex-auth는 Codex 인증 파일 볼륨의 마운트 지점이다. 미리 만들어 두어야 새 볼륨이 node 소유로 생긴다.
+FROM workspace-manifests AS llm
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/* \
+    && mkdir /codex-auth && chown node:node /codex-auth
+ENV NODE_ENV=production
+RUN npm ci --omit=dev -w @trendboda/llm
+COPY packages/api-types ./packages/api-types
+COPY apps/llm/src ./apps/llm/src
+WORKDIR /app/apps/llm
+USER node
+CMD ["node", "src/main.ts"]
 
 # 테스트용. 모든 워크스페이스의 개발 의존성까지 설치한다. compose.local.yml의 test 서비스가 쓴다.
 FROM workspace-manifests AS test

@@ -157,10 +157,68 @@ export type TranslationView = {
  */
 export type TranslationFailureReason = 'translation-disabled' | 'translation-auth' | 'translation-quota' | 'translation-busy' | 'translation-failed';
 
+/** Entry 대화를 만드는 엔진(ADR-0015). 둘 다 사용자의 구독으로 인증한다. */
+export type LlmEngine = 'claude' | 'codex';
+
+/** 엔진 하나와 고를 수 있는 모델. */
+export type LlmEngineView = {
+  engine: LlmEngine;
+  /** 화면에 보이는 이름(`Claude`). */
+  title: string;
+  /** 서버에 이 엔진의 인증 정보가 있는지. 없으면 화면에서 고를 수 없다. */
+  available: boolean;
+  /** `value`는 SDK에 넘기는 모델 이름, `title`은 화면에 보이는 이름이다. */
+  models: { value: string; title: string }[];
+};
+
+/** `GET /api/llm/models`의 응답. */
+export type LlmModelsView = {
+  engines: LlmEngineView[];
+};
+
+/** `POST /api/entries/:entryId/conversation`의 요청 본문. 대화 기록은 `llm` 서비스의 세션이 들고 있다(ADR-0015). */
+export type EntryConversationTurnRequest = {
+  question: string;
+  /** 이어 갈 대화. 첫 질문이면 `null`이고, 그때 Entry와 원문 본문이 함께 들어간다. */
+  sessionId: string | null;
+  /** 첫 질문에서만 쓴다. 이어 가는 대화는 처음 고른 엔진·모델을 그대로 쓴다. */
+  engine: LlmEngine;
+  model: string;
+  /** 화면이 원문 읽기로 받아 둔 본문 Markdown. 첫 질문에서만 쓰며, 없으면 제목·요약만으로 답한다. */
+  original: string | null;
+};
+
+/** `POST /api/entries/:entryId/conversation`의 성공 응답. */
+export type EntryConversationTurnView = {
+  sessionId: string;
+  /** 답 Markdown. 화면은 HTML과 이미지를 그리지 않는다(ADR-0015). */
+  answer: string;
+};
+
+/**
+ * `app` 서버가 `llm` 서비스의 `POST /turns`에 보내는 본문. 화면은 쓰지 않는다.
+ * Entry의 제목·주소·요약은 화면이 아니라 서버가 DB에서 채운다.
+ */
+export type LlmTurnRequest = Omit<EntryConversationTurnRequest, 'original'> & {
+  /** 첫 질문에서만 있다. */
+  entry: { title: string; url: string; summary: string | null; original: string | null } | null;
+};
+
+/**
+ * Entry 대화 실패 이유(502·503·504 응답의 `reason`).
+ * - `llm-disabled`: 서버에 `llm` 서비스 주소가 없다
+ * - `llm-unreachable`: `llm` 서비스에 연결하지 못했다
+ * - `llm-unavailable`: 고른 엔진의 인증 정보가 없다
+ * - `conversation-expired`: `llm` 서비스가 재시작되어 대화 세션이 사라졌다
+ * - `llm-timeout`: 답을 제때 받지 못했다
+ * - `llm-failed`: 그 밖의 실패(사용 한도 초과 포함)
+ */
+export type ConversationFailureReason = 'llm-disabled' | 'llm-unreachable' | 'llm-unavailable' | 'conversation-expired' | 'llm-timeout' | 'llm-failed';
+
 /** API 오류 응답 본문. `reason`은 화면이 안내 문구를 고를 때 쓴다. */
 export type ApiErrorBody = {
   message: string;
-  reason?: ReaderFailureReason | TranslationFailureReason;
+  reason?: ReaderFailureReason | TranslationFailureReason | ConversationFailureReason;
 };
 
 /** `PUT /api/feeds/:feedId/read-cursor`의 요청 본문. */
