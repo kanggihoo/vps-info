@@ -107,11 +107,11 @@ export function App() {
           </div>
         </section>
         {selectedEntryId !== undefined ? (
-          <section className="absolute inset-0 z-20 min-h-0 lg:static lg:z-auto" aria-label="펼친 Entry">
+          <section className="absolute inset-0 z-20 min-h-0 min-w-0 lg:static lg:z-auto" aria-label="펼친 Entry">
             <EntryPanel key={selectedEntryId} entryId={selectedEntryId} selection={selection} feeds={feeds} onClose={closeEntry} />
           </section>
         ) : (
-          <section className="hidden lg:block" aria-label="펼친 Entry">
+          <section className="hidden min-w-0 lg:block" aria-label="펼친 Entry">
             <EntryPanelPlaceholder />
           </section>
         )}

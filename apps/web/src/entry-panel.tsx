@@ -4,7 +4,7 @@
  * 펼치면 Opened At을 기록한다(CONTEXT.md). 원문 읽기 결과는 저장하지 않아 켤 때마다 서버가 원문을 다시 가져온다.
  * Entry가 바뀌면 부모가 `key`로 새로 만들므로 읽기 모드·번역 표시·진행 중인 요청이 모두 초기화된다.
  */
-import { ArrowLeft, BookOpenText, ExternalLink, Languages, Star } from 'lucide-react';
+import { ArrowLeft, BookOpenText, Check, Copy, ExternalLink, Languages, Star } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import type { EntryView, FeedSummary, ReaderFailureReason, ReaderView, TranslationFailureReason } from '@trendboda/api-types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -16,6 +16,7 @@ import { cn } from 'cn';
 import { ApiError, apiClient } from './api-client.ts';
 import { findCardKind } from './card-kind.ts';
 import { useEntryChanges } from './entry-changes.tsx';
+import { buildClipboardMarkdown } from './entry-clipboard.ts';
 import { EntryMeta, EntryTags } from './entry-meta.tsx';
 import type { EntrySelection } from './entry-selection.ts';
 import { EmptyMessage, LoadError } from './load-states.tsx';
@@ -70,6 +71,8 @@ export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelPro
   const [translating, setTranslating] = useState(false);
   const [translationFailure, setTranslationFailure] = useState<TranslationFailureReason | undefined>();
   const openedEntryIdRef = useRef<number | undefined>(undefined);
+  const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // 화면 주소로 바로 열었으면 Entry를 받는다.
   useEffect(() => {
@@ -90,7 +93,13 @@ export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelPro
   }, [entryId, selection, loadAttempt]);
 
   // 다른 Entry로 옮기면(이 컴포넌트가 사라지면) 늦게 오는 원문 읽기 응답을 버린다.
-  useEffect(() => () => readerRequestRef.current?.abort(), []);
+  useEffect(
+    () => () => {
+      readerRequestRef.current?.abort();
+      clearTimeout(copiedTimerRef.current);
+    },
+    [],
+  );
 
   const entry = loadedEntry && withChanges(loadedEntry);
 
@@ -165,6 +174,30 @@ export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelPro
 
   const summary = translated ? (entry.translatedSummary ?? entry.summary) : entry.summary;
 
+  /** 화면에 보이는 내용을 복사한다. 원문 읽기 결과가 떠 있으면 본문 Markdown, 아니면 요약. */
+  const copyContent = () => {
+    const view = reader.status === 'loaded' ? reader.view : undefined;
+    const text = buildClipboardMarkdown({
+      title: (translated ? entry.translatedTitle : null) ?? entry.title,
+      originalTitle: translated ? entry.title : undefined,
+      url: entry.url,
+      feedTitle: feed?.title ?? loadedFeedTitle ?? entry.feedId,
+      author: entry.author,
+      publishedAt: entry.publishedAt,
+      deadline: view?.deadline,
+      body: view ? view.markdown : summary,
+      clippedAt: new Date(),
+    });
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setCopied(true);
+        clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(console.error);
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
       <div className="flex items-center gap-1 border-b px-2 py-2 lg:px-4">
@@ -180,6 +213,9 @@ export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelPro
               <BookOpenText />
             </ToolbarButton>
           )}
+          <ToolbarButton label={copied ? '복사됨' : reader.status === 'loaded' ? '본문 복사' : '복사'} onClick={copyContent}>
+            {copied ? <Check /> : <Copy />}
+          </ToolbarButton>
           <ToolbarButton
             label={translating ? '번역 중' : translated ? '원문 보기' : entry.translatedTitle !== null ? '번역 보기' : '한국어로 번역'}
             pressed={translated}

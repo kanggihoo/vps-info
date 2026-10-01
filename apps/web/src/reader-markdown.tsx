@@ -16,7 +16,7 @@ const components: Components = {
 
 export function ReaderMarkdown({ markdown }: { markdown: string }) {
   return (
-    <div className="prose prose-sm max-w-none break-words prose-a:underline-offset-2 prose-img:rounded-md prose-pre:rounded-md">
+    <div className="prose prose-sm max-w-none wrap-anywhere prose-a:underline-offset-2 prose-img:h-auto prose-img:max-w-full prose-img:rounded-md prose-pre:rounded-md prose-pre:whitespace-pre-wrap [&_table]:table-fixed [&_table]:w-full">
       <ReactMarkdown rehypePlugins={[rehypeRaw, rehypeSanitize]} components={components}>
         {markdown}
       </ReactMarkdown>

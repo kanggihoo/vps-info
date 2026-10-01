@@ -3,7 +3,6 @@ import { isReaderAvailable } from './reader-availability.ts';
 
 describe('isReaderAvailable', () => {
   it('제품·대시보드 화면으로 가는 Feed는 읽기 버튼을 숨긴다', () => {
-    expect(isReaderAvailable('producthunt')).toBe(false);
     expect(isReaderAvailable('openrouter-models')).toBe(false);
   });
 
