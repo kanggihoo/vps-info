@@ -5,10 +5,13 @@
 import type {
   ApiErrorBody,
   BookmarkedEntryView,
+  EntryConversationTurnRequest,
+  EntryConversationTurnView,
   EntryView,
   FeedGroupView,
   FeedSummary,
   FeedTitledEntryView,
+  LlmModelsView,
   MoveReadCursorRequest,
   RankSnapshotView,
   ReaderView,
@@ -91,4 +94,11 @@ export const apiClient = {
 
   /** 제목·요약의 한국어 번역. 이미 번역이 있으면 서버가 DeepL을 부르지 않고 저장된 것을 준다. */
   translateEntry: (entryId: number) => requestApi<TranslationView>(`/entries/${entryId}/translation`, { method: 'POST' }),
+
+  /** Entry 대화에 쓸 수 있는 엔진과 모델(ADR-0015). */
+  listLlmModels: () => requestApi<LlmModelsView>('/llm/models'),
+
+  /** Entry 대화 한 턴. 답이 다 만들어질 때까지 기다리므로 수십 초 걸릴 수 있다. */
+  sendConversationTurn: (entryId: number, turn: EntryConversationTurnRequest) =>
+    requestApi<EntryConversationTurnView>(`/entries/${entryId}/conversation`, { method: 'POST', body: JSON.stringify(turn) }),
 };

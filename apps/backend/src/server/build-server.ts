@@ -8,6 +8,7 @@ import fastifyStatic from '@fastify/static';
 import { sql } from 'drizzle-orm';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { database } from '../db/database-client.ts';
+import { type LlmRequester, makeLlmRequester, registerConversationRoutes } from './conversation-routes.ts';
 import { createDeepLTranslator, type TextTranslator } from './deepl-translator.ts';
 import { registerEntryRoutes } from './entry-routes.ts';
 import { registerFeedRoutes } from './feed-routes.ts';
@@ -24,6 +25,8 @@ export type BuildServerOptions = {
   fetchOriginalPage?: OriginalPageFetcher;
   /** 생략하면 `DEEPL_API_KEY`로 DeepL 번역 함수를 만든다. `null`이면 번역을 끈다. */
   translateTexts?: TextTranslator | null;
+  /** 생략하면 `LLM_URL`의 `llm` 서비스로 보낸다(ADR-0015). `null`이면 Entry 대화를 끈다. */
+  requestLlm?: LlmRequester | null;
 };
 
 /** `DEEPL_API_KEY`가 있으면 DeepL 번역 함수를, 없으면 `undefined`를 돌려준다. 키가 없는 환경(로컬 개발)에서는 번역만 빠진다. */
@@ -46,6 +49,10 @@ export async function buildServer(options: BuildServerOptions): Promise<FastifyI
   await server.register(registerEntryRoutes, {
     fetchOriginalPage: options.fetchOriginalPage ?? fetchOriginalPage,
     translateTexts: options.translateTexts === undefined ? makeDefaultTranslator() : (options.translateTexts ?? undefined),
+  });
+
+  await server.register(registerConversationRoutes, {
+    requestLlm: options.requestLlm === undefined ? makeLlmRequester(process.env.LLM_URL?.trim()) : (options.requestLlm ?? undefined),
   });
 
   if (existsSync(WEB_BUILD_DIRECTORY)) {

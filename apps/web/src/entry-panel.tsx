@@ -1,10 +1,11 @@
 /**
- * 오른쪽에 펼친 Entry(ADR-0011). 제목·메타·요약을 보여 주고, 도구줄에서 Bookmark·원문 읽기·번역·원문 열기를 한다.
+ * 오른쪽에 펼친 Entry(ADR-0011). 제목·메타·요약을 보여 주고, 도구줄에서 Bookmark·원문 읽기·번역·대화·원문 열기를 한다.
+ * 대화(ADR-0015)는 본문 아래에 열리고, 닫아도 이 Entry를 보는 동안은 내용이 남는다.
  *
  * 펼치면 Opened At을 기록한다(CONTEXT.md). 원문 읽기 결과는 저장하지 않아 켤 때마다 서버가 원문을 다시 가져온다.
  * Entry가 바뀌면 부모가 `key`로 새로 만들므로 읽기 모드·번역 표시·진행 중인 요청이 모두 초기화된다.
  */
-import { ArrowLeft, BookOpenText, ExternalLink, Languages, Star } from 'lucide-react';
+import { ArrowLeft, BookOpenText, Bot, ExternalLink, Languages, Star } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import type { EntryView, FeedSummary, ReaderFailureReason, ReaderView, TranslationFailureReason } from '@trendboda/api-types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -15,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from 'cn';
 import { ApiError, apiClient } from './api-client.ts';
 import { findCardKind } from './card-kind.ts';
+import { EntryConversation } from './entry-conversation.tsx';
 import { useEntryChanges } from './entry-changes.tsx';
 import { EntryMeta, EntryTags } from './entry-meta.tsx';
 import type { EntrySelection } from './entry-selection.ts';
@@ -22,6 +24,7 @@ import { EmptyMessage, LoadError } from './load-states.tsx';
 import { RankMovementMark } from './rank-table.tsx';
 import { isReaderAvailable } from './reader-availability.ts';
 import { ReaderMarkdown } from './reader-markdown.tsx';
+import type { LlmChoice } from './use-llm-choice.ts';
 
 /** 원문 읽기 실패 이유별 안내. */
 const READER_FAILURE_MESSAGES: Record<ReaderFailureReason, string> = {
@@ -56,9 +59,13 @@ type EntryPanelProps = {
   feeds: FeedSummary[];
   /** 펼친 화면을 닫는다(좁은 화면의 뒤로 버튼). */
   onClose: () => void;
+  /** 사이드바에서 고른 대화 엔진·모델. 쓸 수 있는 엔진이 없으면 `undefined`. */
+  llmChoice: LlmChoice | undefined;
+  /** 고른 엔진·모델의 화면 이름(`Claude · Sonnet`). */
+  llmChoiceTitle: string;
 };
 
-export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelProps) {
+export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmChoiceTitle }: EntryPanelProps) {
   const { withChanges, publishChange } = useEntryChanges();
   const [loadedEntry, setLoadedEntry] = useState<EntryView | undefined>(selection?.entry);
   const [loadedFeedTitle, setLoadedFeedTitle] = useState<string | undefined>();
@@ -70,6 +77,9 @@ export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelPro
   const [translating, setTranslating] = useState(false);
   const [translationFailure, setTranslationFailure] = useState<TranslationFailureReason | undefined>();
   const openedEntryIdRef = useRef<number | undefined>(undefined);
+  /** 대화를 한 번이라도 열었는지와 지금 보이는지. 닫아도 대화 내용을 잃지 않게 한 번 연 뒤로는 숨기기만 한다. */
+  const [conversationMounted, setConversationMounted] = useState(false);
+  const [conversationOpen, setConversationOpen] = useState(false);
 
   // 화면 주소로 바로 열었으면 Entry를 받는다.
   useEffect(() => {
@@ -163,6 +173,23 @@ export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelPro
       .finally(() => setTranslating(false));
   };
 
+  const toggleConversation = () => {
+    setConversationMounted(true);
+    setConversationOpen((current) => !current);
+  };
+
+  /** 대화의 첫 질문에 넣을 원문 본문. 원문 읽기로 받아 둔 것이 있으면 다시 받지 않는다. */
+  const loadOriginal = async (): Promise<string | null> => {
+    if (reader.status === 'loaded') return reader.view.markdown;
+    if (!readerAvailable) return null;
+    try {
+      return (await apiClient.readOriginal(entry.id)).markdown;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  };
+
   const summary = translated ? (entry.translatedSummary ?? entry.summary) : entry.summary;
 
   return (
@@ -187,6 +214,9 @@ export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelPro
             onClick={toggleTranslation}
           >
             <Languages className={cn(translating && 'animate-pulse motion-reduce:animate-none')} />
+          </ToolbarButton>
+          <ToolbarButton label={conversationOpen ? '대화 닫기' : '이 Entry에 대해 묻기'} pressed={conversationOpen} onClick={toggleConversation}>
+            <Bot />
           </ToolbarButton>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -228,6 +258,21 @@ export function EntryPanel({ entryId, selection, feeds, onClose }: EntryPanelPro
             <SummaryBody summary={summary} readerAvailable={readerAvailable} />
           ) : (
             <ReaderBody reader={reader} url={entry.url} translated={translated} />
+          )}
+          {conversationMounted && (
+            <div hidden={!conversationOpen}>
+              {llmChoice ? (
+                <EntryConversation
+                  key={`${llmChoice.engine}:${llmChoice.model}`}
+                  entryId={entry.id}
+                  choice={llmChoice}
+                  choiceTitle={llmChoiceTitle}
+                  loadOriginal={loadOriginal}
+                />
+              ) : (
+                <p className="mt-8 border-t pt-5 text-caption text-muted-foreground">대화할 수 있는 엔진이 없습니다. 서버의 Claude·Codex 인증 정보를 확인하세요.</p>
+              )}
+            </div>
           )}
         </article>
       </div>
