@@ -2,7 +2,6 @@
  * DeepL로 텍스트를 한국어로 번역한다(ADR-0011). 브라우저에서는 DeepL을 부를 수 없어 서버가 부른다.
  *
  * 쓰는 기능이 `/v2/translate` 하나라 공식 SDK 대신 HTTP 요청 하나로 부른다.
- * 목록 제목 자동 번역(ADR-0012, 제안)을 만들 때도 같은 함수를 쓴다.
  */
 import type { TranslationFailureReason } from '@trendboda/api-types';
 
