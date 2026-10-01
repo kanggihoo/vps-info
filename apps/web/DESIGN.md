@@ -375,11 +375,16 @@ components:
 - **Bookmark 토글** (`bookmark-toggle`): 32px 원형 탭 영역(모바일 44px). 꺼짐은 `subtle-foreground` 외곽선 별, 켜짐은 `brand-ink` 채운 별.
 - **선택된 Entry 카드** (`entry-card-selected`): 펼친 Entry의 카드. `accent` 바탕 + 1px `subtle-foreground` 테두리. 선택을 민트로 칠하지 않는다. 카드 전체가 눌리는 링크이고, Bookmark와 메타 줄 링크는 그 위에 올린다.
 - **펼친 Entry** (`entry-panel`): 위쪽 도구줄(아래 1px `border`) + `ScrollArea` 본문. 본문은 읽기 칼럼 폭, `px-4 py-6`(데스크톱 `px-8`).
-  - 도구줄: ghost 아이콘 버튼(`rounded-full`, 18px 아이콘) + `Tooltip`. 오른쪽 끝에 Bookmark(`Star`) · 원문 읽기(`BookOpenText`) · 번역(`Languages`) · 원문 열기(`ExternalLink`). 좁은 화면에서는 왼쪽 끝에 뒤로(`ArrowLeft`). 켜진 상태는 `accent` 바탕, 켜진 Bookmark만 `brand-ink`.
+  - 도구줄: ghost 아이콘 버튼(`rounded-full`, 18px 아이콘) + `Tooltip`. 오른쪽 끝에 Bookmark(`Star`) · 원문 읽기(`BookOpenText`) · 번역(`Languages`) · 대화(`Bot`) · 원문 열기(`ExternalLink`). 좁은 화면에서는 왼쪽 끝에 뒤로(`ArrowLeft`). 켜진 상태는 `accent` 바탕, 켜진 Bookmark만 `brand-ink`.
   - 머리: Ranked Feed에서 열었으면 순위와 변동 표시 → 제목(`panel-title`) → 번역 중이면 원제목(`body-sm` `muted-foreground`) → 메타 줄(Feed 이름 `foreground` + Entry 메타) → `Separator`.
   - 본문: 요약(`body-sm`) 또는 원문 본문. 원문을 가져오는 동안은 줄 모양 `Skeleton`, 실패하면 `Alert`(destructive)에 이유와 원문 링크.
   - 원문 본문 (`reader-body`): typography 플러그인 `prose prose-sm`. 색은 `index.css`에서 토큰으로 바꿔 쓴다. 이 칸에 한해 플러그인의 제목·목록 크기를 쓴다(토큰에 없는 글자 크기 금지의 예외). 링크는 `foreground` 밑줄.
   - 아무것도 고르지 않았으면 "목록에서 Entry를 고르면 여기에 펼쳐집니다."
+- **Entry 대화** (`entry-conversation`): 펼친 Entry 본문 아래, 위쪽 1px `border`로 나눈 구역(ADR-0015). 머리에 "대화"(`entry-title`)와 오른쪽 끝 엔진·모델 이름(`caption` `muted-foreground`).
+  - 질문은 `body-sm-medium` `foreground`, 답은 원문 본문과 같은 `prose prose-sm`이되 이미지와 HTML은 그리지 않는다. 답을 기다리는 동안은 줄 모양 `Skeleton` 세 줄.
+  - 입력은 shadcn `Textarea`(`rounded-lg`). Enter로 보내고 Shift+Enter로 줄을 바꾼다. 첫 질문 전에만 보조 버튼 "요약", 주 버튼 "보내기"(둘 다 알약).
+  - 실패는 `inline-error` 규칙 그대로: 이유 한 줄(`text-destructive`) + 보조 버튼 "다시 시도".
+- **대화 엔진 드롭다운** (`llm-choice-select`): 사이드바 아래쪽, Bookmark 위. Feed Group의 언어 드롭다운과 같은 알약 모양 기본 `<select>`이고, 엔진마다 `optgroup`으로 묶는다. 인증 정보가 없는 엔진은 이름 옆에 "(인증 정보 없음)"을 붙이고 고를 수 없다.
 - **새 글 구분선** (`unread-divider`): 가운데 `text-caption-bold` 라벨(`brand-ink`), 양쪽으로 1px `brand` 선. 화면에 하나.
 - **목록 끝** (`timeline-end`): Stream 타임라인의 마지막 Entry 아래에 화면 높이(`h-dvh`)만큼 빈 공간을 두고, 맨 위에 "마지막 Entry입니다. 다음 수집은 14:30입니다."를 `text-caption` `muted-foreground`로 쓴다.
   Read Cursor는 Entry가 화면 위쪽 밖으로 나가야 움직이므로, 이 공간이 없으면 마지막 화면의 Entry가 영원히 안 읽음으로 남는다.

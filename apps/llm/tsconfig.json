@@ -1,0 +1,12 @@
+{
+  // Entry 대화 서비스. 서버와 같이 빌드하지 않고 Node가 .ts를 직접 실행한다.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "erasableSyntaxOnly": true,
+    "types": ["node"],
+    "lib": ["es2023"]
+  },
+  "include": ["src", "vitest.config.ts"]
+}

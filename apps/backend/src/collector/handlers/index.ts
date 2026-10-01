@@ -11,6 +11,7 @@ import { indiehackersHandler } from './indiehackers-handler.ts';
 import { jumpitHandler } from './jumpit-handler.ts';
 import { linkareerHandler } from './linkareer-handler.ts';
 import { openrouterModelsHandler } from './openrouter-models-handler.ts';
+import { producthuntHandler } from './producthunt-handler.ts';
 import { rssHandler } from './rss-handler.ts';
 import { saraminHandler } from './saramin-handler.ts';
 import { trendshiftHandler } from './trendshift-handler.ts';
@@ -30,6 +31,7 @@ export const handlers = {
   jumpit: jumpitHandler,
   saramin: saraminHandler,
   linkareer: linkareerHandler,
+  producthunt: producthuntHandler,
 };
 
 /** 등록된 Handler 이름. Feed 선언의 `handler` 값이 된다. */

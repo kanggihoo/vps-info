@@ -19,6 +19,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 | Show HN | HN에 직접 만든 것을 소개하는 글 60개 | Ranked | 공식 API | 6시간 | – |
 | GeekNews | 한국어 개발·기술 뉴스 | Stream | 공식 RSS | 1시간 | 50 |
 | Product Hunt | 추천된 새 제품 | Stream | 공식 Atom | 3시간 | 50 |
+| Product Hunt 인기 (주간·월간·연간) | 이번 주·달·해에 Featured에 오른 제품의 추천수 상위 30개 | Ranked | 공식 GraphQL API | 6시간·12시간·1일 | 30씩 |
 | TechCrunch | 기술 산업 뉴스 | Stream | 공식 RSS | 1시간 | 20 |
 | OpenAI News | OpenAI 공지·연구·사례 | Stream | 공식 RSS | 6시간 | 1230 |
 | Claude Code 릴리스 | Claude Code 버전별 변경 사항 | Stream | GitHub 릴리스 Atom | 6시간 | 10 |
@@ -83,6 +84,14 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 가져오기: 공식 Atom `https://www.producthunt.com/feed`. 추천된 제품 50개가 온다.
 - 새 Entry: 추천 목록에 새로 오른 제품. 목록의 게시일이 몇 주씩 섞여 있어 "오늘 출시"와는 다르다.
 - 참고: 추천수(vote)는 피드에 없다. 요약 끝에 "Discussion | Link"가 붙는다. 원문 페이지가 제품 화면이라 화면에서 읽기 버튼을 숨긴다.
+
+**Product Hunt 인기** (Feed Group, Ranked Feed 3개)
+- Feed: 기간(`weekly`·`monthly`·`yearly`). id는 `producthunt-<기간>`이다. 일간은 수집하지 않는다.
+- 출처: [producthunt.com](https://www.producthunt.com). 사이트의 "Best of Product Hunt" 리더보드와 같은 순서다.
+- 가져오기: 공식 GraphQL API(`https://api.producthunt.com/v2/api/graphql`)의 `posts(featured: true, order: VOTES, postedAfter: 기간 시작)`. 30개가 온다.
+  `order: RANKING`은 일간 순위라 쓰지 않는다. 기간은 미국 태평양 시간 0시(UTC 07:00)에 시작하고 주는 월요일에 시작한다.
+- 인증: 앱의 API Key·Secret으로 client credentials 토큰을 받는다(`PRODUCT_HUNT_CLIENT_ID`, `PRODUCT_HUNT_CLIENT_SECRET`). 복잡도 한도는 15분에 6250점이다.
+- 참고: 이 API는 비상업 용도만 허용하고 출처 표기를 요청한다.
 
 **Trendshift** (Feed Group, Ranked Feed 9개)
 - Feed: 기간(`weekly`·`monthly`·`yearly`) × 언어(전체·TypeScript·Python).

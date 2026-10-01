@@ -27,6 +27,10 @@ services:
     environment: ["WANTED_PROXY_URL="]
     volumes: ["./apps/backend/src:/app/apps/backend/src"]
 
+  llm:
+    command: ["node", "--watch", "src/main.ts"]
+    volumes: ["./apps/llm/src:/app/apps/llm/src"]
+
   # DB 통합 테스트. `npm run test:db`로 실행하며 평소 `up`에는 뜨지 않는다.
   test:
     build: { context: ., target: test }

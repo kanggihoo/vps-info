@@ -17,6 +17,7 @@ import { FeedTimeline } from './feed-timeline.tsx';
 import { EmptyMessage, LoadError } from './load-states.tsx';
 import { RankTable } from './rank-table.tsx';
 import { makeScreenHash, readScreenFromHash, type Screen } from './screen-route.ts';
+import { describeLlmChoice, useLlmChoice } from './use-llm-choice.ts';
 
 /** 새 Entry가 들어왔는지 Feed 목록을 다시 받아오는 간격. */
 const FEED_LIST_REFRESH_INTERVAL_MILLISECONDS = 60_000;
@@ -28,6 +29,7 @@ export function App() {
   const [screen, setScreen] = useState<Screen>(() => readScreenFromHash(window.location.hash));
   /** 목록에서 마지막으로 고른 Entry. 펼친 화면이 목록이 가진 값을 다시 조회하지 않고 쓴다. */
   const [lastSelection, setLastSelection] = useState<EntrySelection | undefined>();
+  const { llmModels, llmChoice, chooseLlm } = useLlmChoice();
 
   const refreshFeeds = useCallback(() => {
     apiClient
@@ -88,7 +90,7 @@ export function App() {
 
   return (
     <div className="grid h-dvh grid-rows-[auto_1fr] md:grid-cols-[240px_1fr] md:grid-rows-1">
-      <FeedSidebar sections={sidebarSections} screen={effectiveScreen} />
+      <FeedSidebar sections={sidebarSections} screen={effectiveScreen} llmModels={llmModels} llmChoice={llmChoice} onChooseLlm={chooseLlm} />
       <main className="relative min-h-0 overflow-hidden lg:grid lg:grid-cols-[minmax(340px,440px)_1fr] lg:grid-rows-[minmax(0,1fr)]">
         <section className="flex h-full min-h-0 flex-col overflow-hidden lg:border-r" aria-label="Entry 목록">
           {selectedFeed && selectedGroupRow?.kind === 'group' && (
@@ -108,7 +110,15 @@ export function App() {
         </section>
         {selectedEntryId !== undefined ? (
           <section className="absolute inset-0 z-20 min-h-0 min-w-0 lg:static lg:z-auto" aria-label="펼친 Entry">
-            <EntryPanel key={selectedEntryId} entryId={selectedEntryId} selection={selection} feeds={feeds} onClose={closeEntry} />
+            <EntryPanel
+              key={selectedEntryId}
+              entryId={selectedEntryId}
+              selection={selection}
+              feeds={feeds}
+              onClose={closeEntry}
+              llmChoice={llmChoice}
+              llmChoiceTitle={describeLlmChoice(llmModels, llmChoice)}
+            />
           </section>
         ) : (
           <section className="hidden min-w-0 lg:block" aria-label="펼친 Entry">

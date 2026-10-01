@@ -16,7 +16,8 @@ services:
   app:
     build: { context: ., target: app }
     # DB 환경 변수에 더해 번역 버튼용 DeepL 키를 받는다(ADR-0011). 비어 있으면 번역만 꺼진다.
-    environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, DEEPL_API_KEY, "WANTED_PROXY_URL=${WANTED_PROXY_URL-http://100.66.95.61:18888}"]
+    # LLM_URL은 Entry 대화를 넘길 llm 서비스 주소다(ADR-0015). 비우면 대화만 꺼진다.
+    environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, DEEPL_API_KEY, "WANTED_PROXY_URL=${WANTED_PROXY_URL-http://100.66.95.61:18888}", "LLM_URL=${LLM_URL-http://llm:8100}"]
     restart: unless-stopped
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -27,6 +28,7 @@ services:
       retries: 12
     networks:
       vps_data: {}
+      llm: {}
       # vps_proxy는 여러 프로젝트가 공유한다. 서비스 이름 `app`은 겹칠 수 있어 nginx는 이 alias로 찾는다.
       vps_proxy:
         aliases: [vps-info-app]
@@ -34,16 +36,43 @@ services:
   collector:
     build: { context: ., target: collector }
     # 원티드는 VPS IP를 막아서 한국 IP의 프록시를 거친다(docs/sources/wanted.md). 비우면 직접 나간다.
-    environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, "WANTED_PROXY_URL=${WANTED_PROXY_URL-http://100.66.95.61:18888}"]
+    environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, PRODUCT_HUNT_CLIENT_ID, PRODUCT_HUNT_CLIENT_SECRET, "WANTED_PROXY_URL=${WANTED_PROXY_URL-http://100.66.95.61:18888}"]
     restart: unless-stopped
     depends_on:
       migrate: { condition: service_completed_successfully }
     networks: [vps_data]
 
+  # Entry 대화 서비스(ADR-0015). 도구를 끈 Claude·Codex를 구독 인증으로 돌린다.
+  # 엔진은 셸을 가진 에이전트라 이 컨테이너가 샌드박스다: DB 네트워크에 붙지 않고, LLM 인증 정보 말고는 비밀값이 없다.
+  # 루트 파일시스템은 읽기 전용이고, 쓰기는 /tmp(tmpfs: 세션·Codex 상태)와 Codex 인증 볼륨에만 한다.
+  # Codex 로그인: docker compose run --rm -e CODEX_HOME=/codex-auth llm /app/node_modules/.bin/codex login --device-auth
+  llm:
+    build: { context: ., target: llm }
+    environment: [CLAUDE_CODE_OAUTH_TOKEN, CODEX_HOME=/tmp/codex, CODEX_AUTH_FILE=/codex-auth/auth.json, CLAUDE_CONFIG_DIR=/tmp/claude]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: ["/tmp:mode=1777,size=512m"]
+    volumes: ["codex_auth:/codex-auth"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 1g
+    pids_limit: 256
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8100/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 5s
+      retries: 12
+    networks: [llm]
+
 networks:
+  # app과 llm만 붙는 네트워크. 외부로 나가는 길은 열려 있어야 llm이 Anthropic·OpenAI에 닿는다.
+  llm: {}
   vps_proxy:
     external: true
     name: vps_proxy
   vps_data:
     external: true
     name: vps_data
+
+volumes:
+  # Codex 인증 파일(auth.json). Codex가 토큰을 갱신하면 llm이 여기에 되돌려 쓴다.
+  codex_auth:

@@ -1,18 +1,20 @@
 /**
  * 왼쪽 Feed 목록. Stream과 Ranked 두 구역으로 나누고, Feed Group은 한 줄로 보인다(ADR-0010).
  * Feed 줄에는 안 읽음 수(Ranked Feed는 NEW 수)를, Group 줄에는 새로 볼 것이 있다는 점만 보여 준다. 연속 실패는 경고로 알린다.
- * 아래쪽에 Bookmark와 테마 토글을 둔다. 768px 미만에서는 위쪽 가로 탭 줄이 되고, 그 줄 안에서만 가로로 스크롤한다(DESIGN.md).
+ * 아래쪽에 대화 엔진·모델 드롭다운(ADR-0015)과 Bookmark를, 위쪽 모서리에 테마 토글을 둔다. 768px 미만에서는 위쪽 가로 탭 줄이 되고, 그 줄 안에서만 가로로 스크롤한다(DESIGN.md).
  */
 import { Moon, Star, Sun, TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { FeedKind } from '@trendboda/api-types';
+import type { FeedKind, LlmModelsView } from '@trendboda/api-types';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from 'cn';
 import { FeedCountBadge } from './feed-count-badge.tsx';
+import { LlmChoiceSelect } from './llm-choice-select.tsx';
 import { hasSomethingNew, pickRowFeed, type SidebarRow, type SidebarSection } from './feed-group.ts';
 import { makeScreenHash, type Screen } from './screen-route.ts';
 import { useColorTheme } from './use-color-theme.ts';
+import type { LlmChoice } from './use-llm-choice.ts';
 
 const nextRunFormatter = new Intl.DateTimeFormat('ko', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
@@ -22,9 +24,12 @@ const SECTION_TITLES: Record<FeedKind, string> = { stream: 'Stream', ranked: 'Ra
 type FeedSidebarProps = {
   sections: SidebarSection[];
   screen: Screen;
+  llmModels: LlmModelsView | undefined;
+  llmChoice: LlmChoice | undefined;
+  onChooseLlm: (choice: LlmChoice) => void;
 };
 
-export function FeedSidebar({ sections, screen }: FeedSidebarProps) {
+export function FeedSidebar({ sections, screen, llmModels, llmChoice, onChooseLlm }: FeedSidebarProps) {
   const { colorTheme, toggleColorTheme } = useColorTheme();
   const selectedFeedId = screen.kind === 'feed' ? screen.feedId : undefined;
 
@@ -52,6 +57,7 @@ export function FeedSidebar({ sections, screen }: FeedSidebarProps) {
         </section>
       ))}
       <div className="flex gap-1 md:mt-auto md:flex-col">
+        <LlmChoiceSelect models={llmModels} choice={llmChoice} onChoose={onChooseLlm} />
         <SidebarLink href={makeScreenHash({ kind: 'bookmarks' })} selected={screen.kind === 'bookmarks'}>
           <Star className="size-4 shrink-0" strokeWidth={1.5} aria-hidden />
           <span className="flex-1 truncate">Bookmark</span>

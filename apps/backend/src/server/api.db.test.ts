@@ -71,6 +71,7 @@ describe('GET /api/feed-groups', () => {
     const groups = (await server.inject('/api/feed-groups')).json<FeedGroupView[]>();
     expect(groups.map((group) => [group.id, group.axes.map((axis) => axis.key)])).toEqual([
       ['hacker-news', ['section']],
+      ['producthunt-top', ['period']],
       ['trendshift', ['period', 'language']],
       ['hellogithub-ranking', ['period', 'language']],
       ['wanted', ['role']],
