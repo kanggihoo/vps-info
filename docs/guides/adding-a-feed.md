@@ -67,7 +67,7 @@ Feed의 카드 종류는 화면 쪽 표 `apps/web/src/card-kind.ts`에 Feed id(�
 | 카드 종류 | 이런 Feed | 화면이 읽는 필드 |
 |---|---|---|
 | `article` (기본) | 뉴스·글 | `score`(인기도: 추천수, 좋아요), `commentCount`, `commentsUrl` |
-| `repository` | GitHub 저장소 | `language`, `stars`, `starsGained`(기간 내 스타), `forks`, `tags`(문자열 배열), `trendshiftUrl`·`hellogithubUrl` |
+| `repository` | GitHub 저장소 | `language`, `stars`, `starsGained`(기간 내 스타), `forks`, `tags`(문자열 배열), `clicks`(HelloGitHub 조회 수), `commentCount`, `trendshiftUrl`·`hellogithubUrl` |
 | `model` | LLM 모델 | `contextLength`, `promptPricePerToken`·`completionPricePerToken`(토큰 1개당 달러, 문자열) |
 | `paper` | 논문 | `score`(추천수), `commentCount`, `arxivUrl` |
 | `release` | 버전 릴리스 | 따로 읽는 필드 없음. 요약을 4줄까지 보인다 |
@@ -95,7 +95,7 @@ Stream Feed는 `extra`와 `metrics`가 합쳐진 처음 값을, Ranked Feed 순�
 | `hackernews` | `hackernews-handler.ts` | `{ section: 'best' \| 'show' }` | Hacker News 공식 API. 상위 `rankLimit`개 |
 | `openrouter-models` | `openrouter-models-handler.ts` | `{}` | OpenRouter 모델 목록 API |
 | `huggingface-papers` | `huggingface-papers-handler.ts` | `{ period: 'week' \| 'month' }` | HF Papers API. 지난주·지난달 추천수 상위 30편 |
-| `hellogithub` | `hellogithub-handler.ts` | `{}` | HelloGitHub 추천 저장소 API |
+| `hellogithub` | `hellogithub-handler.ts` | `{ rankBy?: 'monthly' \| 'yearly', tid? }` | HelloGitHub 추천 저장소 API. 비우면 최신 월간호 첫 페이지, 있으면 기간·태그별 `rankLimit`개 |
 | `devto` | `devto-handler.ts` | `{ topDays }` | dev.to API. 최근 N일 반응 상위 `rankLimit`개 |
 | `trendshift` | `trendshift-handler.ts` | `{ period: 'weekly' \| 'monthly' \| 'yearly', language? }` | Trendshift 기간·언어별 순위표. RSC 데이터를 읽고, 실패하면 JSON-LD |
 | `indiehackers` | `indiehackers-handler.ts` | `{}` | Indie Hackers 지난주 인기글 HTML |

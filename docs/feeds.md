@@ -9,7 +9,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - **새 Entry가 생기는 때**는 수집한 목록에 이전에 없던 항목이 나타난 때다. 같은 항목은 한 Feed 안에서 한 번만 저장된다(ADR-0002).
 - **첫 수집**은 로컬에서 처음 수집했을 때(2026-09-28, Trendshift는 2026-09-29) 저장된 건수다. HN은 그 전부터 수집하던 것이라 비워 둔다.
 - **Feed Group**: 한 정보원의 여러 Feed는 화면 왼쪽에서 한 줄로 묶이고, 가운데 위쪽 탭·드롭다운으로 고른다(ADR-0010).
-  지금 Group은 Hacker News(Best·Show), Trendshift(기간 × 언어 9개), 원티드(직무군 6개) 셋이다.
+  지금 Group은 Hacker News(Best·Show), Trendshift(기간 × 언어 9개), HelloGitHub 순위(기간 × 언어 8개), 원티드(직무군 6개) 넷이다.
 
 ## 한눈에 보기
 
@@ -29,6 +29,8 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 | Trendshift 주간 (전체·TypeScript·Python) | 이번 주 Trendshift 점수 상위 GitHub 저장소 25개 | Ranked | HTML 안의 RSC 데이터 | 6시간 | 25씩 |
 | Trendshift 월간 (전체·TypeScript·Python) | 이번 달 점수 상위 저장소 25개 | Ranked | HTML 안의 RSC 데이터 | 12시간 | 25씩 |
 | Trendshift 연간 (전체·TypeScript·Python) | 올해 점수 상위 저장소 25개 | Ranked | HTML 안의 RSC 데이터 | 1일 | 25씩 |
+| HelloGitHub 월간 (전체·Python·JavaScript·Rust) | 최신 월간호에서 언어별로 고른 저장소 40개까지 | Ranked | 공개 API | 1일 | – |
+| HelloGitHub 연간 (전체·Python·JavaScript·Rust) | 올해 소개된 저장소를 HelloGitHub 순서대로 40개까지 | Ranked | 공개 API | 3일 | – |
 | Indie Hackers 주간 인기글 | 지난주 인기 1인 창업·사이드 프로젝트 글 | Stream | HTML 파싱 | 12시간 | 20 |
 | Anthropic News | Anthropic 공지·연구 | Stream | HTML 파싱 | 6시간 | 10 |
 | 원티드 신입 (백엔드·웹·프론트·AI·데이터·인프라·QA·앱) | 개발 직군 신입 지원 가능 공고, 직무군별 Feed 6개 | Stream | 사이트 내부 JSON API | 12시간 | – |
@@ -100,8 +102,23 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 **HelloGitHub** (`hellogithub`)
 - 출처: [hellogithub.com](https://hellogithub.com)
 - 가져오기: 공개 API `https://api.hellogithub.com/v1/?sort_by=featured&page=1`. 20개가 온다.
-- 새 Entry: 새로 추천된 저장소. 한 달에 한 번 묶음으로 올라오는 편이다.
+  `rank_by`와 `tid`를 붙이지 않은 기본 목록이고, 최신 월간호 앞쪽 20개와 같다.
+- 새 Entry: 새로 추천된 저장소. 한 달에 한 번(매달 28일 전후) 묶음으로 올라오는 편이다.
 - 참고: 제목과 요약은 영어판이 있으면 영어, 없으면 중국어다. 링크는 GitHub 저장소로 간다.
+  조회 수(`clicks`)와 댓글 수(`commentCount`)를 `metrics`에 저장한다. 이 수치는 이 Feed를 바꾼 뒤에 처음 저장된 Entry부터 있다.
+
+**HelloGitHub 순위** (Feed Group, Ranked Feed 8개)
+- Feed: 기간(`monthly`·`yearly`) × 언어(전체·Python·JavaScript·Rust).
+  id는 `hellogithub-<기간>`(전체 언어)과 `hellogithub-<기간>-<언어 소문자>`다(`hellogithub-yearly`, `hellogithub-monthly-python`).
+- 가져오기: 같은 공개 API에 `rank_by=monthly|yearly&tid=<태그 ID>`를 붙인다. 페이지당 20개씩 2페이지(40개)까지 받고, 다음 페이지가 없으면 멈춘다.
+  `tid`는 HelloGitHub 태그 ID다: 전체 `all`, Python `Z8PipJsHCX`, JavaScript `x3YH09wlKN`, Rust `D4JBAUo967`.
+  `lang`·`rank_by=weekly`처럼 모르는 파라미터는 오류 없이 무시되니, 값을 바꿀 때는 응답이 달라지는지 직접 확인한다.
+- 순위: **HelloGitHub이 정한 순서**다. 조회 수 순이 아니고 정렬 기준은 알려져 있지 않다. 점수로 다시 정렬하지 않는다.
+- 월간은 최신 월간호의 목록이라 한 달 동안 같다. 그래서 순위 변동은 거의 없고, 새 호가 나오는 매달 28일 전후에 NEW가 한꺼번에 뜬다.
+  언어를 `tid`로 서버에서 거르므로 전체 목록 앞 20개에서 거르는 것보다 많다(Rust는 5개뿐이다).
+- 지원하는 언어 태그는 Python, Java, C++, JavaScript, Rust, 그리고 Tutorial·AI·Algo·Game이다. TypeScript·Go는 없다.
+- 주기: 월간 1일, 연간 3일. 목록이 천천히 바뀌어 길게 둔다.
+- 화면: 저장소 카드의 순위표. 언어, HelloGitHub 조회 수, 댓글 수, HelloGitHub 링크를 보여 준다. 스타·포크는 응답에 없다.
 
 ### AI·LLM
 

@@ -360,7 +360,7 @@ components:
 - **Entry 카드** (`entry-card`): `bg-card`, 1px `border`, `rounded-lg`, `px-4 py-3`, 그림자 없음. 카드 사이 8px. Mintlify 카드 여백(24px)은 밀도 때문에 줄였다.
 - **Entry 메타** (`entry-meta`): 제목 아래 한 줄. `text-caption`, 사이 간격 12px(`gap-x-3`), 숫자는 `font-mono`. 카드 종류(`src/card-kind.ts`)마다 보이는 것이 다르다.
   - 글(`article`): 호스트 · 작성자 · 시각 · 점수(`ArrowUp`) · 댓글(`MessageSquare`)
-  - 저장소(`repository`): 언어(`foreground`) · 전체 스타(`Star`) · 기간 동안 늘어난 스타(`TrendingUp`, `+4.2K`) · 포크(`GitFork`) · 정보원 페이지 링크. 요약 아래에 태그 4개까지(`Tag` 아이콘 + 글자)
+  - 저장소(`repository`): 언어(`foreground`) · 전체 스타(`Star`) · 기간 동안 늘어난 스타(`TrendingUp`, `+4.2K`) · 포크(`GitFork`) · HelloGitHub 조회 수(`Eye`) · 댓글 수(`MessageSquare`) · 정보원 페이지 링크. 요약 아래에 태그 4개까지(`Tag` 아이콘 + 글자)
   - 모델(`model`): 시각 · 컨텍스트 길이 · 입력·출력 가격(1M 토큰당 달러, 0이면 "무료")
   - 논문(`paper`): 저자 · 시각 · 추천(`ArrowUp`) · 댓글 · arXiv 링크
   - 릴리스(`release`): 시각 · 작성자. 요약(변경 사항)을 4줄까지 보인다

@@ -2,7 +2,7 @@
  * Entry 카드와 펼친 화면의 메타 줄. 카드 종류마다 `extra`(Ranked Feed는 최신 `metrics`를 덮은 값)에서 보여 줄 필드가 다르다.
  * Handler가 `extra`·`metrics`에 넣는 필드 이름은 docs/guides/adding-a-feed.md 2장을 따른다.
  */
-import { ArrowUp, GitFork, MessageSquare, Star, Tag, TrendingUp } from 'lucide-react';
+import { ArrowUp, Eye, GitFork, MessageSquare, Star, Tag, TrendingUp } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { EntryView } from '@trendboda/api-types';
 import type { CardKind } from './card-kind.ts';
@@ -36,6 +36,8 @@ export function EntryMeta({ entry, cardKind, metricChange }: EntryMetaProps) {
         <MetricValue icon={Star} label="전체 스타" value={readNumber(extra, 'stars')} compact />
         <MetricValue icon={TrendingUp} label="기간 동안 늘어난 스타" value={readNumber(extra, 'starsGained')} change={metricChange} compact sign />
         <MetricValue icon={GitFork} label="포크" value={readNumber(extra, 'forks')} compact />
+        <MetricValue icon={Eye} label="HelloGitHub 조회" value={readNumber(extra, 'clicks')} compact />
+        {comments}
         <ExternalLink url={readString(extra, 'trendshiftUrl')}>Trendshift</ExternalLink>
         <ExternalLink url={readString(extra, 'hellogithubUrl')}>HelloGitHub</ExternalLink>
       </>

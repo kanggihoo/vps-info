@@ -9,6 +9,7 @@ export type CardKind = 'article' | 'repository' | 'model' | 'paper' | 'release' 
 const CARD_KINDS: Record<string, CardKind> = {
   trendshift: 'repository',
   hellogithub: 'repository',
+  'hellogithub-ranking': 'repository',
   'openrouter-models': 'model',
   'hf-papers-weekly': 'paper',
   'claude-code-releases': 'release',
