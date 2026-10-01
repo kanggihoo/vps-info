@@ -20,7 +20,9 @@ pipeline {
                 sh '''
                     set -eu
                     # multibranch는 브랜치(PR)마다 BUILD_NUMBER가 따로 올라가므로 JOB_BASE_NAME까지 넣어야 겹치지 않는다.
-                    name="vps-info-test-$JOB_BASE_NAME-$BUILD_NUMBER"
+                    # 브랜치 이름의 /는 %2F로 오므로 docker 이름에 쓸 수 있는 문자만 남긴다.
+                    branch="$(printf %s "$JOB_BASE_NAME" | tr -c 'A-Za-z0-9_.-' '-' | tr 'A-Z' 'a-z')"
+                    name="vps-info-test-$branch-$BUILD_NUMBER"
                     docker build --target test -t "$name" .
                     status=0
                     docker run --name "$name" -e JUNIT_OUTPUT_DIR=/app/test-results "$name" || status=$?
