@@ -3,6 +3,10 @@
  * 요청 경로는 상대 `/api`라서 운영(같은 서버)과 로컬(Vite 프록시)에서 똑같이 동작한다.
  */
 import type {
+  AdminAttemptPage,
+  AdminOverview,
+  DeepLUsageView,
+  UpdateAdminFeedRequest,
   ApiErrorBody,
   BookmarkedEntryView,
   EntryConversationTurnRequest,
@@ -31,12 +35,13 @@ export class ApiError extends Error {
   }
 }
 
-/** 실패 응답 본문에서 `reason`을 꺼낸다. JSON이 아니면 비운다. */
-async function readFailureReason(response: Response): Promise<ApiErrorBody['reason']> {
+/** 실패 응답의 안내 문구와 이유를 읽는다. JSON이 아니면 기본 안내를 쓴다. */
+async function readFailureBody(response: Response): Promise<Partial<ApiErrorBody>> {
   try {
-    return ((await response.json()) as ApiErrorBody).reason;
+    const body: unknown = await response.json();
+    return body && typeof body === 'object' ? body as Partial<ApiErrorBody> : {};
   } catch {
-    return undefined;
+    return {};
   }
 }
 
@@ -51,12 +56,30 @@ async function requestApi<Response>(path: string, init: RequestInit = {}): Promi
     headers: init.body ? { 'content-type': 'application/json' } : undefined,
   });
   if (!response.ok) {
-    throw new ApiError(`${init.method ?? 'GET'} ${path} 실패: ${response.status}`, response.status, await readFailureReason(response));
+    const failure = await readFailureBody(response);
+    throw new ApiError(failure.message ?? `${init.method ?? 'GET'} ${path} 실패: ${response.status}`, response.status, failure.reason);
   }
   return (response.status === 204 ? undefined : await response.json()) as Response;
 }
 
 export const apiClient = {
+  /** 수집기 응답과 Feed 운영 값을 함께 받는다(ADR-0017). */
+  getAdminOverview: () => requestApi<AdminOverview>('/admin/overview'),
+  /** Feed 주기·일시정지를 변경한다. */
+  updateAdminFeed: (feedId: string, changes: UpdateAdminFeedRequest) => requestApi<void>(`/admin/feeds/${encodeURIComponent(feedId)}`, {
+    method: 'PATCH', body: JSON.stringify(changes),
+  }),
+  /** 수집은 collector에 맡긴다. */
+  requestFeedFetch: (feedId: string) => requestApi<{ message: string }>(`/admin/feeds/${encodeURIComponent(feedId)}/fetch`, { method: 'POST' }),
+  /** 한 Feed의 수집 이력 페이지. */
+  listAdminAttempts: (feedId: string, status?: 'success' | 'failed', before?: number) => {
+    const query = new URLSearchParams();
+    if (status) query.set('status', status);
+    if (before !== undefined) query.set('before', String(before));
+    return requestApi<AdminAttemptPage>(`/admin/feeds/${encodeURIComponent(feedId)}/attempts?${query}`);
+  },
+  /** 서버의 DeepL 키로 조회한 계정·키별 사용량. */
+  getDeepLUsage: () => requestApi<DeepLUsageView>('/admin/deepl/usage'),
   /** 개인용 공통 Feed 배치(ADR-0016). */
   getFeedNavigationOrder: () => requestApi<FeedNavigationOrder>('/feed-navigation-order'),
   /** 두 구역의 전체 순서를 원자적으로 교체한다. */

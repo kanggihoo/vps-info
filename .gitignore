@@ -5,3 +5,5 @@ node_modules/
 apps/web/dist/
 test-results/
 .vitest/
+.playwright-cli/
+output/playwright/

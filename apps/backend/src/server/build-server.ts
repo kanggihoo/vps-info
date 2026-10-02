@@ -14,12 +14,13 @@ import { registerEntryRoutes } from './entry-routes.ts';
 import { registerFeedRoutes } from './feed-routes.ts';
 import { registerFeedNavigationRoutes } from './feed-navigation-routes.ts';
 import { fetchOriginalPage, type OriginalPageFetcher } from './original-page.ts';
+import { registerAdminRoutes, type AdminRouteOptions } from './admin-routes.ts';
 
 /** 화면 빌드 결과(`apps/web/dist`) 위치. 운영 이미지에는 Dockerfile이 같은 경로에 넣어 두고, 로컬에서는 Vite 개발 서버를 쓰므로 없을 수 있다. */
 const WEB_BUILD_DIRECTORY = resolve(import.meta.dirname, '../../../web/dist');
 
 /** 서버를 만들 때의 설정. 원문 가져오기와 번역은 바깥 세계와 닿는 곳이라 테스트에서 가짜로 바꿔 넣는다. */
-export type BuildServerOptions = {
+export type BuildServerOptions = AdminRouteOptions & {
   /** 요청 로그 출력 여부. 테스트에서는 끈다. */
   logger: boolean;
   /** 생략하면 실제 원문 페이지를 가져온다. */
@@ -47,6 +48,7 @@ export async function buildServer(options: BuildServerOptions): Promise<FastifyI
   });
 
   await server.register(registerFeedRoutes);
+  await server.register(registerAdminRoutes, { readDeepLUsage: options.readDeepLUsage });
   await server.register(registerFeedNavigationRoutes);
   await server.register(registerEntryRoutes, {
     fetchOriginalPage: options.fetchOriginalPage ?? fetchOriginalPage,

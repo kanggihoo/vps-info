@@ -232,3 +232,56 @@ export type MoveReadCursorRequest = {
   /** 화면에서 마지막으로 지나간 Entry의 id. 현재 커서보다 작으면 무시된다. */
   entryId: number;
 };
+
+/** 관리자 화면에 보내는 수집 시도. raw나 Entry 본문은 포함하지 않는다(ADR-0017). */
+export type AdminFetchAttempt = {
+  id: number;
+  feedId: string;
+  status: 'running' | 'success' | 'failed';
+  startedAt: string;
+  finishedAt: string | null;
+  insertedEntryCount: number | null;
+  errorMessage: string | null;
+};
+
+/** 운영 값과 최근 수집 상태. wanted는 조회·수동 요청만 지원한다. */
+export type AdminFeed = {
+  id: string;
+  title: string;
+  kind: FeedKind;
+  wanted: boolean;
+  intervalMinutes: number;
+  nextRunAt: string;
+  paused: boolean;
+  manualRequestedAt: string | null;
+  consecutiveFailures: number;
+  lastSuccessAt: string | null;
+  latestAttempt: AdminFetchAttempt | null;
+};
+
+/** 수집기 응답과 현재 실행 상태. stale은 프로세스 종료를 확정하지 않는다. */
+export type CollectorStatus = {
+  status: 'unknown' | 'alive' | 'stale' | 'stopped';
+  lastSeenAt: string | null;
+  runningFeedId: string | null;
+};
+
+/** 관리자 화면의 10초 갱신 데이터. 외부 연동 조회는 별도로 수행한다. */
+export type AdminOverview = { feeds: AdminFeed[]; collector: CollectorStatus };
+
+/** 한 Feed의 이력 페이지. nextBefore가 있으면 그 id 이전을 요청한다. */
+export type AdminAttemptPage = { attempts: AdminFetchAttempt[]; nextBefore: number | null };
+
+/** Feed의 운영 값을 변경한다. 원티드에는 사용할 수 없다. */
+export type UpdateAdminFeedRequest = { intervalMinutes?: number; paused?: boolean };
+
+/** DeepL 공식 사용량. account와 API key 값을 구분하며 한도 미설정은 null이다. */
+export type DeepLUsageView = {
+  characterCount: number;
+  characterLimit: number | null;
+  apiKeyCharacterCount: number | null;
+  apiKeyCharacterLimit: number | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  checkedAt: string;
+};

@@ -10,11 +10,11 @@ import { connectionPool } from '../db/database-client.ts';
 import { feedDefinitions } from '../feed-definitions.ts';
 import { insertMissingFeeds, runDueFeeds, runFeedOnce } from './feed-scheduler.ts';
 import { markInterruptedAttemptsFailed } from './fetch-attempt.ts';
+import { startCollectorHeartbeat } from './collector-heartbeat.ts';
 
 /** 기한이 된 Feed가 있는지 DB를 확인하는 간격. 가장 짧은 재시도 간격(5분)보다 충분히 짧다. */
 const DUE_CHECK_INTERVAL_MILLISECONDS = 30_000;
 
-await markInterruptedAttemptsFailed();
 await insertMissingFeeds(feedDefinitions);
 
 const onceFlagIndex = process.argv.indexOf('--once');
@@ -23,16 +23,22 @@ if (onceFlagIndex !== -1) {
   const definition = feedDefinitions.find((candidate) => candidate.id === feedId);
   if (!definition) throw new Error(`선언되지 않은 Feed입니다: ${feedId}`);
   const insertedCount = await runFeedOnce(definition);
-  console.log(insertedCount === undefined ? `[${feedId}] 실패` : `[${feedId}] 새 Entry ${insertedCount}건`);
+  console.log(insertedCount === null ? `[${feedId}] 이미 실행 중` : insertedCount === undefined ? `[${feedId}] 실패` : `[${feedId}] 새 Entry ${insertedCount}건`);
 } else {
-  // docker stop(SIGTERM)을 받으면 지금 돌던 Feed만 마치고 루프를 빠져나온다.
+  await markInterruptedAttemptsFailed();
+  const stopHeartbeat = await startCollectorHeartbeat();
+  // docker stop(SIGTERM)을 받으면 실행 중인 Feed를 마치고 새 Feed를 시작하지 않는다.
   const shutdown = new AbortController();
   process.once('SIGTERM', () => shutdown.abort());
   process.once('SIGINT', () => shutdown.abort());
   console.log(`수집기 시작: Feed ${feedDefinitions.length}개`);
-  while (!shutdown.signal.aborted) {
-    await runDueFeeds(feedDefinitions);
-    await sleep(DUE_CHECK_INTERVAL_MILLISECONDS, undefined, { signal: shutdown.signal }).catch(() => {});
+  try {
+    while (!shutdown.signal.aborted) {
+      await runDueFeeds(feedDefinitions, undefined, shutdown.signal);
+      await sleep(DUE_CHECK_INTERVAL_MILLISECONDS, undefined, { signal: shutdown.signal }).catch(() => {});
+    }
+  } finally {
+    await stopHeartbeat();
   }
   console.log('수집기 종료');
 }

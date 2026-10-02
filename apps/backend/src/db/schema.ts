@@ -4,7 +4,7 @@
  */
 import { sql } from 'drizzle-orm';
 import type { FeedNavigationItem } from '@trendboda/api-types';
-import { bigint, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { bigint, boolean, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, unique } from 'drizzle-orm/pg-core';
 
 /** 개인용 공통 Feed Navigation Order. Group 정의는 코드에 있고 배치만 저장한다(ADR-0016). */
 export const feedNavigationOrder = pgTable('feed_navigation_order', {
@@ -36,6 +36,21 @@ export const feed = pgTable('feed', {
   readCursorEntryId: bigint('read_cursor_entry_id', { mode: 'number' }),
   /** Ranked Feed가 한 번에 가져올 순위 수. Stream Feed는 비어 있다. 처음 한 번만 코드 값으로 채운다(ADR-0009). */
   rankLimit: integer('rank_limit'),
+  /** 자동 수집·재시도를 쉬는 상태. 수동 요청은 허용한다(ADR-0017). */
+  paused: boolean('paused').notNull().default(false),
+  /** 아직 시작하지 않은 수동 수집 요청 시각. 수집 시작과 함께 소비한다. */
+  manualRequestedAt: timestamp('manual_requested_at', { withTimezone: true }),
+  /** 수집 중 변경한 스케줄을 완료 처리가 덮어쓰지 않게 하는 버전. */
+  scheduleRevision: integer('schedule_revision').notNull().default(0),
+});
+
+/** 수집기 하나의 마지막 응답. 실행 중 Feed는 running Fetch Attempt에서 조회한다. */
+export const collectorHeartbeat = pgTable('collector_heartbeat', {
+  /** 항상 main. ADR-0004의 수집기 하나를 나타낸다. */
+  id: text('id').primaryKey(),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull(),
+  /** 정상 종료 때 기록해 heartbeat가 오래되기 전에도 중단 상태를 알린다. */
+  stoppedAt: timestamp('stopped_at', { withTimezone: true }),
 });
 
 /**
