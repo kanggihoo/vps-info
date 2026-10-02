@@ -1,7 +1,7 @@
 /**
  * Feed Group을 화면에 펼치는 규칙(ADR-0010): 왼쪽 목록의 구역과 줄, Group 안에서 변형 고르기, 마지막으로 본 변형 기억.
  */
-import type { FeedGroupView, FeedKind, FeedSummary } from '@trendboda/api-types';
+import type { FeedGroupView, FeedKind, FeedSummary, FeedNavigationItem, FeedNavigationOrder } from '@trendboda/api-types';
 
 /** 왼쪽 목록의 한 줄. Group에 들지 않은 Feed 하나, 또는 Feed Group 하나다. */
 export type SidebarRow = { kind: 'feed'; feed: FeedSummary } | { kind: 'group'; group: FeedGroupView; feeds: FeedSummary[] };
@@ -20,9 +20,10 @@ const LAST_FEED_STORAGE_KEY_PREFIX = 'feed-group-last-feed:';
  * Group 줄은 그 Group의 첫 Feed가 있던 자리에 놓인다. 선언되지 않은 Group을 가리키는 Feed는 혼자 한 줄이다.
  *
  * @param feeds - 선언 순서의 Feed 목록
+ * @param order - 저장한 배치. 없는 줄은 구역 끝에 선언 순서로 붙인다(ADR-0016).
  * @returns 빈 구역은 뺀다
  */
-export function buildSidebarSections(feeds: FeedSummary[], groups: FeedGroupView[]): SidebarSection[] {
+export function buildSidebarSections(feeds: FeedSummary[], groups: FeedGroupView[], order?: FeedNavigationOrder): SidebarSection[] {
   const groupsById = new Map(groups.map((group) => [group.id, group]));
   const rowsByKind = new Map<FeedKind, SidebarRow[]>(SECTION_ORDER.map((kind) => [kind, []]));
   const groupRowsById = new Map<string, Extract<SidebarRow, { kind: 'group' }>>();
@@ -38,7 +39,27 @@ export function buildSidebarSections(feeds: FeedSummary[], groups: FeedGroupView
     if (row.kind === 'group') groupRowsById.set(row.group.id, row);
     rowsByKind.get(feed.kind)?.push(row);
   }
-  return SECTION_ORDER.map((kind) => ({ kind, rows: rowsByKind.get(kind) ?? [] })).filter((section) => section.rows.length > 0);
+  return SECTION_ORDER.map((kind) => {
+    const remaining = new Map((rowsByKind.get(kind) ?? []).map((row) => [sidebarRowKey(row), row]));
+    const rows: SidebarRow[] = [];
+    for (const item of order?.[kind] ?? []) {
+      const key = `${item.kind}:${item.id}`;
+      const row = remaining.get(key);
+      if (row) { rows.push(row); remaining.delete(key); }
+    }
+    return { kind, rows: [...rows, ...remaining.values()] };
+  }).filter((section) => section.rows.length > 0);
+}
+
+/** 순서 저장과 드래그에서 사용하는 화면 줄의 식별자. */
+export function sidebarRowItem(row: SidebarRow): FeedNavigationItem {
+  return row.kind === 'feed' ? { kind: 'feed', id: row.feed.id } : { kind: 'group', id: row.group.id };
+}
+
+/** 개별 Feed와 Group의 id가 같아도 충돌하지 않는 키. */
+export function sidebarRowKey(row: SidebarRow): string {
+  const item = sidebarRowItem(row);
+  return `${item.kind}:${item.id}`;
 }
 
 /** 왼쪽 목록의 한 줄을 눌렀을 때 열 Feed. Group이면 마지막으로 본 변형, 없으면 선언 순서의 첫 Feed다. */

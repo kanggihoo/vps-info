@@ -12,6 +12,7 @@ import { type LlmRequester, makeLlmRequester, registerConversationRoutes } from 
 import { createDeepLTranslator, type TextTranslator } from './deepl-translator.ts';
 import { registerEntryRoutes } from './entry-routes.ts';
 import { registerFeedRoutes } from './feed-routes.ts';
+import { registerFeedNavigationRoutes } from './feed-navigation-routes.ts';
 import { fetchOriginalPage, type OriginalPageFetcher } from './original-page.ts';
 
 /** 화면 빌드 결과(`apps/web/dist`) 위치. 운영 이미지에는 Dockerfile이 같은 경로에 넣어 두고, 로컬에서는 Vite 개발 서버를 쓰므로 없을 수 있다. */
@@ -46,6 +47,7 @@ export async function buildServer(options: BuildServerOptions): Promise<FastifyI
   });
 
   await server.register(registerFeedRoutes);
+  await server.register(registerFeedNavigationRoutes);
   await server.register(registerEntryRoutes, {
     fetchOriginalPage: options.fetchOriginalPage ?? fetchOriginalPage,
     translateTexts: options.translateTexts === undefined ? makeDefaultTranslator() : (options.translateTexts ?? undefined),

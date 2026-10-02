@@ -9,6 +9,7 @@ import type {
   EntryConversationTurnView,
   EntryView,
   FeedGroupView,
+  FeedNavigationOrder,
   FeedSummary,
   FeedTitledEntryView,
   LlmModelsView,
@@ -56,6 +57,10 @@ async function requestApi<Response>(path: string, init: RequestInit = {}): Promi
 }
 
 export const apiClient = {
+  /** 개인용 공통 Feed 배치(ADR-0016). */
+  getFeedNavigationOrder: () => requestApi<FeedNavigationOrder>('/feed-navigation-order'),
+  /** 두 구역의 전체 순서를 원자적으로 교체한다. */
+  saveFeedNavigationOrder: (order: FeedNavigationOrder) => requestApi<FeedNavigationOrder>('/feed-navigation-order', { method: 'PUT', body: JSON.stringify(order) }),
   listFeeds: () => requestApi<FeedSummary[]>('/feeds'),
 
   /** Feed Group 선언(ADR-0010). 코드에만 있는 값이라 배포 사이에는 바뀌지 않는다. */
