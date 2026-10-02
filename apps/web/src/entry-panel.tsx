@@ -10,6 +10,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import type { EntryView, FeedSummary, ReaderFailureReason, ReaderView, TranslationFailureReason } from '@trendboda/api-types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Kbd } from '@/components/ui/kbd';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -78,6 +79,11 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
   const [translating, setTranslating] = useState(false);
   const [translationFailure, setTranslationFailure] = useState<TranslationFailureReason | undefined>();
   const openedEntryIdRef = useRef<number | undefined>(undefined);
+  const [actionFailure, setActionFailure] = useState<string>();
+  const [bookmarking, setBookmarking] = useState(false);
+  const bookmarkingRef = useRef(false);
+  const copyingRef = useRef(false);
+  const translatingRef = useRef(false);
   const [copied, setCopied] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   /** 대화를 한 번이라도 열었는지와 지금 보이는지. 닫아도 대화 내용을 잃지 않게 한 번 연 뒤로는 숨기기만 한다. */
@@ -133,8 +139,19 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
   const rankedEntry = selection?.rankedEntry;
 
   const toggleBookmark = async () => {
-    await apiClient.setBookmarked(entry.id, !bookmarked);
-    publishChange({ ...entry, bookmarkedAt: bookmarked ? null : new Date().toISOString() });
+    if (bookmarkingRef.current) return;
+    bookmarkingRef.current = true;
+    setBookmarking(true);
+    setActionFailure(undefined);
+    try {
+      await apiClient.setBookmarked(entry.id, !bookmarked);
+      publishChange({ ...entry, bookmarkedAt: bookmarked ? null : new Date().toISOString() });
+    } catch {
+      setActionFailure('Bookmark를 변경하지 못했습니다. 다시 시도하세요.');
+    } finally {
+      bookmarkingRef.current = false;
+      setBookmarking(false);
+    }
   };
 
   const toggleReader = () => {
@@ -162,11 +179,13 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
 
   /** 번역이 있으면 원문과 번역 사이를 오가고, 없으면 번역한다. */
   const toggleTranslation = () => {
+    if (translatingRef.current) return;
     setTranslationFailure(undefined);
     if (entry.translatedTitle !== null) {
       setShowTranslation((current) => !current);
       return;
     }
+    translatingRef.current = true;
     setTranslating(true);
     apiClient
       .translateEntry(entry.id)
@@ -179,7 +198,7 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
         const reason = error instanceof ApiError ? (error.reason as TranslationFailureReason | undefined) : undefined;
         setTranslationFailure(reason ?? 'translation-failed');
       })
-      .finally(() => setTranslating(false));
+      .finally(() => { translatingRef.current = false; setTranslating(false); });
   };
 
   const toggleConversation = () => {
@@ -202,7 +221,10 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
   const summary = translated ? (entry.translatedSummary ?? entry.summary) : entry.summary;
 
   /** 화면에 보이는 내용을 복사한다. 원문 읽기 결과가 떠 있으면 본문 Markdown, 아니면 요약. */
-  const copyContent = () => {
+  const copyContent = async () => {
+    if (copyingRef.current) return;
+    copyingRef.current = true;
+    setActionFailure(undefined);
     const view = reader.status === 'loaded' ? reader.view : undefined;
     const text = buildClipboardMarkdown({
       title: (translated ? entry.translatedTitle : null) ?? entry.title,
@@ -215,14 +237,16 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
       body: view ? view.markdown : summary,
       clippedAt: new Date(),
     });
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setCopied(true);
-        clearTimeout(copiedTimerRef.current);
-        copiedTimerRef.current = setTimeout(() => setCopied(false), 1500);
-      })
-      .catch(console.error);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setActionFailure('복사하지 못했습니다. 클립보드 권한을 확인하고 다시 시도하세요.');
+    } finally {
+      copyingRef.current = false;
+    }
   };
 
   return (
@@ -232,18 +256,19 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
           <ArrowLeft />
         </ToolbarButton>
         <div className="ml-auto flex items-center gap-1">
-          <ToolbarButton label={bookmarked ? 'Bookmark 해제' : 'Bookmark'} pressed={bookmarked} onClick={toggleBookmark} className={cn(bookmarked && 'text-brand-ink hover:text-brand-ink')}>
+          <ToolbarButton shortcut="B" disabled={bookmarking} label={bookmarked ? 'Bookmark 해제' : 'Bookmark'} pressed={bookmarked} onClick={toggleBookmark} className={cn(bookmarked && 'text-brand-ink hover:text-brand-ink')}>
             <Star className={cn(bookmarked && 'fill-current')} />
           </ToolbarButton>
           {readerAvailable && (
-            <ToolbarButton label={reader.status === 'off' ? '원문 읽기' : '요약으로 돌아가기'} pressed={reader.status !== 'off'} onClick={toggleReader}>
+            <ToolbarButton shortcut="R" label={reader.status === 'off' ? '원문 읽기' : '요약으로 돌아가기'} pressed={reader.status !== 'off'} onClick={toggleReader}>
               <BookOpenText />
             </ToolbarButton>
           )}
-          <ToolbarButton label={copied ? '복사됨' : reader.status === 'loaded' ? '본문 복사' : '복사'} onClick={copyContent}>
+          <ToolbarButton shortcut="C" label={copied ? '복사됨' : reader.status === 'loaded' ? '본문 복사' : '복사'} onClick={copyContent}>
             {copied ? <Check /> : <Copy />}
           </ToolbarButton>
           <ToolbarButton
+            shortcut="T"
             label={translating ? '번역 중' : translated ? '원문 보기' : entry.translatedTitle !== null ? '번역 보기' : '한국어로 번역'}
             pressed={translated}
             disabled={translating}
@@ -251,22 +276,26 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
           >
             <Languages className={cn(translating && 'animate-pulse motion-reduce:animate-none')} />
           </ToolbarButton>
-          <ToolbarButton label={conversationOpen ? '대화 닫기' : '이 Entry에 대해 묻기'} pressed={conversationOpen} onClick={toggleConversation}>
+          <ToolbarButton shortcut="D" label={conversationOpen ? '대화 닫기' : '이 Entry에 대해 묻기'} pressed={conversationOpen} onClick={toggleConversation}>
             <Bot />
           </ToolbarButton>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full max-md:size-11" asChild>
-                <a href={entry.url} target="_blank" rel="noopener noreferrer" aria-label="원문 열기">
+              <Button variant="ghost" size="icon" className="rounded-full max-md:size-11 data-[shortcut-active=true]:bg-accent" asChild>
+                <a data-tool-code="KeyO" aria-keyshortcuts="O" href={entry.url} target="_blank" rel="noopener noreferrer" aria-label="원문 열기">
                   <ExternalLink strokeWidth={1.5} />
                 </a>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>원문 열기</TooltipContent>
+            <TooltipContent className="flex items-center gap-2">원문 열기 <Kbd className="text-caption">O</Kbd></TooltipContent>
           </Tooltip>
         </div>
       </div>
 
+      <div role="status" aria-live="polite" aria-atomic="true" className={cn('px-4 text-caption text-muted-foreground', copied ? 'py-1' : 'sr-only')}>
+        {copied ? '복사됨' : bookmarking ? 'Bookmark를 저장하는 중입니다.' : ''}
+      </div>
+      {actionFailure && <p role="alert" className="px-4 py-1 text-caption text-destructive">{actionFailure}</p>}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <article className="mx-auto max-w-[760px] px-4 py-6 lg:px-8">
           {rankedEntry && (
@@ -366,6 +395,7 @@ function ReaderBody({ reader, url, translated }: { reader: Exclude<ReaderState, 
 }
 
 type ToolbarButtonProps = {
+  shortcut?: string;
   label: string;
   pressed?: boolean;
   disabled?: boolean;
@@ -375,14 +405,16 @@ type ToolbarButtonProps = {
 };
 
 /** 도구줄의 아이콘 버튼. 무슨 버튼인지는 툴팁과 `aria-label`로 알린다. 켜진 상태는 민트가 아니라 hover 바탕으로 보인다. */
-function ToolbarButton({ label, pressed, disabled, className, onClick, children }: ToolbarButtonProps) {
+function ToolbarButton({ shortcut, label, pressed, disabled, className, onClick, children }: ToolbarButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
-          className={cn('rounded-full max-md:size-11 [&_svg]:stroke-[1.5]', pressed && 'bg-accent text-foreground', className)}
+          className={cn('rounded-full max-md:size-11 data-[shortcut-active=true]:bg-accent [&_svg]:stroke-[1.5]', pressed && 'bg-accent text-foreground', className)}
+          data-tool-code={shortcut ? `Key${shortcut}` : undefined}
+          aria-keyshortcuts={shortcut}
           aria-label={label}
           aria-pressed={pressed}
           disabled={disabled}
@@ -391,7 +423,7 @@ function ToolbarButton({ label, pressed, disabled, className, onClick, children 
           {children}
         </Button>
       </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
+      <TooltipContent className="flex items-center gap-2">{label}{shortcut && <Kbd className="text-caption">{shortcut}</Kbd>}</TooltipContent>
     </Tooltip>
   );
 }

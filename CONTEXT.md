@@ -19,6 +19,10 @@ _Avoid_: Source, Channel, Provider, Subscription
 묶인 Feed는 종류가 모두 같고, 정보원이 다르면 주제가 같아도 묶지 않는다. 목록이 하나뿐인 정보원은 Group 없이 Feed 하나다.
 _Avoid_: Site, Source, Category
 
+**Feed Navigation Order**:
+화면에서 개별 Feed와 Feed Group의 줄을 배치하는 순서. Stream과 Ranked 각 구역 안에서 정하며, Feed Group은 한 줄로 움직이고 모든 기기에서 같은 순서를 쓴다.
+_Avoid_: Rank, Feed Rank, Sidebar Order
+
 **Stream Feed**:
 새 Entry가 나타난 순서대로 쌓아 읽는 Feed. RSS처럼 새 글이 계속 올라오는 정보원이 여기에 해당한다.
 _Avoid_: Timeline, Chronological Feed
