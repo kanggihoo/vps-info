@@ -6,12 +6,13 @@
 
 ```
 정보원(RSS, API, HTML) ──▶ collector ──▶ PostgreSQL ◀── app(API + 화면) ◀── 브라우저
-                           (수집만)                      (조회·읽음 상태만)
+                           (수집 실행)                  (조회·읽음 상태·운영 설정)
 ```
 
 - **collector**(`apps/backend/src/collector/`)와 **app**(`apps/backend/src/server/`, `apps/web/`)은 별도 컨테이너다. 둘은 DB로만 연결된다.
   Feed를 추가하는 일은 거의 전부 collector 쪽이다. 화면은 글이 아닌 Feed의 카드 종류를 적을 때만 고친다(2장).
-- collector는 상주하면서 30초마다 `feed.next_run_at`이 지난 Feed를 찾아 **하나씩** 수집한다.
+- collector는 상주하면서 30초마다 자동 수집 기한이 된 Feed와 수동 요청이 있는 Feed를 찾아 **하나씩** 수집한다.
+  일시정지한 Feed는 자동 수집·재시도에서 제외하지만 수동 요청은 허용한다(ADR-0017).
 - Feed 하나를 한 번 수집하는 것을 **Fetch Attempt**라 하고, 성공이든 실패든 `fetch_attempt`에 한 행이 남는다.
 - Feed는 **Stream Feed**(새 글이 쌓이는 목록, 기본)와 **Ranked Feed**(정보원이 매기는 순위표) 둘 중 하나다(ADR-0009).
   Ranked Feed는 수집할 때마다 순위표를 `rank_snapshot`에 남기고, 화면은 직전 수집과 비교한 순위 변동으로 보여 준다.
@@ -325,13 +326,14 @@ Ranked Feed는 순위표로 열리고, 목록에는 속이 빈 NEW 알약이 뜬
 
 | 하고 싶은 것 | 방법 |
 |---|---|
-| 수집 주기 바꾸기 | `update feed set interval_minutes = 30 where id = 'openai-news';` (코드의 `intervalMinutes`를 바꿔도 이미 있는 Feed에는 반영되지 않는다) |
+| 수집 주기 바꾸기 | `관리` 화면에서 분 단위 주기를 저장한다. 다음 실행 시각도 기존 백오프 규칙으로 다시 계산한다. 코드의 `intervalMinutes`를 바꿔도 이미 있는 Feed에는 반영되지 않는다 |
 | Ranked Feed가 가져올 순위 수 바꾸기 | `update feed set rank_limit = 50 where id = 'hn-best';` 다음 수집부터 적용된다. 재배포가 필요 없다. 늘리면 늘어난 순위만큼 NEW가, 줄이면 그만큼 빠짐이 한 번 뜬다 |
 | Stream Feed를 Ranked Feed로 바꾸기 | 선언에 `kind: 'ranked'`와 `rankLimit`을 넣는다. 비어 있던 `rank_limit`은 수집기가 시작할 때 선언 값으로 채운다. 주기는 DB에서 따로 바꾼다 |
-| 지금 바로 다시 수집 | `update feed set next_run_at = now() where id = 'openai-news';` 또는 6-2의 `--once` |
+| 지금 바로 다시 수집 | `관리` 화면의 `지금 수집 요청`. 기존 collector가 순서대로 처리한다. 일시정지 중에도 가능하다. 개발용 `--once`는 6-2 참고 |
+| 자동 수집 잠시 쉬기·재개 | `관리` 화면의 `일시정지`·`재개`. 진행 중 수집은 마치며 재개하면 한 번 수집한다. 원티드는 조회·수동 요청만 지원한다 |
 | Feed 그만 받기 | `feed-definitions.ts`에서 선언을 뺀다. 수집과 화면 표시가 멈추고 데이터는 남는다 |
 | Feed 다시 받기 | 같은 `id`로 선언을 되살린다. 기존 Entry와 읽음 상태가 이어진다 |
-| 망가진 Feed 찾기 | `select id, consecutive_failures from feed where consecutive_failures > 0;` |
+| 망가진 Feed 찾기 | `관리` 화면의 연속 실패 수와 해당 Feed의 수집 이력·오류 상세를 확인한다 |
 
 모든 환경(로컬·운영)에 같이 적용해야 하는 운영 값 변경은 손으로 SQL을 치지 말고 **데이터 마이그레이션**으로 남긴다.
 Stream Feed를 Ranked Feed로 바꾸면서 주기도 바꾸는 경우가 여기에 해당한다(`apps/backend/drizzle/0002_ranked_feed_interval.sql` 참고).
@@ -340,7 +342,8 @@ Stream Feed를 Ranked Feed로 바꾸면서 주기도 바꾸는 경우가 여기�
 2. `update` 문을 쓰되, **이전 값일 때만** 바꾸는 조건을 붙인다(`… and interval_minutes = 60`). 운영 중에 따로 정한 값을 덮어쓰지 않기 위해서다(ADR-0004).
 3. 새 DB에서는 Feed 행이 아직 없어 0건이 바뀐다. 그래서 선언의 값도 같이 바꿔 둔다.
 
-한 환경에서만 잠깐 바꾸는 값(로컬에서 지금 바로 다시 수집하기 등)은 위 표처럼 SQL로 바꾼다.
+한 환경에서만 조정하는 운영 값은 관리자 화면에서 바꾼다. Ranked Feed의 순위 수처럼 화면에서 제공하지 않는 값은 SQL로 바꾼다.
+상주 수집기가 실행 중이면 별도의 `--once` 프로세스보다 관리자 화면의 수동 요청을 사용한다.
 
 **하지 말 것**
 

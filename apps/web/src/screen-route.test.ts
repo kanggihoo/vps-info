@@ -5,6 +5,8 @@ describe('screen-route', () => {
   it('해시를 화면으로 해석한다', () => {
     expect(readScreenFromHash('#/feeds/hn-best')).toEqual({ kind: 'feed', feedId: 'hn-best' });
     expect(readScreenFromHash('#/bookmarks')).toEqual({ kind: 'bookmarks' });
+    expect(readScreenFromHash('#/admin')).toEqual({ kind: 'admin' });
+    expect(makeScreenHash({ kind: 'admin' })).toBe('#/admin');
     expect(readScreenFromHash('')).toEqual({ kind: 'none' });
     expect(readScreenFromHash('#/unknown')).toEqual({ kind: 'none' });
   });

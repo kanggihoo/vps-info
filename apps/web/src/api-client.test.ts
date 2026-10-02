@@ -52,4 +52,11 @@ describe('apiClient 원문 읽기·번역 (ADR-0011)', () => {
     stubFetch(new Response('Bad Gateway', { status: 502 }));
     await expect(apiClient.readOriginal(3)).rejects.toMatchObject({ status: 502, reason: undefined });
   });
+
+  it('관리 요청의 안내 문구를 표시하고 비어 있는 JSON 오류도 기본 안내로 처리한다', async () => {
+    stubFetch(Response.json({ message: '이미 수집 요청이 대기 중입니다.' }, { status: 409 }));
+    await expect(apiClient.requestFeedFetch('geeknews')).rejects.toThrow('이미 수집 요청이 대기 중입니다.');
+    stubFetch(Response.json(null, { status: 502 }));
+    await expect(apiClient.getAdminOverview()).rejects.toMatchObject({ status: 502 });
+  });
 });

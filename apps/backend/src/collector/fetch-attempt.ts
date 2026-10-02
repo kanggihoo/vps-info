@@ -40,17 +40,34 @@ function resolveRankLimit(definition: FeedDefinition, state: FeedRunState): numb
  * Feed 하나를 한 번 수집한다. 실패해도 예외를 밖으로 던지지 않고 Fetch Attempt에 기록한다.
  *
  * @param fetchEntries - EntryDraft를 가져오는 함수. 기본값은 등록된 Handler 호출이다.
- * @returns 새로 저장된 Entry 수. 실패하면 `undefined`.
+ * @param onlyWhenDue - collector 실행에서는 true. 일시정지·스케줄 변경을 실행 직전에 다시 확인한다.
+ * @returns 새로 저장된 Entry 수. 실패하면 `undefined`, 실행 조건이 바뀌었거나 이미 실행 중이면 `null`.
  */
 export async function runFetchAttempt(
   definition: FeedDefinition,
   state: FeedRunState,
   fetchEntries: EntryFetcher = fetchEntriesWithRegisteredHandler,
-): Promise<number | undefined> {
-  const [attempt] = await database
-    .insert(fetchAttempt)
-    .values({ feedId: definition.id, status: 'running' })
-    .returning({ id: fetchAttempt.id });
+  onlyWhenDue = false,
+): Promise<number | undefined | null> {
+  // API의 수동 요청과 같은 Feed 행을 잠근다. 요청 소비와 running 기록 사이에 중복 요청이 들어올 틈을 없앤다.
+  const started = await database.transaction(async (transaction) => {
+    const [current] = await transaction.select({
+      intervalMinutes: feed.intervalMinutes, consecutiveFailures: feed.consecutiveFailures, rankLimit: feed.rankLimit,
+      nextRunAt: feed.nextRunAt, paused: feed.paused, manualRequestedAt: feed.manualRequestedAt, scheduleRevision: feed.scheduleRevision,
+    }).from(feed).where(eq(feed.id, definition.id)).for('update');
+    if (!current) throw new Error(`등록되지 않은 Feed입니다: ${definition.id}`);
+    if (onlyWhenDue && !current.manualRequestedAt && (current.paused || current.nextRunAt > new Date())) return null;
+    const [running] = await transaction.select({ id: fetchAttempt.id }).from(fetchAttempt)
+      .where(and(eq(fetchAttempt.feedId, definition.id), eq(fetchAttempt.status, 'running'))).limit(1);
+    if (running) return null;
+    const [attempt] = await transaction.insert(fetchAttempt).values({ feedId: definition.id, status: 'running' }).returning({ id: fetchAttempt.id });
+    await transaction.update(feed).set({ manualRequestedAt: null }).where(eq(feed.id, definition.id));
+    return { attempt, current };
+  });
+  if (!started) return null;
+  const { attempt, current } = started;
+  if (onlyWhenDue) state = current;
+  const scheduleRevision = current.scheduleRevision;
 
   try {
     const rankLimit = resolveRankLimit(definition, state);
@@ -80,7 +97,7 @@ export async function runFetchAttempt(
         .where(eq(fetchAttempt.id, attempt.id));
       await transaction
         .update(feed)
-        .set({ consecutiveFailures: 0, nextRunAt: computeNextRunAt(0, state.intervalMinutes, now) })
+        .set({ consecutiveFailures: 0, nextRunAt: sql`case when ${feed.scheduleRevision} = ${scheduleRevision} then ${computeNextRunAt(0, state.intervalMinutes, now)}::timestamptz else ${feed.nextRunAt} end` })
         .where(eq(feed.id, definition.id));
       return inserted.length;
     });
@@ -94,7 +111,7 @@ export async function runFetchAttempt(
         .where(eq(fetchAttempt.id, attempt.id));
       await transaction
         .update(feed)
-        .set({ consecutiveFailures, nextRunAt: computeNextRunAt(consecutiveFailures, state.intervalMinutes, now) })
+        .set({ consecutiveFailures, nextRunAt: sql`case when ${feed.scheduleRevision} = ${scheduleRevision} then ${computeNextRunAt(consecutiveFailures, state.intervalMinutes, now)}::timestamptz else ${feed.nextRunAt} end` })
         .where(eq(feed.id, definition.id));
     });
     console.error(`[${definition.id}] 수집 실패 (연속 ${consecutiveFailures}회): ${String(error)}`);

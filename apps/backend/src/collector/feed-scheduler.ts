@@ -1,7 +1,7 @@
 /**
  * 어떤 Feed를 언제 수집할지 정한다: 선언된 Feed를 DB에 등록하고, 기한이 된 Feed를 순차로 실행한다(ADR-0004).
  */
-import { asc, eq, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, lte, or, sql } from 'drizzle-orm';
 import { database } from '../db/database-client.ts';
 import { feed } from '../db/schema.ts';
 import type { FeedDefinition } from '../feed-definitions.ts';
@@ -30,26 +30,30 @@ export async function insertMissingFeeds(definitions: FeedDefinition[]): Promise
 }
 
 /**
- * `next_run_at`이 지난 Feed를 오래 기다린 순서로 하나씩 수집한다. 선언에서 빠진 Feed는 건너뛴다.
+ * 자동 수집 기한이 된 Feed와 수동 요청을 하나씩 수집한다. 일시정지는 자동 수집만 막는다(ADR-0017).
+ * 선언에서 빠진 Feed 및 실행 직전 상태가 바뀐 Feed는 건너뛴다.
  *
  * @returns 실제로 수집을 시도한 Feed의 id 목록
  */
 export async function runDueFeeds(
   definitions: FeedDefinition[],
   fetchEntries: EntryFetcher = fetchEntriesWithRegisteredHandler,
+  signal?: AbortSignal,
 ): Promise<string[]> {
   const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));
   const dueFeeds = await database
     .select({ id: feed.id, intervalMinutes: feed.intervalMinutes, consecutiveFailures: feed.consecutiveFailures, rankLimit: feed.rankLimit })
     .from(feed)
-    .where(lte(feed.nextRunAt, sql`now()`))
+    .where(or(isNotNull(feed.manualRequestedAt), and(eq(feed.paused, false), lte(feed.nextRunAt, sql`now()`))))
     .orderBy(asc(feed.nextRunAt));
   const attemptedFeedIds: string[] = [];
   for (const dueFeed of dueFeeds) {
+    if (signal?.aborted) break;
     const definition = definitionsById.get(dueFeed.id);
     if (!definition) continue;
+    const insertedCount = await runFetchAttempt(definition, dueFeed, fetchEntries, true);
+    if (insertedCount === null) continue;
     attemptedFeedIds.push(dueFeed.id);
-    const insertedCount = await runFetchAttempt(definition, dueFeed, fetchEntries);
     if (insertedCount !== undefined) console.log(`[${dueFeed.id}] 새 Entry ${insertedCount}건`);
   }
   return attemptedFeedIds;
@@ -58,12 +62,12 @@ export async function runDueFeeds(
 /**
  * 기한과 상관없이 Feed 하나를 지금 수집한다(`--once`). Feed가 DB에 없으면 먼저 넣는다.
  *
- * @returns 새로 저장된 Entry 수. 실패하면 `undefined`.
+ * @returns 새로 저장된 Entry 수. 실패하면 `undefined`, 이미 실행 중이면 `null`.
  */
 export async function runFeedOnce(
   definition: FeedDefinition,
   fetchEntries: EntryFetcher = fetchEntriesWithRegisteredHandler,
-): Promise<number | undefined> {
+): Promise<number | undefined | null> {
   await insertMissingFeeds([definition]);
   const [state] = await database
     .select({ intervalMinutes: feed.intervalMinutes, consecutiveFailures: feed.consecutiveFailures, rankLimit: feed.rankLimit })

@@ -18,6 +18,7 @@ import { EmptyMessage, LoadError } from './load-states.tsx';
 import { RankTable } from './rank-table.tsx';
 import { makeScreenHash, readScreenFromHash, type Screen } from './screen-route.ts';
 import { describeLlmChoice, useLlmChoice } from './use-llm-choice.ts';
+import { AdminPanel } from './admin-panel.tsx';
 
 /** 새 Entry가 들어왔는지 Feed 목록을 다시 받아오는 간격. */
 const FEED_LIST_REFRESH_INTERVAL_MILLISECONDS = 60_000;
@@ -65,10 +66,10 @@ export function App() {
   const selectedGroupRow = sidebarSections
     .flatMap((section) => section.rows)
     .find((row) => row.kind === 'group' && row.group.id === selectedFeed?.group?.id);
-  const selectedEntryId = effectiveScreen.kind === 'none' ? undefined : effectiveScreen.entryId;
+  const selectedEntryId = effectiveScreen.kind === 'none' || effectiveScreen.kind === 'admin' ? undefined : effectiveScreen.entryId;
   const selection = lastSelection?.entry.id === selectedEntryId ? lastSelection : undefined;
   const entrySelectionProps: EntrySelectionProps | undefined =
-    effectiveScreen.kind === 'none'
+    effectiveScreen.kind === 'none' || effectiveScreen.kind === 'admin'
       ? undefined
       : {
           selectedEntryId,
@@ -76,7 +77,7 @@ export function App() {
           onSelectEntry: setLastSelection,
         };
   const closeEntry = () => {
-    if (effectiveScreen.kind !== 'none') window.location.hash = makeScreenHash({ ...effectiveScreen, entryId: undefined });
+    if (effectiveScreen.kind !== 'none' && effectiveScreen.kind !== 'admin') window.location.hash = makeScreenHash({ ...effectiveScreen, entryId: undefined });
   };
   // 이미 받은 목록이 있으면 갱신 실패는 조용히 넘기고 다음 주기에 다시 받는다.
   const showFeedListError = feedListFailed && feeds.length === 0;
@@ -91,7 +92,7 @@ export function App() {
   return (
     <div className="grid h-dvh grid-rows-[auto_1fr] md:grid-cols-[240px_1fr] md:grid-rows-1">
       <FeedSidebar sections={sidebarSections} screen={effectiveScreen} llmModels={llmModels} llmChoice={llmChoice} onChooseLlm={chooseLlm} />
-      <main className="relative min-h-0 overflow-hidden lg:grid lg:grid-cols-[minmax(340px,440px)_1fr] lg:grid-rows-[minmax(0,1fr)]">
+      {effectiveScreen.kind === 'admin' ? <AdminPanel /> : <main className="relative min-h-0 overflow-hidden lg:grid lg:grid-cols-[minmax(340px,440px)_1fr] lg:grid-rows-[minmax(0,1fr)]">
         <section className="flex h-full min-h-0 flex-col overflow-hidden lg:border-r" aria-label="Entry 목록">
           {selectedFeed && selectedGroupRow?.kind === 'group' && (
             <FeedGroupBar group={selectedGroupRow.group} feeds={selectedGroupRow.feeds} selectedFeed={selectedFeed} />
@@ -125,7 +126,7 @@ export function App() {
             <EntryPanelPlaceholder />
           </section>
         )}
-      </main>
+      </main>}
     </div>
   );
 }
