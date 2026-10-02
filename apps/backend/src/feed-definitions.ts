@@ -72,6 +72,41 @@ function makeWantedFeedDefinitions(): FeedDefinition[] {
 }
 
 /**
+ * HelloGitHub 순위표의 언어. `tid`는 HelloGitHub의 태그 ID로, 사이트의 태그 목록 응답에 있다.
+ * HelloGitHub이 `tid`를 주는 언어는 Python, Java, C++, JavaScript, Rust뿐이다(TypeScript·Go는 없다).
+ */
+const hellogithubLanguages = [
+  { language: 'all', title: '전체 언어', tid: 'all' },
+  { language: 'python', title: 'Python', tid: 'Z8PipJsHCX' },
+  { language: 'javascript', title: 'JavaScript', tid: 'x3YH09wlKN' },
+  { language: 'rust', title: 'Rust', tid: 'D4JBAUo967' },
+] as const;
+
+/** HelloGitHub 순위표의 기간과 처음 수집 주기(분). 목록이 천천히 바뀌어 하루 이상 간격을 둔다. */
+const hellogithubPeriods = [
+  { period: 'monthly', title: '월간', intervalMinutes: 1440 },
+  { period: 'yearly', title: '연간', intervalMinutes: 4320 },
+] as const;
+
+/** HelloGitHub의 기간 × 언어마다 Ranked Feed 하나를 만든다. 정보원은 한 페이지에 20개를 주고, 2페이지까지 받는다. */
+function makeHelloGithubRankingFeedDefinitions(): FeedDefinition[] {
+  return hellogithubPeriods.flatMap(({ period, title, intervalMinutes }) =>
+    hellogithubLanguages.map(
+      ({ language, title: languageTitle, tid }): FeedDefinition => ({
+        id: language === 'all' ? `hellogithub-${period}` : `hellogithub-${period}-${language}`,
+        title: language === 'all' ? `HelloGitHub ${title}` : `HelloGitHub ${title} · ${languageTitle}`,
+        handler: 'hellogithub',
+        params: { rankBy: period, tid },
+        intervalMinutes,
+        kind: 'ranked',
+        rankLimit: 40,
+        group: { id: 'hellogithub-ranking', variant: { period, language } },
+      }),
+    ),
+  );
+}
+
+/**
  * Feed Group 선언. 왼쪽 목록에서는 첫 번째 Feed가 있던 자리에 한 줄로 보인다.
  * 첫 번째 축은 가운데 위쪽 탭으로, 나머지 축은 드롭다운으로 고른다.
  */
@@ -126,6 +161,25 @@ export const feedGroupDefinitions: FeedGroupView[] = [
           { value: 'typescript', title: 'TypeScript' },
           { value: 'python', title: 'Python' },
         ],
+      },
+    ],
+  },
+  {
+    id: 'hellogithub-ranking',
+    title: 'HelloGitHub 순위',
+    axes: [
+      {
+        key: 'period',
+        title: '기간',
+        values: [
+          { value: 'monthly', title: '월간' },
+          { value: 'yearly', title: '연간' },
+        ],
+      },
+      {
+        key: 'language',
+        title: '언어',
+        values: hellogithubLanguages.map(({ language, title }) => ({ value: language, title })),
       },
     ],
   },
@@ -258,6 +312,7 @@ export const feedDefinitions: FeedDefinition[] = [
     rankLimit: 60,
   },
   ...makeTrendshiftFeedDefinitions(),
+  ...makeHelloGithubRankingFeedDefinitions(),
   { id: 'indiehackers-top-week', title: 'Indie Hackers 주간 인기글', handler: 'indiehackers', params: {}, intervalMinutes: 720 },
   { id: 'anthropic-news', title: 'Anthropic News', handler: 'anthropic-news', params: {}, intervalMinutes: 360 },
   ...makeWantedFeedDefinitions(),

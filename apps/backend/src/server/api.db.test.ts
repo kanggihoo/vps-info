@@ -73,6 +73,7 @@ describe('GET /api/feed-groups', () => {
       ['hacker-news', ['section']],
       ['producthunt-top', ['period']],
       ['trendshift', ['period', 'language']],
+      ['hellogithub-ranking', ['period', 'language']],
       ['wanted', ['role']],
     ]);
   });

@@ -6,9 +6,6 @@
 
 /** 읽기 버튼을 숨길 Feed id 또는 Feed Group id. Group으로 적으면 그 Group의 Feed 모두에 쓴다. */
 const READER_HIDDEN_IDS = new Set([
-  // 원문이 제품 소개·포럼·광고 화면이다.
-  'producthunt',
-  'producthunt-top',
   // 원문이 가격표·가동률 대시보드다.
   'openrouter-models',
   // 원문이 지원 화면이 붙은 SPA·이미지 공고라 본문을 추출해도 쓸모가 없다. 원티드는 서버가 공고 데이터를 직접 읽어 준다(ADR-0013).
