@@ -2,7 +2,7 @@
 
 - 상태: 수용
 - 결정일: 2026-10-02
-- 관련: ADR-0004, ADR-0005, ADR-0014, ADR-0015
+- 관련: ADR-0004, ADR-0005, ADR-0014, ADR-0015, ADR-0016
 
 ## 배경
 
@@ -80,15 +80,19 @@ DeepL API 근거: [Check usage and limits](https://developers.deepl.com/api-refe
 
 ## 구현 검증
 
-- 마이그레이션: `apps/backend/drizzle/0009_admin_panel.sql`. 다른 작업의 `0008_feed_navigation_order`와 번호가 겹치지 않도록 0009를 예약했다. 새 운영 상태와 응답 기록에 COMMENT를 함께 추가했다.
-- `npm run typecheck`, `npm test`의 단위 테스트 114개, 임시 PostgreSQL 17에서 DB 통합 테스트 71개 통과.
+- 마이그레이션: `apps/backend/drizzle/0009_admin_panel.sql`. main의 `0008_feed_navigation_order` 다음으로 적용하며 새 운영 상태와 응답 기록에 COMMENT를 함께 추가했다.
+- `npm run typecheck`, `npm test`의 단위 테스트 114개, main 통합 후 임시 PostgreSQL 17에서 DB 통합 테스트 76개 통과.
 - `npm run build:web` 통과. Vite의 500kB 초과 번들 경고는 남아 있다.
 - `npm run design:lint` 오류 0개. 기존 YAML 토큰의 경고 11개는 유지했다.
 - 브라우저에서 관리 링크, 주기 저장과 예상 시각, 일시정지 중 수동 요청, 이력 필터와 오류 상세, 이력으로 이동을 확인했다.
 - 모바일 390px에서 문서 폭 390px, 문서 높이 844px로 페이지 넘침 없이 표 내부만 스크롤되는 것을 확인했다. 모바일 조작 영역은 44px 이상이다.
 - 실제 운영 DeepL 키·LLM 인증 및 외부 nginx 설정은 변경하지 않았다. DeepL 응답은 모의 HTTP 응답으로, 설정 누락 안내는 브라우저에서 확인했다.
 
-## 병합 순서
+## main 통합
 
-`0008_feed_navigation_order`를 추가하는 PR #3을 먼저 병합한다. 이후 관리자 패널 브랜치에 main을 반영해 journal에 0008과 0009를 순서대로 두고, 0009 snapshot에 두 변경을 모두 포함해 prevId가 0008 snapshot의 id를 가리키도록 정리한다.
-현재 main에는 0008이 없으므로 이 브랜치의 0009 snapshot은 0007을 부모로 둔다. 파일 번호 변경만으로 두 브랜치의 snapshot 계보 충돌이 해결되는 것은 아니다.
+2026-10-03에 PR #3이 병합된 main을 반영했다. Feed 순서 저장·키보드 탐색과 관리자 기능을 함께 유지하며, journal은 0008 다음 0009 순서로 둔다.
+0009 snapshot은 Feed Navigation Order와 관리자 운영 상태를 모두 포함하며 prevId는 0008 snapshot의 id를 가리킨다. 이미 배포된 0008과 관리자 0009의 SQL 및 적용 timestamp는 변경하지 않는다.
+
+- Drizzle 검사 통과. 통합 스키마를 다시 generate해도 추가 마이그레이션이 생성되지 않는다.
+- main의 0000~0008만 적용한 DB에 Feed 순서를 저장한 뒤 0009를 적용해 기존 순서 데이터 유지와 관리자 컬럼 기본값을 확인했다.
+- 브라우저에서 읽기 패널의 숫자 키 탐색, Entry 열기, 키보드 순서 이동과 선택 유지, 관리자 전환을 확인했다. 관리자 주기 입력의 방향키는 숫자 입력을 변경하며, 저장·새로고침 후 Feed 순서와 운영 값이 함께 유지된다.

@@ -6,6 +6,12 @@
 /** Feed 종류(ADR-0009). Stream Feed는 시간순 타임라인, Ranked Feed는 순위표로 본다. */
 export type FeedKind = 'stream' | 'ranked';
 
+/** Feed Navigation Order의 한 줄. Feed Group은 통째로 배치한다(ADR-0016). */
+export type FeedNavigationItem = { kind: 'feed' | 'group'; id: string };
+
+/** 조회·수정 API가 공유하는 개인용 공통 순서(ADR-0016). 배열 순서가 화면 순서다. */
+export type FeedNavigationOrder = { stream: FeedNavigationItem[]; ranked: FeedNavigationItem[] };
+
 /** Feed Group의 축 하나(기간, 언어, 구역). `values`의 순서가 화면의 탭·선택지 순서다(ADR-0010). */
 export type FeedGroupAxis = {
   key: string;

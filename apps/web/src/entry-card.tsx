@@ -51,6 +51,7 @@ export function EntryCard({ entry: loadedEntry, cardKind = 'article', feedTitle,
     >
       <div className="flex items-start gap-2">
         <a
+          data-navigation-item={`entry:${entry.id}`}
           className={cn(
             'flex-1 rounded-xs outline-none focus-visible:ring-2 focus-visible:ring-ring',
             // 카드 전체를 누를 수 있게 링크의 누르는 영역을 카드 크기로 넓힌다. Bookmark와 메타 줄 링크는 그 위에 올린다.

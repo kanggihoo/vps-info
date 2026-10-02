@@ -12,6 +12,7 @@ import { type LlmRequester, makeLlmRequester, registerConversationRoutes } from 
 import { createDeepLTranslator, type TextTranslator } from './deepl-translator.ts';
 import { registerEntryRoutes } from './entry-routes.ts';
 import { registerFeedRoutes } from './feed-routes.ts';
+import { registerFeedNavigationRoutes } from './feed-navigation-routes.ts';
 import { fetchOriginalPage, type OriginalPageFetcher } from './original-page.ts';
 import { registerAdminRoutes, type AdminRouteOptions } from './admin-routes.ts';
 
@@ -48,6 +49,7 @@ export async function buildServer(options: BuildServerOptions): Promise<FastifyI
 
   await server.register(registerFeedRoutes);
   await server.register(registerAdminRoutes, { readDeepLUsage: options.readDeepLUsage });
+  await server.register(registerFeedNavigationRoutes);
   await server.register(registerEntryRoutes, {
     fetchOriginalPage: options.fetchOriginalPage ?? fetchOriginalPage,
     translateTexts: options.translateTexts === undefined ? makeDefaultTranslator() : (options.translateTexts ?? undefined),

@@ -3,7 +3,19 @@
  * 이 파일을 바꾼 뒤에는 `npm run db:generate`로 마이그레이션 SQL을 만든다.
  */
 import { sql } from 'drizzle-orm';
+import type { FeedNavigationItem } from '@trendboda/api-types';
 import { bigint, boolean, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, unique } from 'drizzle-orm/pg-core';
+
+/** 개인용 공통 Feed Navigation Order. Group 정의는 코드에 있고 배치만 저장한다(ADR-0016). */
+export const feedNavigationOrder = pgTable('feed_navigation_order', {
+  id: integer('id').primaryKey().default(1),
+  streamOrder: jsonb('stream_order').$type<FeedNavigationItem[]>().notNull(),
+  rankedOrder: jsonb('ranked_order').$type<FeedNavigationItem[]>().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  check('feed_navigation_order_singleton', sql`${table.id} = 1`),
+  check('feed_navigation_order_arrays', sql`jsonb_typeof(${table.streamOrder}) = 'array' and jsonb_typeof(${table.rankedOrder}) = 'array'`),
+]);
 
 /**
  * Feed의 실행 상태와 운영 값.

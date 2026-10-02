@@ -1,40 +1,9 @@
 {
-  "id": "1553b797-b642-444f-bdfa-f922a30be41f",
-  "prevId": "90c801ea-6ce4-40a9-bee6-da4b1c7679cf",
+  "id": "90c801ea-6ce4-40a9-bee6-da4b1c7679cf",
+  "prevId": "d0f4272d-7c8e-41a4-acff-f40da0758b4d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.collector_heartbeat": {
-      "name": "collector_heartbeat",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "last_seen_at": {
-          "name": "last_seen_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "stopped_at": {
-          "name": "stopped_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.entry": {
       "name": "entry",
       "schema": "",
@@ -276,26 +245,6 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
-        },
-        "paused": {
-          "name": "paused",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "manual_requested_at": {
-          "name": "manual_requested_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "schedule_revision": {
-          "name": "schedule_revision",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
         }
       },
       "indexes": {},
