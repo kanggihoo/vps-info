@@ -42,20 +42,19 @@ services:
       migrate: { condition: service_completed_successfully }
     networks: [vps_data]
 
-  # Entry 대화 서비스(ADR-0015). 도구를 끈 Claude·Codex를 구독 인증으로 돌린다.
-  # 엔진은 셸을 가진 에이전트라 이 컨테이너가 샌드박스다: DB 네트워크에 붙지 않고, LLM 인증 정보 말고는 비밀값이 없다.
-  # 루트 파일시스템은 읽기 전용이고, 쓰기는 /tmp(tmpfs: 세션·Codex 상태)와 Codex 인증 볼륨에만 한다.
-  # Codex 로그인: docker compose run --rm -e CODEX_HOME=/codex-auth llm /app/node_modules/.bin/codex login --device-auth
+  # Entry 대화 서비스(ADR-0015, ADR-0018). pi-ai로 Claude·OpenAI·OpenRouter를 HTTP로 부르고, 도구는 넘기지 않는다.
+  # DB 네트워크에 붙지 않고, LLM 인증 정보 말고는 비밀값이 없다. 루트 파일시스템은 읽기 전용이고, 쓰기는 인증 볼륨에만 한다.
+  # Claude·OpenAI 구독 로그인(llm_auth 볼륨의 auth.json): bash scripts/llm-login.sh anthropic|openai
   llm:
     build: { context: ., target: llm }
-    environment: [CLAUDE_CODE_OAUTH_TOKEN, CODEX_HOME=/tmp/codex, CODEX_AUTH_FILE=/codex-auth/auth.json, CLAUDE_CONFIG_DIR=/tmp/claude]
+    environment: [OPENROUTER_API_KEY, LLM_AUTH_FILE=/llm-auth/auth.json]
     restart: unless-stopped
     read_only: true
-    tmpfs: ["/tmp:mode=1777,size=512m"]
-    volumes: ["codex_auth:/codex-auth"]
+    tmpfs: ["/tmp:mode=1777,size=64m"]
+    volumes: ["llm_auth:/llm-auth"]
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
-    mem_limit: 1g
+    mem_limit: 512m
     pids_limit: 256
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:8100/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
@@ -64,7 +63,7 @@ services:
     networks: [llm]
 
 networks:
-  # app과 llm만 붙는 네트워크. 외부로 나가는 길은 열려 있어야 llm이 Anthropic·OpenAI에 닿는다.
+  # app과 llm만 붙는 네트워크. 외부로 나가는 길은 열려 있어야 llm이 Anthropic·OpenAI·OpenRouter에 닿는다.
   llm: {}
   vps_proxy:
     external: true
@@ -74,5 +73,5 @@ networks:
     name: vps_data
 
 volumes:
-  # Codex 인증 파일(auth.json). Codex가 토큰을 갱신하면 llm이 여기에 되돌려 쓴다.
-  codex_auth:
+  # Claude·OpenAI 구독 로그인 파일(auth.json, pi-ai CLI 형식). pi-ai가 토큰을 갱신하면 llm이 여기에 되돌려 쓴다.
+  llm_auth:

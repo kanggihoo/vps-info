@@ -1,7 +1,7 @@
 /**
  * Entry 대화 API(ADR-0015). 화면의 요청을 `llm` 서비스로 넘긴다.
  *
- * 엔진(Claude·Codex CLI)은 셸을 가진 에이전트라 DB 자격 증명이 있는 이 컨테이너에서 띄우지 않고 `llm` 컨테이너에서 돌린다.
+ * LLM 인증 정보를 DB 자격 증명과 한 컨테이너에 두지 않으려고 `llm` 컨테이너에서 부른다(ADR-0018).
  * 첫 질문의 Entry 제목·주소·요약은 화면이 보낸 값이 아니라 DB에서 채운다. 원문 본문만 화면이 읽어 둔 것을 받는다.
  */
 import { eq } from 'drizzle-orm';
@@ -40,7 +40,7 @@ const turnSchema = {
     properties: {
       question: { type: 'string', minLength: 1, maxLength: 4000 },
       sessionId: { type: ['string', 'null'], maxLength: 200 },
-      engine: { enum: ['claude', 'codex'] },
+      engine: { enum: ['anthropic', 'openai', 'openrouter'] },
       model: { type: 'string', minLength: 1, maxLength: 100 },
       original: { type: ['string', 'null'] },
     },
@@ -64,7 +64,7 @@ export async function registerConversationRoutes(server: FastifyInstance, { requ
     }
   });
 
-  /** 대화 한 턴. 이어 가는 대화는 질문만 넘기고, 대화 기록은 `llm`의 엔진 세션이 들고 있다. */
+  /** 대화 한 턴. 이어 가는 대화는 질문만 넘기고, 대화 기록은 `llm`이 메모리에 들고 있다. */
   server.post<{ Params: { entryId: number }; Body: EntryConversationTurnRequest }>(
     '/api/entries/:entryId/conversation',
     { schema: turnSchema, bodyLimit: TURN_BODY_LIMIT_BYTES },

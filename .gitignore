@@ -7,3 +7,5 @@ test-results/
 .vitest/
 .playwright-cli/
 output/playwright/
+# pi-ai CLI 로그인 파일(apps/llm을 컨테이너 밖에서 띄울 때)
+auth.json

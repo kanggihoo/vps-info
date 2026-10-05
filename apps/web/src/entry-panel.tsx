@@ -335,7 +335,7 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
                   loadOriginal={loadOriginal}
                 />
               ) : (
-                <p className="mt-8 border-t pt-5 text-caption text-muted-foreground">대화할 수 있는 엔진이 없습니다. 서버의 Claude·Codex 인증 정보를 확인하세요.</p>
+                <p className="mt-8 border-t pt-5 text-caption text-muted-foreground">대화할 수 있는 엔진이 없습니다. 서버의 LLM 인증 정보를 확인하세요.</p>
               )}
             </div>
           )}

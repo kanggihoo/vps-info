@@ -16,7 +16,7 @@ const fakeLlm: LlmRequester = async (_path, init) => {
   return Response.json({ sessionId: 'session-1', answer: '답' });
 };
 
-const firstTurn: EntryConversationTurnRequest = { question: '요약해 줘', sessionId: null, engine: 'claude', model: 'sonnet', original: '# 본문' };
+const firstTurn: EntryConversationTurnRequest = { question: '요약해 줘', sessionId: null, engine: 'anthropic', model: 'sonnet', original: '# 본문' };
 
 beforeEach(async () => {
   sentBodies = [];
@@ -44,11 +44,11 @@ describe('POST /api/entries/:entryId/conversation', () => {
       {
         question: '요약해 줘',
         sessionId: null,
-        engine: 'claude',
+        engine: 'anthropic',
         model: 'sonnet',
         entry: { title: 'Queues in Postgres', url: 'https://example.com/1', summary: 'Why a table can be a queue.', original: '# 본문' },
       },
-      { question: '더', sessionId: 'session-1', engine: 'claude', model: 'sonnet', entry: null },
+      { question: '더', sessionId: 'session-1', engine: 'anthropic', model: 'sonnet', entry: null },
     ]);
   });
 
