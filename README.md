@@ -69,6 +69,15 @@ access 토큰이 만료되기 전에 pi-ai가 refresh 토큰으로 갱신하고 
 
 - **OpenRouter**: API 키를 `OPENROUTER_API_KEY`로 넣습니다(운영은 sops 파일, 로컬은 `.env`).
 
+운영 VPS에는 저장소 체크아웃이 없습니다(Jenkins workspace는 named volume 안에 있습니다). 그래서 SSH로 들어가 배포된 이미지와 볼륨으로 직접 실행합니다.
+compose 프로젝트 이름이 `vps-info`라서 이미지는 `vps-info-llm`, 볼륨은 `vps-info_llm_auth`입니다.
+
+```bash
+docker run --rm -it -v vps-info_llm_auth:/llm-auth -w /llm-auth vps-info-llm /app/node_modules/.bin/pi-ai login anthropic
+docker run --rm -it -v vps-info_llm_auth:/llm-auth -w /llm-auth vps-info-llm /app/node_modules/.bin/pi-ai login openai
+docker logs vps-info-llm-1 2>&1 | grep 대기합니다   # 시작 로그는 재시작할 때만 다시 찍힌다
+```
+
 ## 개발 명령
 
 ```bash
