@@ -163,8 +163,8 @@ export type TranslationView = {
  */
 export type TranslationFailureReason = 'translation-disabled' | 'translation-auth' | 'translation-quota' | 'translation-busy' | 'translation-failed';
 
-/** Entry 대화를 만드는 엔진(ADR-0015). 둘 다 사용자의 구독으로 인증한다. */
-export type LlmEngine = 'claude' | 'codex';
+/** Entry 대화를 만드는 엔진(ADR-0018). 값은 pi-ai provider id다. Claude·OpenAI는 구독으로, OpenRouter는 API 키로 인증한다. */
+export type LlmEngine = 'anthropic' | 'openai' | 'openrouter';
 
 /** 엔진 하나와 고를 수 있는 모델. */
 export type LlmEngineView = {
@@ -173,7 +173,7 @@ export type LlmEngineView = {
   title: string;
   /** 서버에 이 엔진의 인증 정보가 있는지. 없으면 화면에서 고를 수 없다. */
   available: boolean;
-  /** `value`는 SDK에 넘기는 모델 이름, `title`은 화면에 보이는 이름이다. */
+  /** `value`는 pi-ai 모델 id, `title`은 화면에 보이는 이름이다. */
   models: { value: string; title: string }[];
 };
 
@@ -182,7 +182,7 @@ export type LlmModelsView = {
   engines: LlmEngineView[];
 };
 
-/** `POST /api/entries/:entryId/conversation`의 요청 본문. 대화 기록은 `llm` 서비스의 세션이 들고 있다(ADR-0015). */
+/** `POST /api/entries/:entryId/conversation`의 요청 본문. 대화 기록은 `llm` 서비스가 메모리에 들고 있다(ADR-0018). */
 export type EntryConversationTurnRequest = {
   question: string;
   /** 이어 갈 대화. 첫 질문이면 `null`이고, 그때 Entry와 원문 본문이 함께 들어간다. */

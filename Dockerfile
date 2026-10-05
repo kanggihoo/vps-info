@@ -30,12 +30,10 @@ COPY packages/api-types ./packages/api-types
 COPY apps/web ./apps/web
 RUN npm run build -w @trendboda/web
 
-# Entry 대화 서비스(ADR-0015). Claude·Codex CLI 바이너리(약 700MB)가 이 이미지에만 들어간다.
-# Codex(Rust)는 시스템 CA로 TLS를 검증하는데 slim 이미지에는 CA가 없어 ca-certificates를 깐다.
-# /codex-auth는 Codex 인증 파일 볼륨의 마운트 지점이다. 미리 만들어 두어야 새 볼륨이 node 소유로 생긴다.
+# Entry 대화 서비스(ADR-0015, ADR-0018). pi-ai와 provider SDK는 이 이미지에만 들어간다.
+# /llm-auth는 OpenAI 구독 로그인 파일 볼륨의 마운트 지점이다. 미리 만들어 두어야 새 볼륨이 node 소유로 생긴다.
 FROM workspace-manifests AS llm
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/* \
-    && mkdir /codex-auth && chown node:node /codex-auth
+RUN mkdir /llm-auth && chown node:node /llm-auth
 ENV NODE_ENV=production
 RUN npm ci --omit=dev -w @trendboda/llm
 COPY packages/api-types ./packages/api-types

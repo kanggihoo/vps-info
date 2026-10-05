@@ -10,7 +10,7 @@ npm workspaces 모노레포다(ADR-0008). 루트 package.json은 워크스페이
 |---|---|---|
 | `apps/backend` | `@trendboda/backend` | 서버(`src/server`)와 수집기(`src/collector`), DB 스키마·마이그레이션 |
 | `apps/web` | `@trendboda/web` | React 화면, DESIGN.md, 토큰 생성·컴포넌트 추가 스크립트 |
-| `apps/llm` | `@trendboda/llm` | Entry 대화 서비스(ADR-0015). Claude·Codex SDK는 이 워크스페이스에만 넣는다 |
+| `apps/llm` | `@trendboda/llm` | Entry 대화 서비스(ADR-0018). pi-ai와 provider SDK는 이 워크스페이스에만 넣는다 |
 | `packages/api-types` | `@trendboda/api-types` | 서버·화면·`llm`이 함께 쓰는 API 타입(타입만) |
 
 - 의존성은 쓰는 워크스페이스의 package.json에 넣는다(`npm i <패키지> -w @trendboda/web`). 루트에는 넣지 않는다.
