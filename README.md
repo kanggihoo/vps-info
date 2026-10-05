@@ -75,7 +75,8 @@ compose 프로젝트 이름이 `vps-info`라서 이미지는 `vps-info-llm`, 볼
 ```bash
 docker run --rm -it -v vps-info_llm_auth:/llm-auth -w /llm-auth vps-info-llm /app/node_modules/.bin/pi-ai login anthropic
 docker run --rm -it -v vps-info_llm_auth:/llm-auth -w /llm-auth vps-info-llm /app/node_modules/.bin/pi-ai login openai
-docker logs vps-info-llm-1 2>&1 | grep 대기합니다   # 시작 로그는 재시작할 때만 다시 찍힌다
+# 엔진별 인증 상태 확인(재시작 없이 바로 반영된다)
+docker exec vps-info-llm-1 node -e "fetch('http://localhost:8100/models').then(r => r.json()).then(d => d.engines.forEach(e => console.log(e.engine, e.available)))"
 ```
 
 ## 개발 명령
