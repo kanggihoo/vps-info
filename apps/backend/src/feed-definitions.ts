@@ -311,6 +311,19 @@ export const feedDefinitions: FeedDefinition[] = [
     kind: 'ranked',
     rankLimit: 60,
   },
+  {
+    id: 'starhistory-weekly',
+    title: 'Star History 주간 급상승',
+    handler: 'starhistory',
+    params: {},
+    // 다른 Ranked Feed(6시간~3일)보다 훨씬 길게 7일로 둔다. 정보원이 주 1회(월~일 기간)만 순위표를 바꾸는데,
+    // 화면의 순위 변동은 "직전 수집"과 비교한 것이다(ADR-0009). 더 자주 받으면 같은 주의 순위표끼리 비교되어
+    // 변동이 모두 사라지고, 새 주가 시작된 날에만 잠깐 보인다. 한 주에 한 번 받으면 직전 수집이 곧 지난주다.
+    // 갱신 요일이 확실하지 않아 한 주를 건너뛰거나 같은 주를 두 번 받을 수 있다. 어긋나면 관리 화면에서 주기를 바꾼다.
+    intervalMinutes: 10080,
+    kind: 'ranked',
+    rankLimit: 20,
+  },
   ...makeTrendshiftFeedDefinitions(),
   ...makeHelloGithubRankingFeedDefinitions(),
   { id: 'indiehackers-top-week', title: 'Indie Hackers 주간 인기글', handler: 'indiehackers', params: {}, intervalMinutes: 720 },
