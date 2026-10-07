@@ -14,6 +14,7 @@ import { openrouterModelsHandler } from './openrouter-models-handler.ts';
 import { producthuntHandler } from './producthunt-handler.ts';
 import { rssHandler } from './rss-handler.ts';
 import { saraminHandler } from './saramin-handler.ts';
+import { starhistoryHandler } from './starhistory-handler.ts';
 import { trendshiftHandler } from './trendshift-handler.ts';
 import { wantedHandler } from './wanted-handler.ts';
 
@@ -32,6 +33,7 @@ export const handlers = {
   saramin: saraminHandler,
   linkareer: linkareerHandler,
   producthunt: producthuntHandler,
+  starhistory: starhistoryHandler,
 };
 
 /** 등록된 Handler 이름. Feed 선언의 `handler` 값이 된다. */

@@ -30,6 +30,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 | Trendshift 주간 (전체·TypeScript·Python) | 이번 주 Trendshift 점수 상위 GitHub 저장소 25개 | Ranked | HTML 안의 RSC 데이터 | 6시간 | 25씩 |
 | Trendshift 월간 (전체·TypeScript·Python) | 이번 달 점수 상위 저장소 25개 | Ranked | HTML 안의 RSC 데이터 | 12시간 | 25씩 |
 | Trendshift 연간 (전체·TypeScript·Python) | 올해 점수 상위 저장소 25개 | Ranked | HTML 안의 RSC 데이터 | 1일 | 25씩 |
+| Star History 주간 급상승 | 이번 주 GitHub 스타가 가장 많이 늘어난 저장소 20개 | Ranked | HTML 파싱 | 7일 | 20 |
 | HelloGitHub 월간 (전체·Python·JavaScript·Rust) | 최신 월간호에서 언어별로 고른 저장소 40개까지 | Ranked | 공개 API | 1일 | – |
 | HelloGitHub 연간 (전체·Python·JavaScript·Rust) | 올해 소개된 저장소를 HelloGitHub 순서대로 40개까지 | Ranked | 공개 API | 3일 | – |
 | Indie Hackers 주간 인기글 | 지난주 인기 1인 창업·사이드 프로젝트 글 | Stream | HTML 파싱 | 12시간 | 20 |
@@ -107,6 +108,18 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 참고: 일간(첫 화면)은 수집하지 않는다. 링크는 GitHub 저장소로 가고, Trendshift 저장소 페이지 주소·언어·태그는 `extra`에, 점수·스타·포크는 `metrics`에 저장한다.
   예전의 `github-trending-daily`(GitHub Trending 일간)와 `trendshift`(Trendshift 첫 화면) Feed는 2026-09-29에 이 Feed들로 바꾸면서 지웠다(마이그레이션 `0003`).
 - 화면: 저장소 카드의 순위표. 언어, 전체 스타, 그 기간에 늘어난 스타와 직전 대비 증감, 포크, 태그를 보여 준다.
+
+**Star History 주간 급상승** (`starhistory-weekly`, Ranked)
+- 출처: [star-history.com](https://www.star-history.com) 홈의 주간 순위표
+- 가져오기: 공식 API가 없어서 홈 HTML에 미리 그려진 순위표(`ol > li`)를 파싱한다. 20개가 온다. 정확한 `owner/repo`와 증가 스타(`+8,835`)는 줄마다 마우스 올림 설명에 있다.
+  순위표를 찾지 못하거나 한 줄의 형식이 다르면 실패로 남긴다. 클래스 이름은 Tailwind 유틸리티라 읽지 않는다.
+- 순위: 그 주(월~일 기간, 화면에 `Updated Sep 29, 2026 – Oct 5, 2026`처럼 적힌다)에 늘어난 스타 수 순서다. 주 1회만 바뀐다.
+- 주기: **7일(10080분).** 다른 Ranked Feed보다 훨씬 길다. 순위 변동은 "직전 수집"과 비교하는데(ADR-0009), 정보원이 주 1회만 바뀌므로 더 자주 받으면 같은 주끼리 비교되어 변동이 모두 사라진다.
+  갱신 요일이 확실하지 않아 한 주를 건너뛰거나 같은 주를 두 번 받을 수 있다. 어긋나면 관리 화면에서 주기를 바꾼다.
+- 새 Entry: 순위에 처음 오른 저장소. 주가 바뀐 뒤 첫 수집에서 일부가 NEW로 뜬다.
+- 참고: 링크는 GitHub 저장소로 간다. 주간 증가 스타를 `metrics.starsGained`에 저장한다. 전체 스타·포크·언어는 응답에 없다.
+  사이트가 보여 주는 지난주 대비 변동(▲▼·N)은 `metrics.rankChange`(오른 칸 수, 내려가면 음수)와 `metrics.isNewToTop`에 남기지만, 화면은 아직 이 값을 쓰지 않는다.
+- 화면: 저장소 카드의 순위표. 그 주에 늘어난 스타와 직전 수집 대비 증감을 보여 준다.
 
 **HelloGitHub** (`hellogithub`)
 - 출처: [hellogithub.com](https://hellogithub.com)
