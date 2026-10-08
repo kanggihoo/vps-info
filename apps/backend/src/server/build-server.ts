@@ -15,6 +15,7 @@ import { registerFeedRoutes } from './feed-routes.ts';
 import { registerFeedNavigationRoutes } from './feed-navigation-routes.ts';
 import { fetchOriginalPage, type OriginalPageFetcher } from './original-page.ts';
 import { registerAdminRoutes, type AdminRouteOptions } from './admin-routes.ts';
+import { SERVER_LOGGER_OPTIONS } from './server-logger.ts';
 
 /** 화면 빌드 결과(`apps/web/dist`) 위치. 운영 이미지에는 Dockerfile이 같은 경로에 넣어 두고, 로컬에서는 Vite 개발 서버를 쓰므로 없을 수 있다. */
 const WEB_BUILD_DIRECTORY = resolve(import.meta.dirname, '../../../web/dist');
@@ -39,7 +40,7 @@ function makeDefaultTranslator(): TextTranslator | undefined {
 
 /** 서버를 만든다. */
 export async function buildServer(options: BuildServerOptions): Promise<FastifyInstance> {
-  const server = Fastify({ logger: options.logger });
+  const server = Fastify({ logger: options.logger ? SERVER_LOGGER_OPTIONS : false });
 
   /** 컨테이너 상태 확인용. DB까지 닿는지 함께 본다. */
   server.get('/api/health', async () => {

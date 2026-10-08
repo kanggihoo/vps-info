@@ -5,6 +5,7 @@
 - [CONTEXT.md](./CONTEXT.md): 프로젝트의 도메인 용어를 따른다.
 - [docs/adr/](./docs/adr/): 관련 아키텍처 결정을 따른다.
 - [TypeScript conventions](./docs/conventions/typescript.md): 코드를 작성하거나 리팩터링할 때 따른다.
+- [Logging conventions](./docs/conventions/logging.md): 로그를 쓰거나 로거 설정을 바꿀 때 따른다.
 - [ADR template](./docs/adr/TEMPLATE.md): ADR을 새로 작성할 때 이 형식을 따른다.
 - [Decisions later](./docs/adr/decisions-later.md): 아직 결정하지 않은 항목을 확인한다.
 - [화면 디자인](./apps/web/DESIGN.md): `apps/web/` 화면을 만들거나 고칠 때 따른다. YAML 토큰을 바꾸면 `npm run design:tokens`로 `apps/web/src/styles/`를 다시 만든다.
