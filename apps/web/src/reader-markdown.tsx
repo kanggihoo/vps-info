@@ -3,6 +3,7 @@
  *
  * 본문에는 원문 페이지의 HTML(`<img>`, `<table>`, `<details>` 등)이 섞여 온다. GitHub README가 특히 그렇다.
  * HTML을 모두 버리면 README가 망가지므로 `rehype-raw`로 살리고, `rehype-sanitize`의 기본 허용 목록(GitHub의 README 렌더링 규칙)으로 거른다.
+ * 표(GFM 확장 문법)는 `remark-gfm`이 해석한다. 없으면 표가 문단으로 합쳐져 한 줄로 보인다.
  * HN이 링크하는 페이지는 누구나 만든 곳이라 `<script>`·이벤트 속성·인라인 `<svg>`·`<iframe>`이 이 앱에서 실행되면 안 된다.
  *
  * Entry 대화의 답(`AnswerMarkdown`)은 다른 규칙으로 그린다(ADR-0015 결정 7). 원문의 인젝션에 넘어간 답이
@@ -11,6 +12,7 @@
 import ReactMarkdown, { type Components } from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import remarkGfm from 'remark-gfm';
 
 /** 본문의 링크는 새 탭에서 연다. 펼친 화면을 잃지 않게 하려는 것이다. */
 const components: Components = {
@@ -31,7 +33,7 @@ export function AnswerMarkdown({ markdown }: { markdown: string }) {
 export function ReaderMarkdown({ markdown }: { markdown: string }) {
   return (
     <div className="prose prose-sm max-w-none wrap-anywhere prose-a:underline-offset-2 prose-img:h-auto prose-img:max-w-full prose-img:rounded-md prose-pre:rounded-md prose-pre:whitespace-pre-wrap [&_table]:table-fixed [&_table]:w-full">
-      <ReactMarkdown rehypePlugins={[rehypeRaw, rehypeSanitize]} components={components}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, rehypeSanitize]} components={components}>
         {markdown}
       </ReactMarkdown>
     </div>
