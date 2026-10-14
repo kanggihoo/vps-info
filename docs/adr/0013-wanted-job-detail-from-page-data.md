@@ -23,7 +23,7 @@ Entry는 링크와 메타데이터이고 원문 본문을 저장하지 않는다
 3. **새 API나 응답 타입을 만들지 않는다**: 기존 `GET /api/entries/:entryId/reader`와 `ReaderView`를 쓴다. `readOriginal`이 원티드 공고 주소(`https://www.wanted.co.kr/wd/<id>`)이면 defuddle 대신 `readWantedJob`(`apps/backend/src/server/wanted-job-page.ts`)을 부른다.
 4. **보여 주는 순서**: 고용 형태·원격 근무 → 기업 채용 사이트 지원 링크(`out_link`가 http(s)일 때만) → 자격 요건 → 주요 업무 → 우대 사항 → 채용 전형 → 혜택 및 복지 → 회사 소개.
 5. **기술스택 태그는 만들지 않는다**: 페이지 데이터에는 기술스택 필드가 없고, 자격 요건 글에 적혀 있는 경우가 많다. 별도 내부 API(`chaos/jobs/v4/<id>/details`)는 웹이 쓰는 경로가 아니라서 기대지 않는다.
-6. **읽기 버튼은 원티드에서 보인다**: 웹의 읽기 버튼 숨김 목록(`reader-availability.ts`)에 원티드는 넣지 않는다.
+6. **읽기 버튼은 원티드에서 보인다**: 웹의 읽기 버튼 비활성 목록(`reader-availability.ts`)에 원티드는 넣지 않는다.
 
 ## 검토한 대안들
 

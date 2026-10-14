@@ -382,6 +382,6 @@ Stream Feed를 Ranked Feed로 바꾸면서 주기도 바꾸는 경우가 여기�
 - [ ] DB에서 `dedup_key`, `title`, `url`, `published_at`, `extra` 확인
 - [ ] 과거 글 전체를 한꺼번에 주는 정보원이면 `publishedSince`
 - [ ] 글이 아닌 Feed(저장소, 모델, 논문, 릴리스)면 `apps/web/src/card-kind.ts`에 카드 종류를 적음
-- [ ] 원문 페이지가 본문이 아니라 제품·대시보드 화면이면 `apps/web/src/reader-availability.ts`에 읽기 버튼을 숨길 Feed로 적음(ADR-0011)
+- [ ] 원문 페이지가 본문이 아니라 제품·대시보드 화면이면 `apps/web/src/reader-availability.ts`에 읽기 버튼을 비활성으로 둘 Feed로 적음(ADR-0011)
 - [ ] 화면 왼쪽 목록에 보이고, Entry를 누르면 오른쪽에 펼쳐지며, 읽기 버튼으로 본문이 보임
 - [ ] [docs/feeds.md](../feeds.md)에 이 Feed의 출처·가져오는 방식·주기·새 Entry가 생기는 때를 적음

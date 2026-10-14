@@ -6,7 +6,7 @@
  * Entry가 바뀌면 부모가 `key`로 새로 만들므로 읽기 모드·번역 표시·진행 중인 요청이 모두 초기화된다.
  */
 import { ArrowLeft, BookOpenText, Bot, Check, Copy, ExternalLink, Languages, Star } from 'lucide-react';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { EntryView, FeedSummary, ReaderFailureReason, ReaderView, TranslationFailureReason } from '@trendboda/api-types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -24,8 +24,9 @@ import { EntryMeta, EntryTags } from './entry-meta.tsx';
 import type { EntrySelection } from './entry-selection.ts';
 import { EmptyMessage, LoadError } from './load-states.tsx';
 import { RankMovementMark } from './rank-table.tsx';
-import { isReaderAvailable } from './reader-availability.ts';
+import { isReaderAvailable, READER_UNAVAILABLE_MESSAGE } from './reader-availability.ts';
 import { ReaderMarkdown } from './reader-markdown.tsx';
+import { ToolbarButton } from './toolbar-button.tsx';
 import type { LlmChoice } from './use-llm-choice.ts';
 
 /** 원문 읽기 실패 이유별 안내. */
@@ -259,11 +260,15 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
           <ToolbarButton shortcut="B" disabled={bookmarking} label={bookmarked ? 'Bookmark 해제' : 'Bookmark'} pressed={bookmarked} onClick={toggleBookmark} className={cn(bookmarked && 'text-brand-ink hover:text-brand-ink')}>
             <Star className={cn(bookmarked && 'fill-current')} />
           </ToolbarButton>
-          {readerAvailable && (
-            <ToolbarButton shortcut="R" label={reader.status === 'off' ? '원문 읽기' : '요약으로 돌아가기'} pressed={reader.status !== 'off'} onClick={toggleReader}>
-              <BookOpenText />
-            </ToolbarButton>
-          )}
+          <ToolbarButton
+            shortcut="R"
+            label={reader.status === 'off' ? '원문 읽기' : '요약으로 돌아가기'}
+            unavailableReason={readerAvailable ? undefined : READER_UNAVAILABLE_MESSAGE}
+            pressed={reader.status !== 'off'}
+            onClick={toggleReader}
+          >
+            <BookOpenText />
+          </ToolbarButton>
           <ToolbarButton shortcut="C" label={copied ? '복사됨' : reader.status === 'loaded' ? '본문 복사' : '복사'} onClick={copyContent}>
             {copied ? <Check /> : <Copy />}
           </ToolbarButton>
@@ -391,40 +396,6 @@ function ReaderBody({ reader, url, translated }: { reader: Exclude<ReaderState, 
       )}
       <ReaderMarkdown markdown={view.markdown} />
     </>
-  );
-}
-
-type ToolbarButtonProps = {
-  shortcut?: string;
-  label: string;
-  pressed?: boolean;
-  disabled?: boolean;
-  className?: string;
-  onClick: () => void;
-  children: ReactNode;
-};
-
-/** 도구줄의 아이콘 버튼. 무슨 버튼인지는 툴팁과 `aria-label`로 알린다. 켜진 상태는 민트가 아니라 hover 바탕으로 보인다. */
-function ToolbarButton({ shortcut, label, pressed, disabled, className, onClick, children }: ToolbarButtonProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn('rounded-full max-md:size-11 data-[shortcut-active=true]:bg-accent [&_svg]:stroke-[1.5]', pressed && 'bg-accent text-foreground', className)}
-          data-tool-code={shortcut ? `Key${shortcut}` : undefined}
-          aria-keyshortcuts={shortcut}
-          aria-label={label}
-          aria-pressed={pressed}
-          disabled={disabled}
-          onClick={onClick}
-        >
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent className="flex items-center gap-2">{label}{shortcut && <Kbd className="text-caption">{shortcut}</Kbd>}</TooltipContent>
-    </Tooltip>
   );
 }
 

@@ -1,10 +1,14 @@
 /**
- * Entry를 펼친 화면에서 읽기 버튼을 보여 줄지(ADR-0011).
- * 원문 페이지가 본문이 아니라 제품·대시보드 화면인 Feed는 추출해도 쓸모가 없어 버튼을 숨긴다.
+ * Entry를 펼친 화면에서 읽기 버튼을 쓸 수 있는지(ADR-0011).
+ * 원문 페이지가 본문이 아니라 제품·대시보드 화면인 Feed는 추출해도 쓸모가 없어 버튼을 비활성으로 둔다.
+ * 버튼 자체는 모든 Feed에서 그려서 도구줄의 개수와 위치를 고정한다.
  * 화면이 정하는 값이라 Feed 선언이 아니라 여기에 둔다. 새 Feed가 그런 정보원이면 이 목록에 한 줄을 더한다.
  */
 
-/** 읽기 버튼을 숨길 Feed id 또는 Feed Group id. Group으로 적으면 그 Group의 Feed 모두에 쓴다. */
+/** 읽기 버튼을 쓸 수 없을 때 툴팁과 `aria-label`로 알리는 이유. */
+export const READER_UNAVAILABLE_MESSAGE = '이 Feed는 원문 읽기를 지원하지 않습니다';
+
+/** 읽기 버튼을 쓸 수 없는 Feed id 또는 Feed Group id. Group으로 적으면 그 Group의 Feed 모두에 쓴다. */
 const READER_HIDDEN_IDS = new Set([
   // 원문이 가격표·가동률 대시보드다.
   'openrouter-models',
@@ -15,7 +19,7 @@ const READER_HIDDEN_IDS = new Set([
 ]);
 
 /**
- * Feed의 Entry에 읽기 버튼을 보여 줄지 정한다. Feed id를 먼저 보고, 없으면 Feed Group id를 본다.
+ * Feed의 Entry에서 읽기 버튼을 쓸 수 있는지 정한다. Feed id를 먼저 보고, 없으면 Feed Group id를 본다.
  *
  * @param groupId - Feed가 든 Feed Group. 없으면 비운다.
  */

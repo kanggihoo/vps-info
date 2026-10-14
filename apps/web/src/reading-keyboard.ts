@@ -14,10 +14,10 @@ export function focusReadingTarget(target: HTMLElement): void {
   if (target.matches('[data-navigation-item]')) target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
-/** 동작 키의 버튼을 실제로 클릭하고 인식 표시를 짧게 보여 준다. */
+/** 동작 키의 버튼을 실제로 클릭하고 인식 표시를 짧게 보여 준다. 비활성(`disabled`·`aria-disabled`) 버튼은 누르지 않고 `false`를 돌려준다. */
 export function activateReadingTool(panel: HTMLElement, code: string): boolean {
   const button = panel.querySelector<HTMLElement>(`[data-tool-code="${code}"]`);
-  if (!button || button.matches(':disabled')) return false;
+  if (!button || button.matches(':disabled, [aria-disabled="true"]')) return false;
   button.dataset.shortcutActive = 'true';
   window.setTimeout(() => { delete button.dataset.shortcutActive; }, 150);
   button.click();

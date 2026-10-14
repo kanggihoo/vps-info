@@ -84,7 +84,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 출처: [producthunt.com](https://www.producthunt.com)
 - 가져오기: 공식 Atom `https://www.producthunt.com/feed`. 추천된 제품 50개가 온다.
 - 새 Entry: 추천 목록에 새로 오른 제품. 목록의 게시일이 몇 주씩 섞여 있어 "오늘 출시"와는 다르다.
-- 참고: 추천수(vote)는 피드에 없다. 요약 끝에 "Discussion | Link"가 붙는다. 원문 페이지가 제품 화면이라 화면에서 읽기 버튼을 숨긴다.
+- 참고: 추천수(vote)는 피드에 없다. 요약 끝에 "Discussion | Link"가 붙는다. 원문 읽기는 다른 Feed와 같이 쓸 수 있다.
 
 **Product Hunt 인기** (Feed Group, Ranked Feed 3개)
 - Feed: 기간(`weekly`·`monthly`·`yearly`). id는 `producthunt-<기간>`이다. 일간은 수집하지 않는다.
@@ -167,7 +167,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 새 Entry: 새로 추가된 모델. 게시일은 모델이 OpenRouter에 추가된 날이다.
 - 게시일 하한: `2026-01-01`. API가 매번 모델 전체를 주므로 그 이전에 추가된 모델은 저장하지 않는다. 새 모델이 없는 수집은 0건 성공이다.
   처음 받아 둔 이전 모델은 마이그레이션 `0004`에서 지웠다.
-- 참고: 컨텍스트 길이와 토큰 가격은 `extra`에 저장한다. 원문 페이지가 가격표 대시보드라 화면에서 읽기 버튼을 숨긴다.
+- 참고: 컨텍스트 길이와 토큰 가격은 `extra`에 저장한다. 원문 페이지가 가격표 대시보드라 화면에서 읽기 버튼을 비활성으로 둔다.
 
 **Hugging Face 주간 인기 논문** (`hf-papers-weekly`)
 - 출처: [huggingface.co/papers](https://huggingface.co/papers)
@@ -178,7 +178,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 ### 채용 공고
 
 신입 개발 공고를 모으는 Stream Feed다(원티드 직무군 6개, 점핏·사람인·링커리어 각 1개). 화면에서는 `job` 카드로 회사, 지역, 경력, 마감(`~10/30`, 마감일이 없으면 `상시`)과 기술스택·직무 태그를 보여 준다.
-공고 링크는 지원 화면이 붙은 페이지라 읽기 버튼은 원티드(공고 데이터를 직접 읽음, ADR-0013)만 보이고 나머지는 숨긴다. 네 Feed 모두 `extra`의 필드 이름이 같다(`location`, `career`, `deadline`, `alwaysOpen`, `tags`).
+공고 링크는 지원 화면이 붙은 페이지라 읽기 버튼은 원티드(공고 데이터를 직접 읽음, ADR-0013)만 쓸 수 있고 나머지는 비활성으로 둔다. 네 Feed 모두 `extra`의 필드 이름이 같다(`location`, `career`, `deadline`, `alwaysOpen`, `tags`).
 공식 API가 아니라 사이트가 자기 화면에서 부르는 주소를 쓰므로, 응답이 바뀌면 해당 Handler를 고친다. 같은 공고가 여러 사이트에 올라오면 Feed마다 Entry가 따로 생긴다(ADR-0002).
 
 **원티드 신입** (Feed Group `wanted`, Stream Feed 6개)
