@@ -44,7 +44,7 @@ _Avoid_: Ranking, Standing, Leaderboard
 
 **Entry**:
 Feed에서 발견된 항목 하나. 링크와 메타데이터를 보관하며 원문 본문 자체를 의미하지 않는다.
-화면에서 원문 페이지의 본문을 그때그때 가져와 보여 줄 수 있지만, 그 본문은 저장하지 않으며 Entry의 일부가 아니다.
+화면에서 원문 페이지의 본문을 그때그때 가져와 보여 줄 수 있다. 읽기 버튼으로 가져온 본문은 파생 데이터로 따로 저장하지만 Entry의 일부는 아니다.
 제목·요약의 한국어 번역은 Entry에 딸려 저장한다.
 같은 내용이라도 Feed가 다르면 별도의 Entry다.
 _Avoid_: Archive Item, Article, Post, News, Content
@@ -81,8 +81,14 @@ Entry를 처음 열어본 시각. 앱에서 Entry를 골라 펼치거나 원문 
 Read Cursor가 지나갔을 뿐인 Entry와 실제로 읽은 Entry를 가르는 유일한 기준이다.
 _Avoid_: Read At, Visited
 
+**Reader Fetched At**:
+읽기 버튼으로 Entry의 본문을 처음 가져온 시각. 펼치기만 한 Entry와 본문까지 읽은 Entry를 가르는 신호다.
+읽기 신호의 강도는 Read Cursor(지나감) < Opened At(열었음) < Reader Fetched At(본문 읽음) < Bookmark 순이다.
+기록하기 전에 읽은 Entry와 읽지 않은 Entry는 모두 비어 있어 구분할 수 없고, Opened At으로 추정하지 않는다.
+_Avoid_: Read At, Content Fetched At
+
 **Bookmark**:
-나중에 다시 보려고 명시적으로 표시한 Entry. Read Cursor·Opened At과 달리
+나중에 다시 보려고 명시적으로 표시한 Entry. Read Cursor·Opened At·Reader Fetched At과 달리
 사용자가 직접 남기는 유일한 읽기 상태다.
 새 Entry는 Feed별로만 읽지만, Bookmark는 여러 Feed의 것을 한곳에 모아 본다.
 _Avoid_: Favorite, Star, Saved

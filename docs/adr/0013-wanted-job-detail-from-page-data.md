@@ -2,7 +2,7 @@
 
 - 상태: 수용
 - 결정일: 2026-09-30
-- 관련: ADR-0003, ADR-0006, ADR-0011
+- 관련: ADR-0003, ADR-0006, ADR-0011, ADR-0019
 
 ## 배경
 
@@ -17,7 +17,7 @@ Entry는 링크와 메타데이터이고 원문 본문을 저장하지 않는다
 ## 결정
 
 1. **열 때 읽는다**: 원티드 Entry의 읽기 버튼을 누르면 백엔드가 `entry.url`의 페이지를 가져와 `__NEXT_DATA__`의 공고 데이터로 Markdown을 만든다. 수집할 때는 상세를 받지 않는다.
-2. **본문은 저장하지 않는다**: ADR-0011과 같다. 같은 공고를 다시 열면 다시 가져온다. 요약 500자 상한도 그대로다.
+2. **본문은 저장하지 않는다**(ADR-0019가 대체: 읽기 버튼으로 가져온 본문은 원티드도 `entry_content`에 저장한다): ADR-0011과 같다. 같은 공고를 다시 열면 다시 가져온다. 요약 500자 상한도 그대로다.
    **마감일만 예외로 저장한다**: 상세 데이터에 마감일(`due_time`)이 있으면 `ReaderView.deadline`(`YYYY-MM-DD`)으로 돌려주고, 같은 요청에서 그 Entry의 `entry.extra.deadline`에 jsonb로 합쳐 넣는다.
    마감일은 수집 목록에 없어서, 사용자가 연 공고부터 목록 카드에 마감이 보이게 하려는 것이다. 마감이 연장될 수 있어 열 때마다 최신 값으로 덮어쓴다. 마감일이 없는 공고는 `extra`를 건드리지 않는다.
 3. **새 API나 응답 타입을 만들지 않는다**: 기존 `GET /api/entries/:entryId/reader`와 `ReaderView`를 쓴다. `readOriginal`이 원티드 공고 주소(`https://www.wanted.co.kr/wd/<id>`)이면 defuddle 대신 `readWantedJob`(`apps/backend/src/server/wanted-job-page.ts`)을 부른다.
