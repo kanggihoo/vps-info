@@ -375,7 +375,7 @@ components:
 - **Bookmark 토글** (`bookmark-toggle`): 32px 원형 탭 영역(모바일 44px). 꺼짐은 `subtle-foreground` 외곽선 별, 켜짐은 `brand-ink` 채운 별.
 - **선택된 Entry 카드** (`entry-card-selected`): 펼친 Entry의 카드. `accent` 바탕 + 1px `subtle-foreground` 테두리. 선택을 민트로 칠하지 않는다. 카드 전체가 눌리는 링크이고, Bookmark와 메타 줄 링크는 그 위에 올린다.
 - **펼친 Entry** (`entry-panel`): 위쪽 도구줄(아래 1px `border`) + `ScrollArea` 본문. 본문은 읽기 칼럼 폭, `px-4 py-6`(데스크톱 `px-8`).
-  - 도구줄: ghost 아이콘 버튼(`rounded-full`, 18px 아이콘) + `Tooltip`. 오른쪽 끝에 Bookmark(`Star`) · 원문 읽기(`BookOpenText`) · 번역(`Languages`) · 대화(`Bot`) · 원문 열기(`ExternalLink`). 좁은 화면에서는 왼쪽 끝에 뒤로(`ArrowLeft`). 켜진 상태는 `accent` 바탕, 켜진 Bookmark만 `brand-ink`.
+  - 도구줄: ghost 아이콘 버튼(`rounded-full`, 18px 아이콘) + `Tooltip`. 오른쪽 끝에 Bookmark(`Star`) · 원문 읽기(`BookOpenText`, 지원하지 않는 Feed에서는 숨기지 않고 흐리게 두어 6개 위치를 고정) · 번역(`Languages`) · 대화(`Bot`) · 원문 열기(`ExternalLink`). 좁은 화면에서는 왼쪽 끝에 뒤로(`ArrowLeft`). 켜진 상태는 `accent` 바탕, 켜진 Bookmark만 `brand-ink`.
   - 머리: Ranked Feed에서 열었으면 순위와 변동 표시 → 제목(`panel-title`) → 번역 중이면 원제목(`body-sm` `muted-foreground`) → 메타 줄(Feed 이름 `foreground` + Entry 메타) → `Separator`.
   - 본문: 요약(`body-sm`) 또는 원문 본문. 원문을 가져오는 동안은 줄 모양 `Skeleton`, 실패하면 `Alert`(destructive)에 이유와 원문 링크.
   - 원문 본문 (`reader-body`): typography 플러그인 `prose prose-sm`. 색은 `index.css`에서 토큰으로 바꿔 쓴다. 이 칸에 한해 플러그인의 제목·목록 크기를 쓴다(토큰에 없는 글자 크기 금지의 예외). 링크는 `foreground` 밑줄.
