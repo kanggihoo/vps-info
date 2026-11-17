@@ -45,3 +45,10 @@ test('coverage 완화와 새 예외는 실패하고 강화는 통과한다', () 
   repository(({ write, check }) => { write('CONSTRAINTS.md', '| Coverage | >= 90% |\n'); assert.equal(check().status, 0); });
   repository(({ write, check }) => { write('CONSTRAINTS.md', '| Coverage | >= 80% |\n| W1 | temporary |\n'); assert.match(check().stderr, /new-exception/); });
 });
+
+test('1 MiB를 넘는 tracked diff도 잘리지 않고 검사한다', () => repository(({ write, git, check }) => {
+  write('large.md', 'large documentation line\n'.repeat(100_000));
+  git('add', 'large.md');
+  const result = check();
+  assert.equal(result.status, 0, result.stderr);
+}));

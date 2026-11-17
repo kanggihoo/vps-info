@@ -25,8 +25,10 @@ pipeline {
                     name="vps-info-test-$branch-$BUILD_NUMBER"
                     docker build --target test -t "$name" .
                     status=0
-                    # .git은 이미지 빌드 문맥에서 제외한다. diff·secret 검사를 위해 임시 컨테이너에만 복사한다.
+                    # docs 등 빌드 문맥에서 제외한 tracked 파일도 검사할 커밋과 일치시킨다.
+                    # .git은 이미지에 넣지 않고 임시 검사 컨테이너에만 복사한다.
                     docker create --name "$name" -e JUNIT_OUTPUT_DIR=/app/test-results "$name" npm run check:task >/dev/null
+                    git archive --format=tar HEAD | docker cp - "$name:/app"
                     docker cp .git "$name:/app/.git"
                     docker start -a "$name" || status=$?
                     rm -rf test-results
