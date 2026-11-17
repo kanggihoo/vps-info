@@ -18,9 +18,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 | Hacker News Best | HN 추천 상위 글 100개 | Ranked | 공식 API | 6시간 | – |
 | Show HN | HN에 직접 만든 것을 소개하는 글 60개 | Ranked | 공식 API | 6시간 | – |
 | GeekNews | 한국어 개발·기술 뉴스 | Stream | 공식 RSS | 1시간 | 50 |
-| Product Hunt | 추천된 새 제품 | Stream | 공식 Atom | 3시간 | 50 |
 | Product Hunt 인기 (주간·월간·연간) | 이번 주·달·해에 Featured에 오른 제품의 추천수 상위 30개 | Ranked | 공식 GraphQL API | 6시간·12시간·1일 | 30씩 |
-| TechCrunch | 기술 산업 뉴스 | Stream | 공식 RSS | 1시간 | 20 |
 | OpenAI News | OpenAI 공지·연구·사례 | Stream | 공식 RSS | 6시간 | 1230 |
 | Claude Code 릴리스 | Claude Code 버전별 변경 사항 | Stream | GitHub 릴리스 Atom | 6시간 | 10 |
 | OpenRouter 새 모델 | OpenRouter에 추가된 LLM 모델 | Stream | 공개 API | 6시간 | 458 |
@@ -60,11 +58,6 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 가져오기: 공식 RSS `https://news.hada.io/rss/news`. 최근 50건이 온다.
 - 새 Entry: GeekNews에 새로 올라온 글. 요약에 원문 요약 문단이 들어간다.
 
-**TechCrunch** (`techcrunch`)
-- 출처: [techcrunch.com](https://techcrunch.com)
-- 가져오기: 공식 RSS `https://techcrunch.com/feed/`. 최근 20건이 온다.
-- 새 Entry: 새 기사.
-
 **dev.to 주간 인기글** (`devto-top-week`, Ranked)
 - 출처: [dev.to/top/week](https://dev.to/top/week)
 - 가져오기: 공개 API `https://dev.to/api/articles?top=7&per_page=<rank_limit>`(처음 60)
@@ -83,12 +76,6 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 이미지: collector에 CA 인증서를 설치하고 curl-impersonate를 빌드 중 캐시한다. 운영에서 실제 수집 성공 확인 전에는 기존 `paused`를 해제하지 않는다.
 
 ### 제품·오픈소스
-
-**Product Hunt** (`producthunt`)
-- 출처: [producthunt.com](https://www.producthunt.com)
-- 가져오기: 공식 Atom `https://www.producthunt.com/feed`. 추천된 제품 50개가 온다.
-- 새 Entry: 추천 목록에 새로 오른 제품. 목록의 게시일이 몇 주씩 섞여 있어 "오늘 출시"와는 다르다.
-- 참고: 추천수(vote)는 피드에 없다. 요약 끝에 "Discussion | Link"가 붙는다. 원문 페이지가 제품 화면이라 화면에서 읽기 버튼을 숨긴다.
 
 **Product Hunt 인기** (Feed Group, Ranked Feed 3개)
 - Feed: 기간(`weekly`·`monthly`·`yearly`). id는 `producthunt-<기간>`이다. 일간은 수집하지 않는다.
@@ -221,3 +208,10 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 **수집하지 않는 곳**
 - 로켓펀치: Cloudflare가 Node의 요청을 막는다(403). 같은 주소가 curl에서는 열려서 헤더 문제가 아니라 클라이언트 식별로 막는 것이다. 우회하지 않는다.
 - 캐치·자소설닷컴: 캐치는 봇 확인 화면이 뜨고, 자소설닷컴은 목록을 브라우저가 나중에 채워서 HTML만으로는 공고가 없다.
+
+## 수집을 종료한 Feed
+
+- **TechCrunch** (`techcrunch`, 2026-11-17): 기술 산업 뉴스 Stream을 제외했다.
+- **Product Hunt Stream** (`producthunt`, 2026-11-17): 안 읽음이 과도하게 쌓여 제외했다. 제품 발견은 기존 Product Hunt 주간·월간·연간 Ranked Feed로 이어간다.
+
+두 Feed는 선언에서 제외하므로 배포 후 수집과 Feed 목록 표시가 중단된다. 기존 Entry·Bookmark·읽기 상태는 삭제하지 않는다.

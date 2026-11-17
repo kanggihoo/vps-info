@@ -13,7 +13,7 @@ beforeEach(async () => {
   await resetDatabase();
   await database.insert(feed).values([
     { id: 'geeknews', intervalMinutes: 60 },
-    { id: 'producthunt', intervalMinutes: 60 },
+    { id: 'openai-news', intervalMinutes: 60 },
     { id: 'hn-best', intervalMinutes: 360, rankLimit: 100 },
     { id: 'hn-show', intervalMinutes: 360, rankLimit: 100 },
   ]);
@@ -24,7 +24,7 @@ const save = (order: FeedNavigationOrder) => server.inject({ method: 'PUT', url:
 
 it('같은 Group은 한 줄이며 저장값이 없으면 코드 순서로 반환한다', async () => {
   expect(await read()).toEqual({
-    stream: [{ kind: 'feed', id: 'geeknews' }, { kind: 'feed', id: 'producthunt' }],
+    stream: [{ kind: 'feed', id: 'geeknews' }, { kind: 'feed', id: 'openai-news' }],
     ranked: [{ kind: 'group', id: 'hacker-news' }],
   });
 });
@@ -66,5 +66,5 @@ it('오래된 저장값에서 사라진 항목과 중복을 제거한다', async
 
 it('잘못된 본문은 저장하지 않는다', async () => {
   expect((await server.inject({ method: 'PUT', url: '/api/feed-navigation-order', payload: { stream: [{ kind: 'other', id: 'x' }], ranked: [] } })).statusCode).toBe(400);
-  expect(await read()).toEqual({ stream: [{ kind: 'feed', id: 'geeknews' }, { kind: 'feed', id: 'producthunt' }], ranked: [{ kind: 'group', id: 'hacker-news' }] });
+  expect(await read()).toEqual({ stream: [{ kind: 'feed', id: 'geeknews' }, { kind: 'feed', id: 'openai-news' }], ranked: [{ kind: 'group', id: 'hacker-news' }] });
 });
