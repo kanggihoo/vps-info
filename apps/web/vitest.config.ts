@@ -8,7 +8,7 @@ const junitDirectory = process.env.JUNIT_OUTPUT_DIR;
 export default defineConfig({
   resolve: { alias: WEB_ALIASES },
   test: {
-    include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
     reporters: junitDirectory ? ['default', 'junit'] : ['default'],
     outputFile: junitDirectory ? { junit: `${junitDirectory}/web.xml` } : undefined,
   },
