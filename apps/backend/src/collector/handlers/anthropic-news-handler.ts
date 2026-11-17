@@ -4,26 +4,34 @@ import { defineHandler } from './define-handler.ts';
 
 const BASE_URL = 'https://www.anthropic.com';
 
-/** 뉴스 목록 페이지 HTML을 EntryDraft 목록으로 바꾼다. 클래스 이름은 빌드마다 해시가 붙어서 앞부분만 맞춘다. */
+/** 뉴스 카드와 목록 행의 제목 링크·형제 time을 읽는다. 이미지·분류 링크와 중복 카드는 제외한다. */
 export function parseNewsListPage(html: string) {
   const $ = cheerio.load(html);
-  return $('a[href^="/news/"]:has(time)')
+  const seenUrls = new Set<string>();
+  return $('article:has(time), [data-peek]:has(time)')
+    .filter((_, element) => $(element).find('article').length === 0)
     .map((_, element) => {
-      const link = $(element);
-      const path = link.attr('href')!;
-      const dateText = link.find('time').text().trim();
-      const publishedAt = new Date(`${dateText} UTC`);
-      const subject = link.find('[class*="__subject"]').text().trim() || undefined;
+      const item = $(element);
+      const link = item.find('a:has(h2), a:has(h3)').first();
+      const path = link.attr('href');
+      const title = link.find('h2, h3').text().trim();
+      if (!path || !title) return [];
+      const url = new URL(path, BASE_URL);
+      if (url.origin !== BASE_URL || seenUrls.has(url.href)) return [];
+      seenUrls.add(url.href);
+      const time = item.find('time').first();
+      const dateText = time.attr('datetime') || time.text().trim();
+      const publishedAt = new Date(time.attr('datetime') ? dateText : `${dateText} UTC`);
+      const subject = item.find('header p a, [class*="_category"] a').first().text().trim() || undefined;
       return {
-        url: `${BASE_URL}${path}`,
-        title: link.find('[class*="__title"]').text().trim(),
+        url: url.href,
+        title,
         publishedAt: Number.isNaN(publishedAt.getTime()) ? undefined : publishedAt,
         extra: { subject },
         raw: { path, dateText, subject },
       };
     })
-    .get()
-    .filter((draft) => draft.title);
+    .get();
 }
 
 export const anthropicNewsHandler = defineHandler<Record<string, never>>({

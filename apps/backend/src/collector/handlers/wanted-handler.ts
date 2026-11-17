@@ -13,9 +13,9 @@ const JOBS_URL = 'https://www.wanted.co.kr/api/chaos/navigation/v1/results';
 const JOBS_QUERY = { job_group_id: 518, country: 'kr', job_sort: 'job.latest_order', years: 0, locations: 'all' };
 
 /** 한 요청이 돌려주는 최대 공고 수. 넘으면 `offset`으로 다음 페이지를 받는다. */
-const PAGE_SIZE = 100;
-/** 받는 페이지 수의 상한. 직무 하나의 신입 공고는 수십~백여 건이라 넘을 일이 없지만, 무한 반복을 막는다. */
-const MAX_PAGES = 10;
+const PAGE_SIZE = 30;
+/** 기존 100건 × 10페이지의 수집 범위를 유지한다. 상한에서 다음 페이지가 있으면 누락을 성공으로 기록하지 않는다. */
+const MAX_PAGES = 34;
 
 /** 개발 직군(518) 안의 직무 ID → 이름. 카드의 직무 태그에 쓴다. */
 const JOB_NAMES: Record<number, string> = {
@@ -67,6 +67,8 @@ export const wantedHandler = defineHandler<{ jobIds: number[] }>({
       });
       for (const job of response.data) jobs.set(job.id, job);
       if (!response.links?.next) break;
+      if (response.data.length === 0) throw new Error('원티드가 다음 페이지를 알렸지만 공고를 반환하지 않았습니다.');
+      if (page === MAX_PAGES - 1) throw new Error('원티드 공고가 수집 상한(1020건)을 넘었습니다. 페이지 상한을 확인하세요.');
     }
     return [...jobs.values()]
       .filter((job) => job.position)
