@@ -29,7 +29,7 @@ GET https://www.wanted.co.kr/api/chaos/navigation/v1/results
   &years=0
   &locations=all
   &job_sort=job.latest_order
-  &limit=100
+  &limit=30
   &offset=0
 ```
 
@@ -43,10 +43,12 @@ GET https://www.wanted.co.kr/api/chaos/navigation/v1/results
 | `years` | `-1` / `0` / 숫자 | 경력. `-1`은 경력 제한 없이 전체, `0`은 신입이 지원할 수 있는 공고(응답의 `is_newbie`가 true) |
 | `locations` | `all` | 지역. 다른 값은 확인하지 않았다 |
 | `job_sort` | `job.latest_order` / `job.popularity_order` | 최신 등록순 / 인기순. 수집은 최신순만 쓴다 |
-| `limit` | 숫자 | 한 번에 받을 수. 100까지 확인했다 |
+| `limit` | `30` | 한 번에 받을 수. 2026-11-17 확인: 30까지 데이터가 오고 31 이상은 빈 목록을 반환한다 |
 | `offset` | 숫자 | 건너뛸 수. 다음 페이지는 응답의 `links.next`가 알려 준다(없으면 끝) |
 
 - `job_ids`를 빼면 그 직군 전체가 온다.
+- 수집기는 `links.next`가 있는 동안 `offset`을 30씩 늘려 최대 34페이지(1020건)를 받는다. 이전 100 × 10페이지의 범위를 유지하기 위한 상한이다.
+  마지막 페이지에도 `next`가 있거나 `next`와 빈 목록이 함께 오면 실패로 기록해 부분 수집이 성공으로 숨지 않게 한다.
 - `years=0`으로 받은 공고도 경력 범위가 `신입~10년`, `경력 무관`(0~100)인 경우가 많다. 신입 전용이 아니라 "신입이 지원 가능"이다.
 - 결과 수는 조건에 따라 다르다. 2026-09-30에 `years=0`으로 직무 하나씩 받은 수는 서버 59, 소프트웨어 엔지니어 74, 머신러닝 119, 프론트엔드 49 등이다.
 
@@ -210,7 +212,7 @@ collector·app 컨테이너 ──▶ 맥의 프록시(Tailscale 주소:18888) �
 - 프록시: `scripts/wanted-proxy/connect-proxy.py`. Tailscale 주소에서만 받고 `www.wanted.co.kr:443`만 중계한다. 맥에서 `scripts/wanted-proxy/install-launchd.sh`를 한 번 실행하면 프록시와 깨우기 작업이 로그인할 때 자동으로 켜진다. **배포가 끝난 뒤에 실행한다**(먼저 하면 프록시 코드가 없는 이전 collector가 원티드를 직접 불러 실패한다).
 - **맥이 켜져 있을 때만 수집한다.** 원티드 Feed의 주기는 DB에서 525600분(1년)이라 VPS는 스스로 시도하지 않는다.
   대신 맥의 `launchd` 작업(`com.kkh.wanted-wake`, `install-launchd.sh`가 등록)이 로그인할 때와 켜져 있는 동안 3시간마다 VPS의 `feed.next_run_at`을 지금으로 바꿔서 collector가 곧바로 수집하게 한다.
-  맥이 꺼져 있는 동안은 시도도 실패도 없다. 꺼져 있던 사이에 올라온 공고는 다음 수집 때 한꺼번에 들어온다(최신순 100개씩 최대 10페이지).
+  맥이 꺼져 있는 동안은 시도도 실패도 없다. 꺼져 있던 사이에 올라온 공고는 다음 수집 때 한꺼번에 들어온다(최신순 30개씩 최대 34페이지).
 - 맥이 켜졌는데 프록시나 Tailscale이 죽어서 실패하면 재시도 간격이 5분, 15분, 45분…으로 늘어난다. 다음에 맥이 깨우면 다시 시도한다.
 - 프록시 기기를 항상 켜진 것으로 바꾸려면(예: 라즈베리파이) 그 기기에서 같은 프록시를 돌리고 `WANTED_PROXY_URL`의 주소를 바꾼 뒤, 깨우기 작업을 지우고 원티드 주기를 DB에서 다시 720으로 돌린다.
 

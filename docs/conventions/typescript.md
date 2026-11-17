@@ -50,6 +50,7 @@ npm workspaces 모노레포다(ADR-0008). 루트 package.json은 워크스페이
 ## Handler
 
 - Handler는 코어가 주입한 HTTP 클라이언트만 쓴다. 재시도·타임아웃·저장을 Handler 안에서 구현하지 않는다 (ADR-0006).
+  사이트별 TLS 지문 같은 전송 방식도 코어의 fetch 구현에서 origin별로 선택한다. Handler에서 별도 HTTP 라이브러리를 직접 호출하지 않는다.
 - Handler는 `apps/backend/src/collector/handlers/index.ts`에 import 한 줄로 등록하고, 파라미터 타입을 선언한다 (ADR-0006).
 - HTML은 `cheerio`로 파싱하고, 파싱 함수(`parse…Page`)를 export해서 HTML 조각으로 테스트한다. `summary`는 `toSummaryText`로 만든다.
 - 수집할 때마다 바뀌는 수치(점수, 댓글 수, 스타 수)는 `extra`가 아니라 `metrics`에 넣는다. Handler는 정보원이 준 순서를 바꾸지 않는다. Ranked Feed에서는 그 순서가 Rank다 (ADR-0009).

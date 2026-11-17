@@ -20,6 +20,11 @@
    재시도, 타임아웃, 중복 판정, 저장, 0건 판정은 코어가 한다.
 2. **HTTP 클라이언트**: 코어가 설정을 마친 HTTP 클라이언트(`ofetch.create`)를 Handler에 주입한다.
    Handler는 그 클라이언트로 원하는 만큼 자유롭게 호출한다. 요청 여러 개, GraphQL, HTML 모두 된다.
+   2026-11-17 보완(#18): `https://www.indiehackers.com` 요청만 코어의 fetch 구현에서 `impers@0.1.3`의
+   Chrome TLS/HTTP 지문을 쓴다. Handler는 그대로 주입받은 클라이언트만 호출하고, HTTP 상태 판정·10초 타임아웃·재시도는
+   공통 ofetch 설정을 유지한다. 다른 origin은 Node fetch와 기존 dispatcher를 유지한다.
+   `impers`와 native curl-impersonate는 해당 요청에서만 지연 로드한다. collector 이미지는 CA 인증서를 설치하고
+   빌드 중 native library를 미리 받아 Chrome 지문 초기화까지 확인한다. 런타임 첫 요청에서 다운로드하는 구성을 피한다.
 3. **재시도 조건**: 공통 클라이언트는 타임아웃 10초, 재시도 2회다. 재시도하는 경우는 네트워크 오류,
    타임아웃, 408·425·429·5xx뿐이다. 나머지 4xx는 곧바로 실패로 처리한다.
 4. **등록**: Handler는 `handlers/index.ts`에 import 한 줄로 등록한다. 디렉터리를 스캔하지 않는다.

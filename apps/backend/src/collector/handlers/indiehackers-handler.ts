@@ -26,12 +26,12 @@ function parsePostDate(title: string | undefined): Date | undefined {
 /** 글 목록 페이지 HTML을 EntryDraft 목록으로 바꾼다. 페이지 구조가 바뀌면 여기만 고친다. */
 export function parsePostListPage(html: string) {
   const $ = cheerio.load(html);
-  return $('.feed-item')
+  return $('.story, .feed-item')
     .map((_, element) => {
       const item = $(element);
-      const titleLink = item.find('.feed-item__title-link');
+      const titleLink = item.find('.story__text-link, .feed-item__title-link').first();
       const postPath = titleLink.attr('href');
-      if (!postPath) return [];
+      if (!postPath?.startsWith('/post/')) return [];
       const url = `${BASE_URL}${postPath}`;
       return {
         url,
@@ -39,8 +39,8 @@ export function parsePostListPage(html: string) {
         publishedAt: parsePostDate(item.find('.feed-item__date').attr('title')),
         author: item.find('.user-link__name').first().text().trim() || undefined,
         extra: {
-          score: Number(item.find('.feed-item__likes-count').text().trim()) || undefined,
-          commentCount: Number(item.find('.feed-item__reply-count').text().trim()) || 0,
+          score: Number(item.find('.story__count--likes .story__count-number, .feed-item__likes-count').first().text().trim()) || undefined,
+          commentCount: Number(item.find('.story__count--comments .story__count-number, .feed-item__reply-count').first().text().trim()) || 0,
           commentsUrl: url,
         },
         raw: { postPath, dateTitle: item.find('.feed-item__date').attr('title') },
