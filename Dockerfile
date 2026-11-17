@@ -43,8 +43,14 @@ USER node
 CMD ["node", "src/main.ts"]
 
 # 테스트용. 모든 워크스페이스의 개발 의존성까지 설치한다. compose.local.yml의 test 서비스가 쓴다.
+FROM ghcr.io/gitleaks/gitleaks:v8.30.1 AS secrets-scanner
+
 FROM workspace-manifests AS test
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+COPY --from=secrets-scanner /usr/bin/gitleaks /usr/local/bin/gitleaks
 RUN npm ci
+# Jenkins에서 복사한 .git의 UID가 달라도 이 테스트 경로만 신뢰한다.
+RUN git config --global --add safe.directory /app
 COPY . .
 CMD ["npm", "test"]
 
