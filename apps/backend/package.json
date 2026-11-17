@@ -5,7 +5,9 @@
   "scripts": {
     "typecheck": "tsc",
     "test": "vitest run",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "lint": "oxlint --deny-warnings .",
+    "lint:fix": "oxlint --deny-warnings --fix ."
   },
   "dependencies": {
     "@fastify/static": "^10.1.4",
@@ -24,6 +26,8 @@
     "@types/node": "^22.20.4",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.11",
+    "oxlint": "^1.94.0",
+    "oxlint-tsgolint": "^7.0.2007",
     "typescript": "^7.0.2",
     "vitest": "^5.0.1"
   }

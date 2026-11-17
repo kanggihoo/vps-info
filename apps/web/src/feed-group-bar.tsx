@@ -66,7 +66,7 @@ function AxisSelect({ axis, feeds, selectedFeed }: { axis: FeedGroupAxis; feeds:
       value={selectedFeed.group?.variant[axis.key]}
       onChange={(event) => {
         const target = options.find((option) => option.value === event.target.value)?.target;
-        if (target) window.location.hash = makeScreenHash({ kind: 'feed', feedId: target.id });
+        if (target) window.location.assign(makeScreenHash({ kind: 'feed', feedId: target.id }));
       }}
       className={cn(
         'h-8 rounded-full border border-input bg-background px-3 text-body-sm text-foreground md:ml-auto max-md:h-11',

@@ -31,7 +31,7 @@ describe('관리 API와 collector', () => {
     expect((await patch('geeknews', { paused: true })).statusCode).toBe(204);
     expect(await collect()).toEqual([]);
     const requests = await Promise.all([requestFetch(), requestFetch()]);
-    expect(requests.map((response) => response.statusCode).sort()).toEqual([202, 409]);
+    expect(requests.map((response) => response.statusCode).sort((left, right) => left - right)).toEqual([202, 409]);
     expect(await collect()).toEqual(['geeknews']);
     expect(await collect()).toEqual([]);
     const [current] = await database.select({ paused: feed.paused, requested: feed.manualRequestedAt }).from(feed).where(eq(feed.id, 'geeknews'));

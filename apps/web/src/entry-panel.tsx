@@ -93,7 +93,6 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
   // 화면 주소로 바로 열었으면 Entry를 받는다.
   useEffect(() => {
     if (selection) return;
-    setLoadState('loading');
     apiClient
       .getEntry(entryId)
       .then((fetchedEntry) => {
@@ -127,7 +126,7 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
     apiClient.markOpened(entry.id).catch(console.error);
   }, [entry, publishChange]);
 
-  if (loadState === 'failed') return <LoadError message="Entry를 불러오지 못했습니다." onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />;
+  if (loadState === 'failed') return <LoadError message="Entry를 불러오지 못했습니다." onRetry={() => { setLoadState('loading'); setLoadAttempt((attempt) => attempt + 1); }} />;
   if (loadState === 'not-found') return <EmptyMessage>없는 Entry입니다. 목록에서 다른 Entry를 고르세요.</EmptyMessage>;
   if (!entry) return <PanelSkeleton />;
 
@@ -256,7 +255,7 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
           <ArrowLeft />
         </ToolbarButton>
         <div className="ml-auto flex items-center gap-1">
-          <ToolbarButton shortcut="B" disabled={bookmarking} label={bookmarked ? 'Bookmark 해제' : 'Bookmark'} pressed={bookmarked} onClick={toggleBookmark} className={cn(bookmarked && 'text-brand-ink hover:text-brand-ink')}>
+          <ToolbarButton shortcut="B" disabled={bookmarking} label={bookmarked ? 'Bookmark 해제' : 'Bookmark'} pressed={bookmarked} onClick={() => { void toggleBookmark(); }} className={cn(bookmarked && 'text-brand-ink hover:text-brand-ink')}>
             <Star className={cn(bookmarked && 'fill-current')} />
           </ToolbarButton>
           {readerAvailable && (
@@ -264,7 +263,7 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
               <BookOpenText />
             </ToolbarButton>
           )}
-          <ToolbarButton shortcut="C" label={copied ? '복사됨' : reader.status === 'loaded' ? '본문 복사' : '복사'} onClick={copyContent}>
+          <ToolbarButton shortcut="C" label={copied ? '복사됨' : reader.status === 'loaded' ? '본문 복사' : '복사'} onClick={() => { void copyContent(); }}>
             {copied ? <Check /> : <Copy />}
           </ToolbarButton>
           <ToolbarButton
@@ -292,9 +291,9 @@ export function EntryPanel({ entryId, selection, feeds, onClose, llmChoice, llmC
         </div>
       </div>
 
-      <div role="status" aria-live="polite" aria-atomic="true" className={cn('px-4 text-caption text-muted-foreground', copied ? 'py-1' : 'sr-only')}>
+      <output aria-live="polite" aria-atomic="true" className={cn('px-4 text-caption text-muted-foreground', copied ? 'py-1' : 'sr-only')}>
         {copied ? '복사됨' : bookmarking ? 'Bookmark를 저장하는 중입니다.' : ''}
-      </div>
+      </output>
       {actionFailure && <p role="alert" className="px-4 py-1 text-caption text-destructive">{actionFailure}</p>}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <article className="mx-auto max-w-[760px] px-4 py-6 lg:px-8">

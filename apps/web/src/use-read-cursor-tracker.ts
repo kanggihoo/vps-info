@@ -29,7 +29,7 @@ export function useReadCursorTracker(
   const saveTimerRef = useRef<number | undefined>(undefined);
   const measureFrameRef = useRef<number | undefined>(undefined);
   const onSavedRef = useRef(onSaved);
-  onSavedRef.current = onSaved;
+  useEffect(() => { onSavedRef.current = onSaved; }, [onSaved]);
 
   const saveNow = useCallback(() => {
     window.clearTimeout(saveTimerRef.current);

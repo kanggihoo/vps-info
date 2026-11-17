@@ -18,7 +18,9 @@ describe('createDeepLTranslator', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('https://api-free.deepl.com/v2/translate');
     expect(init?.headers).toMatchObject({ authorization: 'DeepL-Auth-Key free-key:fx' });
-    expect(JSON.parse(String(init?.body))).toEqual({ text: ['Title', 'Summary'], target_lang: 'KO' });
+    expect(typeof init?.body).toBe('string');
+    if (typeof init?.body !== 'string') throw new Error('요청 본문은 JSON 문자열이어야 합니다.');
+    expect(JSON.parse(init.body)).toEqual({ text: ['Title', 'Summary'], target_lang: 'KO' });
   });
 
   it('무료 키(:fx)가 아니면 유료 주소로 보낸다', async () => {

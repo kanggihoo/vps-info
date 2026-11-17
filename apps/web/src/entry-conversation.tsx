@@ -146,7 +146,6 @@ export function EntryConversation({ entryId, choice, choiceTitle, loadOriginal }
       </ol>
       <form className="mt-5 flex flex-col gap-2" onSubmit={submitDraft}>
         <Textarea
-          autoFocus
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={handleKeyDown}

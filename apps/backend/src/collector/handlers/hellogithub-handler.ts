@@ -37,7 +37,7 @@ export function makeHelloGithubUrl(page: number, rankBy?: HelloGithubRankBy, tid
   const query = new URLSearchParams({ sort_by: 'featured', page: String(page) });
   if (rankBy) query.set('rank_by', rankBy);
   if (tid) query.set('tid', tid);
-  return `${API_URL}?${query}`;
+  return `${API_URL}?${query.toString()}`;
 }
 
 export const hellogithubHandler = defineHandler<{ rankBy?: HelloGithubRankBy; tid?: string }>({
