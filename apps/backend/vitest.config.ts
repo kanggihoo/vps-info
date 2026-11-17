@@ -11,6 +11,12 @@ const junitDirectory = process.env.JUNIT_OUTPUT_DIR;
 
 export default defineConfig({
   test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'lcov', 'json-summary'],
+      include: ['src/**/*.ts'],
+      exclude: ['**/*.test.ts', 'src/test-support/**'],
+    },
     include: ['src/**/*.test.ts'],
     exclude: [...configDefaults.exclude, ...(runDatabaseTests ? [] : ['**/*.db.test.ts'])],
     globalSetup: runDatabaseTests ? ['src/test-support/prepare-test-database.ts'] : [],

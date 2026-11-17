@@ -19,7 +19,7 @@ npm workspaces 모노레포다(ADR-0008). 루트 package.json은 워크스페이
 
 ## 실행과 타입
 
-- TypeScript의 strict mode를 유지하고 JavaScript 파일을 추가하지 않는다.
+- TypeScript의 strict mode를 유지하고 제품 코드는 TypeScript로 작성한다. 저장소 품질 검사 도구(`scripts/*.mjs`, `scripts/wf-artifacts/*.mjs`)는 wf skill의 Node 스크립트를 사용한다.
 - 서버와 수집기는 빌드하지 않고 Node의 타입 제거 기능으로 `.ts`를 직접 실행한다(`node src/collector/main.ts`).
   `tsc`는 타입 검사(`npm run typecheck`)에만 쓴다.
 - 그래서 상대 경로 import에는 `.ts` 확장자를 붙이고, 타입 제거만으로 지워지지 않는 문법

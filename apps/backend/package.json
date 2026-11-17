@@ -7,7 +7,8 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "lint": "oxlint --deny-warnings .",
-    "lint:fix": "oxlint --deny-warnings --fix ."
+    "lint:fix": "oxlint --deny-warnings --fix .",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@fastify/static": "^10.1.4",
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@types/node": "^22.20.4",
     "@types/pg": "^8.23.1",
+    "@vitest/coverage-v8": "^5.0.1",
     "drizzle-kit": "^0.31.11",
     "oxlint": "^1.94.0",
     "oxlint-tsgolint": "^7.0.2007",

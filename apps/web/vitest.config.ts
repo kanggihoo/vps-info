@@ -8,6 +8,12 @@ const junitDirectory = process.env.JUNIT_OUTPUT_DIR;
 export default defineConfig({
   resolve: { alias: WEB_ALIASES },
   test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'lcov', 'json-summary'],
+      include: ['src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts'],
+      exclude: ['**/*.test.{ts,tsx}', 'src/components/ui/**', 'src/styles/design-token-names.ts'],
+    },
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
     reporters: junitDirectory ? ['default', 'junit'] : ['default'],
     outputFile: junitDirectory ? { junit: `${junitDirectory}/web.xml` } : undefined,

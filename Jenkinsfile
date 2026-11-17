@@ -12,7 +12,7 @@ pipeline {
     }
 
     stages {
-        // 단위 테스트. DB가 필요 없고 배포 이미지와 같은 lockfile로 설치한다.
+        // 타입·lint·secret·Floor·단위 테스트·변경 Coverage. DB 통합 테스트는 로컬 check:full에서 실행한다.
         // 결과 XML은 docker cp로 꺼낸다. Jenkins가 docker.sock을 쓰므로 -v 경로는 호스트 기준으로
         // 해석되는데, workspace는 Jenkins named volume 안에 있어 bind mount로는 가리킬 수 없다.
         stage('Test') {
@@ -25,7 +25,10 @@ pipeline {
                     name="vps-info-test-$branch-$BUILD_NUMBER"
                     docker build --target test -t "$name" .
                     status=0
-                    docker run --name "$name" -e JUNIT_OUTPUT_DIR=/app/test-results "$name" || status=$?
+                    # .git은 이미지 빌드 문맥에서 제외한다. diff·secret 검사를 위해 임시 컨테이너에만 복사한다.
+                    docker create --name "$name" -e JUNIT_OUTPUT_DIR=/app/test-results "$name" npm run check:task >/dev/null
+                    docker cp .git "$name:/app/.git"
+                    docker start -a "$name" || status=$?
                     rm -rf test-results
                     docker cp "$name:/app/test-results" test-results || true
                     docker rm "$name" >/dev/null

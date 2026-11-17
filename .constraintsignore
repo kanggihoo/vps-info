@@ -1,0 +1,3 @@
+# 자체 검사 패턴과 회귀 테스트의 의도적인 위반 예제. 다른 소스에는 적용하지 않는다.
+scripts/floor-guard.mjs
+scripts/floor-guard.test.mjs
