@@ -77,15 +77,6 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 
 ### 제품·오픈소스
 
-<<<<<<< HEAD
-**Product Hunt** (`producthunt`)
-- 출처: [producthunt.com](https://www.producthunt.com)
-- 가져오기: 공식 Atom `https://www.producthunt.com/feed`. 추천된 제품 50개가 온다.
-- 새 Entry: 추천 목록에 새로 오른 제품. 목록의 게시일이 몇 주씩 섞여 있어 "오늘 출시"와는 다르다.
-- 참고: 추천수(vote)는 피드에 없다. 요약 끝에 "Discussion | Link"가 붙는다. 원문 읽기는 다른 Feed와 같이 쓸 수 있다.
-
-=======
->>>>>>> 87d37f2 (chore: retire TechCrunch and Product Hunt stream feeds)
 **Product Hunt 인기** (Feed Group, Ranked Feed 3개)
 - Feed: 기간(`weekly`·`monthly`·`yearly`). id는 `producthunt-<기간>`이다. 일간은 수집하지 않는다.
 - 출처: [producthunt.com](https://www.producthunt.com). 사이트의 "Best of Product Hunt" 리더보드와 같은 순서다.

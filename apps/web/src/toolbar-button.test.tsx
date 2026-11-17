@@ -1,12 +1,14 @@
-import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ToolbarButton } from './toolbar-button.tsx';
 
 function render(props: Partial<Parameters<typeof ToolbarButton>[0]>): string {
-  const button = createElement(ToolbarButton, { label: '원문 읽기', shortcut: 'R', onClick: () => {}, children: null, ...props });
-  return renderToStaticMarkup(createElement(TooltipProvider, null, button));
+  return renderToStaticMarkup(
+    <TooltipProvider>
+      <ToolbarButton label="원문 읽기" shortcut="R" onClick={() => {}} {...props}>{props.children ?? null}</ToolbarButton>
+    </TooltipProvider>,
+  );
 }
 
 describe('ToolbarButton', () => {
