@@ -18,9 +18,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 | Hacker News Best | HN 추천 상위 글 100개 | Ranked | 공식 API | 6시간 | – |
 | Show HN | HN에 직접 만든 것을 소개하는 글 60개 | Ranked | 공식 API | 6시간 | – |
 | GeekNews | 한국어 개발·기술 뉴스 | Stream | 공식 RSS | 1시간 | 50 |
-| Product Hunt | 추천된 새 제품 | Stream | 공식 Atom | 3시간 | 50 |
 | Product Hunt 인기 (주간·월간·연간) | 이번 주·달·해에 Featured에 오른 제품의 추천수 상위 30개 | Ranked | 공식 GraphQL API | 6시간·12시간·1일 | 30씩 |
-| TechCrunch | 기술 산업 뉴스 | Stream | 공식 RSS | 1시간 | 20 |
 | OpenAI News | OpenAI 공지·연구·사례 | Stream | 공식 RSS | 6시간 | 1230 |
 | Claude Code 릴리스 | Claude Code 버전별 변경 사항 | Stream | GitHub 릴리스 Atom | 6시간 | 10 |
 | OpenRouter 새 모델 | OpenRouter에 추가된 LLM 모델 | Stream | 공개 API | 6시간 | 458 |
@@ -33,7 +31,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 | Star History 주간 급상승 | 이번 주 GitHub 스타가 가장 많이 늘어난 저장소 20개 | Ranked | HTML 파싱 | 7일 | 20 |
 | HelloGitHub 월간 (전체·Python·JavaScript·Rust) | 최신 월간호에서 언어별로 고른 저장소 40개까지 | Ranked | 공개 API | 1일 | – |
 | HelloGitHub 연간 (전체·Python·JavaScript·Rust) | 올해 소개된 저장소를 HelloGitHub 순서대로 40개까지 | Ranked | 공개 API | 3일 | – |
-| Indie Hackers 주간 인기글 | 지난주 인기 1인 창업·사이드 프로젝트 글 | Stream | HTML 파싱 | 12시간 | 20 |
+| Indie Hackers 주간 인기글 | 지난주 인기 1인 창업·사이드 프로젝트 글 | Stream | Chrome TLS 지문으로 HTML 요청·파싱 | 12시간 | 20 |
 | Anthropic News | Anthropic 공지·연구 | Stream | HTML 파싱 | 6시간 | 10 |
 | 원티드 신입 (백엔드·웹·프론트·AI·데이터·인프라·QA·앱) | 개발 직군 신입 지원 가능 공고, 직무군별 Feed 6개 | Stream | 사이트 내부 JSON API | 12시간 | – |
 | 점핏 백엔드 신입 | 서버/백엔드 신입 공고 | Stream | 사이트 내부 JSON API | 6시간 | – |
@@ -60,11 +58,6 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 가져오기: 공식 RSS `https://news.hada.io/rss/news`. 최근 50건이 온다.
 - 새 Entry: GeekNews에 새로 올라온 글. 요약에 원문 요약 문단이 들어간다.
 
-**TechCrunch** (`techcrunch`)
-- 출처: [techcrunch.com](https://techcrunch.com)
-- 가져오기: 공식 RSS `https://techcrunch.com/feed/`. 최근 20건이 온다.
-- 새 Entry: 새 기사.
-
 **dev.to 주간 인기글** (`devto-top-week`, Ranked)
 - 출처: [dev.to/top/week](https://dev.to/top/week)
 - 가져오기: 공개 API `https://dev.to/api/articles?top=7&per_page=<rank_limit>`(처음 60)
@@ -78,13 +71,11 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 참고: 최신글(`/newest`)은 스팸이 많아서 쓰지 않는다.
 - 화면: 좋아요 수(▲)와 댓글 수를 보여 준다.
 
-### 제품·오픈소스
+- 파싱: 현재 `.story`의 제목·작성자·추천수·댓글 수를 읽는다. 이전 `.feed-item` 구조도 지원한다. 현재 주간 목록에는 게시 시각이 없어 `publishedAt`을 비워 두며 수집 시각으로 꾸미지 않는다.
+- 전송: VPS의 일반 Node TLS 지문은 Cloudflare 403을 받아, 공통 HTTP 클라이언트가 이 origin만 `impers@0.1.3`(`impersonate: "chrome"`)로 보낸다. 타임아웃·재시도는 다른 Feed와 같은 정책이다(ADR-0006, #18).
+- 이미지: collector에 CA 인증서를 설치하고 curl-impersonate를 빌드 중 캐시한다. 운영에서 실제 수집 성공 확인 전에는 기존 `paused`를 해제하지 않는다.
 
-**Product Hunt** (`producthunt`)
-- 출처: [producthunt.com](https://www.producthunt.com)
-- 가져오기: 공식 Atom `https://www.producthunt.com/feed`. 추천된 제품 50개가 온다.
-- 새 Entry: 추천 목록에 새로 오른 제품. 목록의 게시일이 몇 주씩 섞여 있어 "오늘 출시"와는 다르다.
-- 참고: 추천수(vote)는 피드에 없다. 요약 끝에 "Discussion | Link"가 붙는다. 원문 읽기는 다른 Feed와 같이 쓸 수 있다.
+### 제품·오픈소스
 
 **Product Hunt 인기** (Feed Group, Ranked Feed 3개)
 - Feed: 기간(`weekly`·`monthly`·`yearly`). id는 `producthunt-<기간>`이다. 일간은 수집하지 않는다.
@@ -153,7 +144,8 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 
 **Anthropic News** (`anthropic-news`)
 - 출처: [anthropic.com/news](https://www.anthropic.com/news)
-- 가져오기: 뉴스 목록 페이지의 HTML을 파싱한다. 공식 RSS가 없다. 최근 10개가 온다.
+- 가져오기: 뉴스 목록 페이지의 카드와 목록 행에서 제목 링크·형제 `time`을 읽는다. 공식 RSS가 없다. 2026-11-17 확인 시 중복 제거 후 25개다.
+  분류·이미지 링크는 제외하고, 뉴스 목록에 올라온 `/research/…`, `/claude-…` 등 다른 경로의 글도 수집한다.
 - 새 Entry: 새 글. 분류(Announcements, Product, Science 등)는 `extra.subject`에 저장한다.
 
 **Claude Code 릴리스** (`claude-code-releases`)
@@ -187,7 +179,7 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 - 출처: [wanted.co.kr](https://www.wanted.co.kr)
 - **VPS IP는 원티드가 막아서 한국 IP의 프록시를 거친다**(맥에서 실행, ADR-0014, [원티드 데이터 가져오기](./sources/wanted.md)의 8장). 맥이 켜져 있을 때만 수집한다(맥이 VPS를 깨운다).
 - 가져오기: 원티드 웹이 목록 화면에서 부르는 `https://www.wanted.co.kr/api/chaos/navigation/v1/results`에 `job_group_id=518`(개발), `job_ids`(직무 ID를 반복해서 붙임), `years=0`(신입 지원 가능), 최신 등록순.
-  한 번에 100개씩, 다음 페이지가 없을 때까지 받는다(최대 10페이지). 직무 하나가 아니라 여러 직무를 한꺼번에 묻는다.
+  한 번에 30개씩, 다음 페이지가 없을 때까지 받는다(최대 34페이지·1020건). 상한에서도 다음 페이지가 있으면 실패로 알려 누락을 숨기지 않는다. 직무 하나가 아니라 여러 직무를 한꺼번에 묻는다.
 - 새 Entry: 새로 등록된 공고. 경력 범위가 신입을 포함하는 공고(`신입~5년`, `경력 무관`)라 신입 전용은 아니다. **마감일은 수집에 쓰는 목록(chaos)에 없고 상세 페이지에만 있다(마감이 있는 공고는 일부).** 상세를 열면 마감일을 `extra.deadline`에 저장해 다음부터 카드에 `~10/31`로 보이고, 지나면 `마감`으로 보인다.
 - 태그: 공고의 세부 직무(응답의 `category_tag`)와, 정규직이 아니면 `인턴`·`계약직`. 세부 직무는 공고가 가진 여러 직무 중 하나라서 Feed의 직무군과 다를 수 있다(예: 백엔드 Feed의 머신러닝 엔지니어).
 - 겹침: 한 공고가 두 직무군에 걸리면 Feed마다 Entry가 따로 생긴다(ADR-0002). 전체 고유 공고는 340여 건이다(2026-09-30 확인).
@@ -216,3 +208,10 @@ Feed를 추가하거나 빼거나 파라미터를 바꾸면 이 문서도 같이
 **수집하지 않는 곳**
 - 로켓펀치: Cloudflare가 Node의 요청을 막는다(403). 같은 주소가 curl에서는 열려서 헤더 문제가 아니라 클라이언트 식별로 막는 것이다. 우회하지 않는다.
 - 캐치·자소설닷컴: 캐치는 봇 확인 화면이 뜨고, 자소설닷컴은 목록을 브라우저가 나중에 채워서 HTML만으로는 공고가 없다.
+
+## 수집을 종료한 Feed
+
+- **TechCrunch** (`techcrunch`, 2026-11-17): 기술 산업 뉴스 Stream을 제외했다.
+- **Product Hunt Stream** (`producthunt`, 2026-11-17): 안 읽음이 과도하게 쌓여 제외했다. 제품 발견은 기존 Product Hunt 주간·월간·연간 Ranked Feed로 이어간다.
+
+두 Feed는 선언에서 제외하므로 배포 후 수집과 Feed 목록 표시가 중단된다. 기존 Entry·Bookmark·읽기 상태는 삭제하지 않는다.

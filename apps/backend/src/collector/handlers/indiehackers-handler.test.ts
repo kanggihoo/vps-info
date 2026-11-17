@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { makePreviousWeekMonday, parsePostListPage } from './indiehackers-handler.ts';
 
@@ -35,4 +36,21 @@ describe('makePreviousWeekMonday', () => {
     expect(makePreviousWeekMonday(new Date('2026-09-27T23:00:00Z'))).toBe('2026-09-14'); // 일요일
     expect(makePreviousWeekMonday(new Date('2026-01-01T00:00:00Z'))).toBe('2025-12-22');
   });
+});
+
+it('현재 story 구조의 실페이지에서 제목·작성자·추천수·댓글 수를 읽는다', () => {
+  const html = readFileSync(new URL('./fixtures/indiehackers-week.html', import.meta.url), 'utf8');
+  const drafts = parsePostListPage(html);
+  expect(drafts).toHaveLength(1);
+  expect(drafts[0]).toMatchObject({
+    title: 'We just launched Cardboard for Mac (and you can edit videos on it for free)',
+    author: 'sxm',
+    extra: { score: 337, commentCount: 331 },
+  });
+  expect(drafts[0]?.url).toContain('https://www.indiehackers.com/post/');
+  expect(drafts[0]?.publishedAt).toBeUndefined();
+});
+
+it('주간 글 목록 옆의 제품 홍보 story는 수집하지 않는다', () => {
+  expect(parsePostListPage('<div class="story"><a class="story__text-link" href="/product/example?post=1"><h3>Product</h3></a></div>')).toEqual([]);
 });

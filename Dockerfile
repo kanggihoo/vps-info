@@ -50,6 +50,9 @@ CMD ["npm", "test"]
 
 # 수집기 이미지에는 화면 빌드 결과를 넣지 않는다. 화면만 바뀐 배포에서 수집기가 재시작되지 않게 하기 위해서다.
 FROM base AS collector
+# impers 0.1.3의 고정된 curl-impersonate를 빌드 중 캐시한다. 실행 중 다운로드에 의존하지 않는다.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN node --input-type=module -e "const { Curl } = await import('impers'); const curl = new Curl(); curl.impersonate('chrome152'); curl.cleanup();"
 CMD ["node", "src/collector/main.ts"]
 
 FROM base AS app

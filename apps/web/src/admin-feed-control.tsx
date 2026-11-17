@@ -1,5 +1,5 @@
 /** Feed 한 행의 주기 변경·일시정지·재개·수동 요청. 원티드는 수동 요청만 제공한다(ADR-0017). */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { AdminFeed } from '@trendboda/api-types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,11 @@ export function AdminFeedControl({ feed, onChanged }: { feed: AdminFeed; onChang
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState('');
   const [failed, setFailed] = useState(false);
-  useEffect(() => { setIntervalInput(String(feed.intervalMinutes)); }, [feed.intervalMinutes]);
+  const [previousInterval, setPreviousInterval] = useState(feed.intervalMinutes);
+  if (previousInterval !== feed.intervalMinutes) {
+    setPreviousInterval(feed.intervalMinutes);
+    setIntervalInput(String(feed.intervalMinutes));
+  }
   const minutes = Number(interval);
   const valid = interval.trim() !== '' && Number.isInteger(minutes) && minutes >= 1 && minutes <= 525600;
   const changed = valid && minutes !== feed.intervalMinutes;

@@ -16,7 +16,7 @@ import remarkGfm from 'remark-gfm';
 
 /** 본문의 링크는 새 탭에서 연다. 펼친 화면을 잃지 않게 하려는 것이다. */
 const components: Components = {
-  a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+  a: ({ node: _node, children, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer">{children}</a>,
 };
 
 /** Entry 대화의 답을 그린다. HTML은 버리고(`skipHtml`), 이미지는 그리지 않는다. 링크는 눌러야만 열린다. */

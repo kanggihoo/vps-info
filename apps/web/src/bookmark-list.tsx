@@ -13,10 +13,9 @@ export function BookmarkList({ feeds, selectedEntryId, makeEntryHref, onSelectEn
   const [loadFailed, setLoadFailed] = useState(false);
 
   const loadBookmarks = useCallback(() => {
-    setLoadFailed(false);
     apiClient
       .listBookmarks()
-      .then(setBookmarks)
+      .then((result) => { setBookmarks(result); setLoadFailed(false); })
       .catch((error: unknown) => {
         console.error(error);
         setLoadFailed(true);
@@ -25,7 +24,7 @@ export function BookmarkList({ feeds, selectedEntryId, makeEntryHref, onSelectEn
 
   useEffect(loadBookmarks, [loadBookmarks]);
 
-  if (loadFailed) return <LoadError message="Bookmark를 불러오지 못했습니다." onRetry={loadBookmarks} />;
+  if (loadFailed) return <LoadError message="Bookmark를 불러오지 못했습니다." onRetry={() => { setLoadFailed(false); loadBookmarks(); }} />;
   if (!bookmarks) return <EntryListSkeleton />;
   if (bookmarks.length === 0) return <EmptyMessage>Entry의 별을 누르면 여기에 모입니다.</EmptyMessage>;
   return (

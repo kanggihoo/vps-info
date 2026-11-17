@@ -40,7 +40,7 @@ export async function loadRankSnapshotView(feedId: string): Promise<RankSnapshot
   const previousRowsByEntryId = new Map(rows.filter((row) => row.fetchAttemptId === previous?.id).map((row) => [row.id, row]));
   const latestEntryIds = new Set(latestRows.map((row) => row.id));
 
-  const entries = latestRows.map(({ fetchAttemptId: _, rank, metrics, ...entryRow }): RankedEntryView => {
+  const entries = latestRows.map(({ fetchAttemptId: _fetchAttemptId, rank, metrics, ...entryRow }): RankedEntryView => {
     const previousRow = previousRowsByEntryId.get(entryRow.id);
     // Entry는 그 수집의 트랜잭션 안에서 저장되므로, 처음 발견한 Entry의 First Seen은 수집 시작 시각보다 늦다.
     const firstSeenInLatest = entryRow.firstSeenAt >= latest.startedAt;
@@ -55,7 +55,7 @@ export async function loadRankSnapshotView(feedId: string): Promise<RankSnapshot
   });
   const droppedEntries = [...previousRowsByEntryId.values()]
     .filter((row) => !latestEntryIds.has(row.id))
-    .map(({ fetchAttemptId: _, rank, metrics: __, ...entryRow }): DroppedEntryView => ({ ...toEntryView(entryRow), previousRank: rank }));
+    .map(({ fetchAttemptId: _fetchAttemptId, rank, metrics: __, ...entryRow }): DroppedEntryView => ({ ...toEntryView(entryRow), previousRank: rank }));
 
   return {
     takenAt: latest.startedAt.toISOString(),

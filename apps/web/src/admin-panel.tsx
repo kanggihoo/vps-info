@@ -26,20 +26,19 @@ export function AdminPanel() {
     const history = historyRegion.current;
     if (main && history) main.scrollTo({ top: main.scrollTop + history.getBoundingClientRect().top - main.getBoundingClientRect().top });
   }, []);
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(() => {
     const version = ++requestVersion.current;
-    try {
-      const result = await apiClient.getAdminOverview();
+    return apiClient.getAdminOverview().then((result) => {
       if (active.current && version === requestVersion.current) { setOverview(result); setError(''); }
-    } catch (reason) {
+    }).catch((reason: unknown) => {
       if (active.current && version === requestVersion.current) setError(reason instanceof Error ? reason.message : '관리 상태를 불러오지 못했습니다.');
-    }
+    });
   }, []);
   useEffect(() => {
     active.current = true;
     void refresh();
     const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 10_000);
-    return () => { active.current = false; requestVersion.current++; window.clearInterval(timer); };
+    return () => { active.current = false; window.clearInterval(timer); };
   }, [refresh]);
   const selectedFeed = overview?.feeds.find((feed) => feed.id === selectedFeedId);
   useEffect(() => {
@@ -112,9 +111,7 @@ function AdminIntegrations() {
   const [usageError, setUsageError] = useState('');
   const [loading, setLoading] = useState(true);
   const active = useRef(false);
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    const results = await Promise.allSettled([apiClient.listLlmModels(), apiClient.getDeepLUsage()]);
+  const refresh = useCallback(() => Promise.allSettled([apiClient.listLlmModels(), apiClient.getDeepLUsage()]).then((results) => {
     if (!active.current) return;
     const [llm, deepl] = results;
     if (llm.status === 'fulfilled') { setModels(llm.value); setLlmError(''); }
@@ -122,18 +119,18 @@ function AdminIntegrations() {
     if (deepl.status === 'fulfilled') { setUsage(deepl.value); setUsageError(''); }
     else { setUsage(undefined); setUsageError(deepl.reason instanceof Error ? deepl.reason.message : 'DeepL 사용량을 조회하지 못했습니다.'); }
     setLoading(false);
-  }, []);
+  }), []);
   useEffect(() => { active.current = true; void refresh(); return () => { active.current = false; }; }, [refresh]);
   return <>
     <section className="rounded-lg border bg-card p-4" aria-label="LLM 연결 상태">
-      <div className="flex items-center justify-between gap-2"><h2 className="text-entry-title">LLM</h2><Button variant="outline" size="sm" className="min-h-11 rounded-full text-caption shadow-none md:min-h-8" disabled={loading} onClick={() => void refresh()}>새로고침</Button></div>
+      <div className="flex items-center justify-between gap-2"><h2 className="text-entry-title">LLM</h2><Button variant="outline" size="sm" className="min-h-11 rounded-full text-caption shadow-none md:min-h-8" disabled={loading} onClick={() => { setLoading(true); void refresh(); }}>새로고침</Button></div>
       {loading ? <Skeleton className="mt-3 h-16 w-full rounded-sm" /> : llmError ? <p role="alert" className="mt-3 text-caption text-destructive">{llmError}</p> : <>
         <p className="mt-3 text-body-sm-medium">서비스 연결됨</p>
         <p className="mt-2 text-caption text-muted-foreground">{models?.engines.map((engine) => `${engine.title}: 인증 정보 ${engine.available ? '있음' : '없음'}`).join(' · ')}</p>
       </>}
     </section>
     <section className="rounded-lg border bg-card p-4" aria-label="DeepL 사용량">
-      <div className="flex items-center justify-between gap-2"><h2 className="text-entry-title">DeepL</h2><Button variant="outline" size="sm" className="min-h-11 rounded-full text-caption shadow-none md:min-h-8" disabled={loading} onClick={() => void refresh()}>새로고침</Button></div>
+      <div className="flex items-center justify-between gap-2"><h2 className="text-entry-title">DeepL</h2><Button variant="outline" size="sm" className="min-h-11 rounded-full text-caption shadow-none md:min-h-8" disabled={loading} onClick={() => { setLoading(true); void refresh(); }}>새로고침</Button></div>
       {loading ? <Skeleton className="mt-3 h-16 w-full rounded-sm" /> : usageError ? <p role="alert" className="mt-3 text-caption text-destructive">{usageError}</p> : usage && <>
         <p className="mt-3 text-caption text-muted-foreground">계정 사용량 · 현재 과금 기간</p>
         <p className="mt-1 font-mono text-body-sm-medium tabular-nums">{usage.characterCount.toLocaleString()} / {usage.characterLimit === null ? '한도 미설정' : usage.characterLimit.toLocaleString()} 문자</p>

@@ -79,7 +79,7 @@ const server = createServer((request, response) => {
 
 for (const signal of ['SIGTERM', 'SIGINT'] as const) process.once(signal, () => server.close());
 
-server.listen(PORT, '0.0.0.0', async () => {
-  const { engines } = await listEngines(models);
-  console.log(`[llm] ${PORT}에서 대기합니다. ${engines.map((engine) => `${engine.title} ${engine.available ? '켜짐' : '꺼짐'}`).join(', ')}`);
+const { engines } = await listEngines(models);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(JSON.stringify({ level: 'info', time: Date.now(), msg: `${PORT}에서 대기합니다.`, engines: engines.map(({ title, available }) => ({ title, available })) }));
 });

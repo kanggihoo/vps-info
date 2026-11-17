@@ -273,8 +273,6 @@ export const feedDefinitions: FeedDefinition[] = [
   },
   { id: 'geeknews', title: 'GeekNews', handler: 'rss', params: { url: 'https://news.hada.io/rss/news' }, intervalMinutes: 60 },
   ...makeProductHuntFeedDefinitions(),
-  { id: 'producthunt', title: 'Product Hunt', handler: 'rss', params: { url: 'https://www.producthunt.com/feed' }, intervalMinutes: 180 },
-  { id: 'techcrunch', title: 'TechCrunch', handler: 'rss', params: { url: 'https://techcrunch.com/feed/' }, intervalMinutes: 60 },
   {
     id: 'openai-news',
     title: 'OpenAI News',

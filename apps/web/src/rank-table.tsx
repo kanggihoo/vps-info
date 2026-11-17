@@ -33,10 +33,9 @@ export function RankTable({ feed, selectedEntryId, makeEntryHref, onSelectEntry 
   const changeMetricKey = findChangeMetricKey(cardKind);
 
   const loadSnapshot = useCallback(() => {
-    setLoadFailed(false);
     apiClient
       .getRankSnapshot(feed.id)
-      .then(setSnapshot)
+      .then((result) => { setSnapshot(result); setLoadFailed(false); })
       .catch((error: unknown) => {
         console.error(error);
         setLoadFailed(true);
@@ -46,7 +45,7 @@ export function RankTable({ feed, selectedEntryId, makeEntryHref, onSelectEntry 
   // 수집이 끝나면 nextRunAt이 바뀌므로, Feed 목록 갱신으로 새 Snapshot이 생긴 것을 알고 다시 받는다.
   useEffect(loadSnapshot, [loadSnapshot, feed.nextRunAt]);
 
-  if (loadFailed) return <LoadError message="순위표를 불러오지 못했습니다." onRetry={loadSnapshot} />;
+  if (loadFailed) return <LoadError message="순위표를 불러오지 못했습니다." onRetry={() => { setLoadFailed(false); loadSnapshot(); }} />;
   if (!snapshot) return <EntryListSkeleton />;
   if (!snapshot.takenAt)
     return (

@@ -17,6 +17,8 @@
     "db:generate": "npm run db:generate -w @trendboda/backend",
     "design:tokens": "npm run design:tokens -w @trendboda/web",
     "design:lint": "npm run design:lint -w @trendboda/web",
-    "test:db": "docker compose -f compose.yml -f compose.local.yml run --rm --build test"
+    "test:db": "docker compose -f compose.yml -f compose.local.yml run --rm --build test",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:fix": "npm run lint:fix --workspaces --if-present"
   }
 }

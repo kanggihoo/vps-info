@@ -10,7 +10,7 @@ import { resetDatabase } from '../test-support/reset-database.ts';
 import { buildServer } from './build-server.ts';
 
 // 라우트는 코드의 Feed 선언을 기준으로 동작하므로, 실제로 선언된 Feed id를 쓴다.
-// Stream Feed는 geeknews·producthunt, Ranked Feed는 hn-best다.
+// Stream Feed는 geeknews·openai-news, Ranked Feed는 hn-best다.
 let server: FastifyInstance;
 
 /** Feed에 Entry를 count개 넣는다. id는 넣은 순서대로 커진다. */
@@ -36,12 +36,12 @@ beforeEach(async () => {
   await resetDatabase();
   await database.insert(feed).values([
     { id: 'geeknews', intervalMinutes: 60 },
-    { id: 'producthunt', intervalMinutes: 60 },
+    { id: 'openai-news', intervalMinutes: 60 },
     { id: 'hn-best', intervalMinutes: 360, rankLimit: 100 },
     { id: 'removed-feed', intervalMinutes: 60 }, // 선언에서 빠진 Feed
   ]);
   await insertEntries('geeknews', 5); // id 1~5
-  await insertEntries('producthunt', 2); // id 6~7
+  await insertEntries('openai-news', 2); // id 6~7
 });
 afterAll(async () => {
   await server.close();
@@ -55,7 +55,7 @@ describe('GET /api/feeds', () => {
     expect(feeds.map((summary) => [summary.id, summary.kind, summary.unreadCount, summary.readCursorEntryId, summary.latestEntryId])).toEqual([
       ['hn-best', 'ranked', 0, null, null],
       ['geeknews', 'stream', 3, 2, 5],
-      ['producthunt', 'stream', 2, null, 7],
+      ['openai-news', 'stream', 2, null, 7],
     ]);
   });
 
@@ -88,7 +88,7 @@ describe('GET /api/feeds/:feedId/entries', () => {
   });
 
   it('다른 Feed의 Entry는 섞이지 않고, 정보원 원본(raw)은 응답에 없다 (ADR-0003)', async () => {
-    const response = await server.inject('/api/feeds/producthunt/entries');
+    const response = await server.inject('/api/feeds/openai-news/entries');
     expect(response.json<EntryView[]>().map((item) => item.id)).toEqual([6, 7]);
     expect(response.body).not.toContain('raw');
     expect(response.body).not.toContain('원본');
@@ -131,7 +131,7 @@ describe('Entry 상태 API', () => {
     await server.inject({ method: 'PUT', url: '/api/entries/6/bookmark' });
     const bookmarks = (await server.inject('/api/bookmarks')).json<BookmarkedEntryView[]>();
     expect(bookmarks.map((item) => [item.id, item.feedTitle])).toEqual([
-      [6, 'Product Hunt'],
+      [6, 'OpenAI News'],
       [1, 'GeekNews'],
     ]);
 

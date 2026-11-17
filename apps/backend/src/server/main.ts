@@ -5,9 +5,11 @@ import { buildServer } from './build-server.ts';
 const server = await buildServer({ logger: true });
 
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
-  process.once(signal, async () => {
-    await server.close();
-    await connectionPool.end();
+  process.once(signal, () => {
+    server.close().then(() => connectionPool.end()).catch((error: unknown) => {
+      server.log.error({ err: error }, '서버 종료에 실패했습니다.');
+      process.exitCode = 1;
+    });
   });
 }
 

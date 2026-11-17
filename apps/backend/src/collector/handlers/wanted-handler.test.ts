@@ -22,7 +22,7 @@ it('직무와 경력, 고용 형태를 EntryDraft로 바꾼다', async () => {
   const drafts = await wantedHandler.fetchEntries({ jobIds: [872, 10110] }, { httpClient });
 
   expect(requestedQueries).toHaveLength(1);
-  expect(requestedQueries[0]).toMatchObject({ job_group_id: 518, job_ids: [872, 10110], years: 0, job_sort: 'job.latest_order', limit: 100, offset: 0 });
+  expect(requestedQueries[0]).toMatchObject({ job_group_id: 518, job_ids: [872, 10110], years: 0, job_sort: 'job.latest_order', limit: 30, offset: 0 });
   expect(drafts).toHaveLength(3);
   expect(drafts[0]).toMatchObject({
     url: 'https://www.wanted.co.kr/wd/387806',
@@ -47,6 +47,34 @@ it('다음 페이지가 있으면 offset을 늘려 끝까지 받고, 겹친 공�
 
   const drafts = await wantedHandler.fetchEntries({ jobIds: [872] }, { httpClient });
 
-  expect(offsets).toEqual([0, 100]);
+  expect(offsets).toEqual([0, 30]);
   expect(drafts.map((draft) => draft.externalId)).toEqual(['387806', '2', '3']);
+});
+
+it('30건 단위로 10페이지를 넘겨서도 다음 페이지가 끝날 때까지 수집한다', async () => {
+  const offsets: number[] = [];
+  const httpClient = (async (_url: string, options: { query: { offset: number; limit: number } }) => {
+    const { offset, limit } = options.query;
+    offsets.push(offset);
+    expect(limit).toBeLessThanOrEqual(30);
+    return { data: Array.from({ length: 30 }, (_, index) => ({ ...JOB, id: offset + index })), links: { next: offset < 300 ? '/next' : null } };
+  }) as unknown as HttpClient;
+  const drafts = await wantedHandler.fetchEntries({ jobIds: [872] }, { httpClient });
+  expect(offsets).toEqual(Array.from({ length: 11 }, (_, index) => index * 30));
+  expect(drafts).toHaveLength(330);
+});
+
+it('1020건 뒤에도 다음 페이지가 있으면 잘린 목록을 성공으로 돌려주지 않는다', async () => {
+  let requestCount = 0;
+  const httpClient = (async () => {
+    requestCount++;
+    return { data: [JOB], links: { next: '/next' } };
+  }) as unknown as HttpClient;
+  await expect(wantedHandler.fetchEntries({ jobIds: [872] }, { httpClient })).rejects.toThrow('수집 상한');
+  expect(requestCount).toBe(34);
+});
+
+it('다음 페이지를 알리면서 빈 목록을 주면 수집 누락을 실패로 알린다', async () => {
+  const httpClient = (async () => ({ data: [], links: { next: '/next' } })) as unknown as HttpClient;
+  await expect(wantedHandler.fetchEntries({ jobIds: [872] }, { httpClient })).rejects.toThrow('공고를 반환하지 않았습니다');
 });

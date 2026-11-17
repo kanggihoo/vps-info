@@ -46,7 +46,7 @@ function checkColorModes(lightColors: Record<string, string>, darkColors: Record
   const missingInDark = lightNames.filter((name) => !(name in darkColors));
   const missingInLight = darkNames.filter((name) => !(name in lightColors));
   if (missingInDark.length || missingInLight.length)
-    throw new Error(`colors와 colors-dark의 키가 다릅니다. dark에 없음: [${missingInDark}] / light에 없음: [${missingInLight}]`);
+    throw new Error(`colors와 colors-dark의 키가 다릅니다. dark에 없음: [${missingInDark.join(', ')}] / light에 없음: [${missingInLight.join(', ')}]`);
   for (const [name, value] of [...Object.entries(lightColors), ...Object.entries(darkColors)])
     if (!HEX_COLOR_PATTERN.test(value)) throw new Error(`색 ${name}의 값 ${value}가 #rrggbb 형식이 아닙니다.`);
 }

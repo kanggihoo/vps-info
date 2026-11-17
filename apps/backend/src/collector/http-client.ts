@@ -3,6 +3,7 @@
  * 타임아웃·재시도 정책은 여기에만 있고, Handler는 이 클라이언트로 자유롭게 호출한다.
  */
 import { ofetch } from 'ofetch';
+import { fetchCollectorResource } from './collector-fetch.ts';
 
 /**
  * 타임아웃 10초, 재시도 2회의 HTTP 클라이언트.
@@ -17,7 +18,7 @@ export const httpClient = ofetch.create({
   retryDelay: 1_000,
   retryStatusCodes: [408, 425, 429, 500, 502, 503, 504],
   headers: { 'User-Agent': 'trendboda/1.0 (+personal feed reader)' },
-});
+}, { fetch: fetchCollectorResource });
 
 /** Handler가 받는 HTTP 클라이언트의 타입. 테스트에서는 가짜 구현을 넣는다. */
 export type HttpClient = typeof httpClient;
