@@ -1,5 +1,5 @@
 /** 한 Feed의 수집 이력을 50건씩 조회하고 성공·실패 및 오류 상세를 보여준다(ADR-0017). */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AdminAttemptPage, AdminFetchAttempt } from '@trendboda/api-types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,17 +15,21 @@ export function AdminHistory({ feedId, title, latestAttempt }: { feedId: string;
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(0);
-  const requestVersion = useRef(0);
-  useEffect(() => {
-    const version = ++requestVersion.current;
+  const requestKey = JSON.stringify([feedId, status, before, refresh, latestAttempt?.id, latestAttempt?.status]);
+  const [previousRequestKey, setPreviousRequestKey] = useState(requestKey);
+  if (previousRequestKey !== requestKey) {
+    setPreviousRequestKey(requestKey);
     setLoading(true);
     setError('');
+  }
+  useEffect(() => {
+    let active = true;
     apiClient.listAdminAttempts(feedId, status || undefined, before).then((result) => {
-      if (version === requestVersion.current) setPage(result);
+      if (active) setPage(result);
     }).catch((reason: unknown) => {
-      if (version === requestVersion.current) setError(reason instanceof Error ? reason.message : '이력을 불러오지 못했습니다.');
-    }).finally(() => { if (version === requestVersion.current) setLoading(false); });
-    return () => { requestVersion.current++; };
+      if (active) setError(reason instanceof Error ? reason.message : '이력을 불러오지 못했습니다.');
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [feedId, status, before, refresh, latestAttempt?.id, latestAttempt?.status]);
 
   return <section className="rounded-lg border bg-card p-4" aria-label={`${title} 수집 이력`}>

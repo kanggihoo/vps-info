@@ -4,7 +4,7 @@
  * 어떤 화면과 Entry를 보는지는 URL 해시(`#/feeds/<id>/entries/<entryId>`, `#/bookmarks`)에 두어 새로고침해도 유지한다.
  * 넓은 화면(`lg`)은 3열이고, 좁은 화면에서는 펼친 Entry가 가운데 목록을 덮는다. 목록은 그 아래에 그대로 있어 스크롤 위치를 잃지 않는다.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import type { FeedGroupView, FeedSummary } from '@trendboda/api-types';
 import { apiClient } from './api-client.ts';
 import { BookmarkList } from './bookmark-list.tsx';
@@ -87,14 +87,17 @@ export function App() {
     .find((row) => row.kind === 'group' && row.group.id === selectedFeed?.group?.id);
   const selectedEntryId = effectiveScreen.kind === 'none' || effectiveScreen.kind === 'admin' ? undefined : effectiveScreen.entryId;
   const selection = lastSelection?.entry.id === selectedEntryId ? lastSelection : undefined;
-  const entrySelectionProps: EntrySelectionProps | undefined =
-    effectiveScreen.kind === 'none' || effectiveScreen.kind === 'admin'
-      ? undefined
-      : {
-          selectedEntryId,
-          makeEntryHref: (entryId) => makeScreenHash({ ...effectiveScreen, entryId }),
-          onSelectEntry: (next) => selectEntry(next),
-        };
+  const selectEntry = (next: EntrySelection) => {
+    setLastSelection(next);
+    setHiddenEntryId(undefined);
+    pendingPanelRef.current = 'detail';
+  };
+  const entrySelectionProps: EntrySelectionProps = {
+    selectedEntryId,
+    makeEntryHref: (entryId) => effectiveScreen.kind === 'feed' || effectiveScreen.kind === 'bookmarks'
+      ? makeScreenHash({ ...effectiveScreen, entryId }) : '#',
+    onSelectEntry: selectEntry,
+  };
   const closeEntry = () => {
     pendingPanelRef.current = undefined;
     if (effectiveScreen.kind !== 'none' && effectiveScreen.kind !== 'admin') window.location.hash = makeScreenHash({ ...effectiveScreen, entryId: undefined });
@@ -117,10 +120,12 @@ export function App() {
       if (focusPanel(panel)) pendingPanelRef.current = undefined;
     }
   });
-  useEffect(() => {
-    if (wideDetail) setHiddenEntryId(undefined);
-  }, [wideDetail]);
-  useEffect(() => { setHiddenEntryId(undefined); }, [selectedEntryId, selectedFeed?.id]);
+  const visibilityKey = JSON.stringify([wideDetail, selectedEntryId, selectedFeed?.id]);
+  const [previousVisibilityKey, setPreviousVisibilityKey] = useState(visibilityKey);
+  if (previousVisibilityKey !== visibilityKey) {
+    setPreviousVisibilityKey(visibilityKey);
+    setHiddenEntryId(undefined);
+  }
   const moveToPanel = (name: string) => {
     if (name === 'detail') {
       if (selectedEntryId === undefined) return;
@@ -133,8 +138,8 @@ export function App() {
       setHiddenEntryId(selectedEntryId);
     } else focusPanel(name);
   };
-  const handleReadingKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (shouldIgnoreReadingKey(event.nativeEvent)) return;
+  const handleReadingKey = useEffectEvent((event: KeyboardEvent) => {
+    if (shouldIgnoreReadingKey(event)) return;
     const target = event.target as HTMLElement;
     const panel = target.closest<HTMLElement>('[data-reading-panel]');
     if (!panel) return;
@@ -156,12 +161,16 @@ export function App() {
       const detail = rootRef.current?.querySelector<HTMLElement>('[data-reading-panel="detail"]');
       if (detail && activateReadingTool(detail, event.code)) event.preventDefault();
     }
-  };
-  const selectEntry = (next: EntrySelection) => {
-    setLastSelection(next);
-    setHiddenEntryId(undefined);
-    pendingPanelRef.current = 'detail';
-  };
+  });
+  useEffect(() => {
+    const root = rootRef.current;
+    // React 자식의 키 처리·stopPropagation 뒤에 실행한다.
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof Node && root?.contains(event.target)) handleReadingKey(event);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
   // 이미 받은 목록이 있으면 갱신 실패는 조용히 넘기고 다음 주기에 다시 받는다.
   const showFeedListError = feedListFailed && feeds.length === 0;
 
@@ -173,7 +182,7 @@ export function App() {
   }, [selectedGroupId, selectedFeedId]);
 
   return (
-    <div ref={rootRef} onKeyDown={handleReadingKey} onFocusCapture={(event) => {
+    <div ref={rootRef} onFocusCapture={(event) => {
       const target = event.target as HTMLElement;
       const item = target.closest<HTMLElement>('[data-navigation-item]');
       const panel = target.closest<HTMLElement>('[data-reading-panel]');
@@ -193,11 +202,11 @@ export function App() {
           )}
           <div className="relative min-h-0 flex-1">
             {showFeedListError && <LoadError message="Feed 목록을 불러오지 못했습니다." onRetry={refreshFeeds} />}
-            {entrySelectionProps && effectiveScreen.kind === 'bookmarks' && <BookmarkList feeds={feeds} {...entrySelectionProps} />}
-            {entrySelectionProps && selectedFeed?.kind === 'stream' && (
+            {effectiveScreen.kind === 'bookmarks' && <BookmarkList feeds={feeds} {...entrySelectionProps} />}
+            {selectedFeed?.kind === 'stream' && (
               <FeedTimeline key={selectedFeed.id} feed={selectedFeed} onReadCursorSaved={refreshFeeds} {...entrySelectionProps} />
             )}
-            {entrySelectionProps && selectedFeed?.kind === 'ranked' && <RankTable key={selectedFeed.id} feed={selectedFeed} {...entrySelectionProps} />}
+            {selectedFeed?.kind === 'ranked' && <RankTable key={selectedFeed.id} feed={selectedFeed} {...entrySelectionProps} />}
             {effectiveScreen.kind === 'feed' && !selectedFeed && feeds.length > 0 && (
               <EmptyMessage>없는 Feed입니다. 왼쪽 목록에서 Feed를 고르세요.</EmptyMessage>
             )}

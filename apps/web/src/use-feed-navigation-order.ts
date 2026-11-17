@@ -12,19 +12,18 @@ export function useFeedNavigationOrder() {
   const savingRef = useRef(false);
   const lastSavedRef = useRef<FeedNavigationOrder | undefined>(undefined);
   const retryOrderRef = useRef<FeedNavigationOrder | undefined>(undefined);
-  const reload = useCallback(async () => {
-    if (savingRef.current) return;
-    setFailed(false);
-    try {
-      const loaded = await apiClient.getFeedNavigationOrder();
+  const reload = useCallback(() => {
+    if (savingRef.current) return Promise.resolve();
+    return apiClient.getFeedNavigationOrder().then((loaded) => {
       lastSavedRef.current = loaded;
       retryOrderRef.current = undefined;
       setOrder(loaded);
+      setFailed(false);
       setMessage('');
-    } catch {
+    }).catch(() => {
       setFailed(true);
       setMessage('Feed 순서를 불러오지 못했습니다.');
-    }
+    });
   }, []);
   useEffect(() => { void reload(); }, [reload]);
 

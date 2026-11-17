@@ -50,11 +50,11 @@ export function FeedTimeline({ feed, onReadCursorSaved, selectedEntryId, makeEnt
 
   // 처음 열 때: 커서 위쪽 맥락 몇 개 + 커서 뒤의 안 읽음.
   useEffect(() => {
-    setLoadFailed(false);
     const olderRequest =
       openedCursorEntryId > 0 ? apiClient.listEntriesBefore(feed.id, openedCursorEntryId + 1, CONTEXT_ENTRY_COUNT) : Promise.resolve([]);
     Promise.all([olderRequest, apiClient.listEntriesAfter(feed.id, openedCursorEntryId, PAGE_SIZE)])
       .then(([older, newer]) => {
+        setLoadFailed(false);
         setEntries([...older, ...newer]);
         setFirstUnreadEntryId(newer[0]?.id);
         setHasOlder(older.length === CONTEXT_ENTRY_COUNT);
@@ -88,6 +88,9 @@ export function FeedTimeline({ feed, onReadCursorSaved, selectedEntryId, makeEnt
       pendingScrollRef.current = { kind: 'keep-position-after-prepend', previousScrollHeight: scrollAreaRef.current?.scrollHeight ?? 0 };
       setEntries((current) => [...older, ...(current ?? [])]);
       setHasOlder(older.length === PAGE_SIZE);
+    } catch (error) {
+      console.error(error);
+      setLoadFailed(true);
     } finally {
       loadingRef.current = false;
     }
@@ -100,6 +103,9 @@ export function FeedTimeline({ feed, onReadCursorSaved, selectedEntryId, makeEnt
       const newer = await apiClient.listEntriesAfter(feed.id, entries[entries.length - 1].id, PAGE_SIZE);
       setEntries((current) => [...(current ?? []), ...newer]);
       setHasNewer(newer.length === PAGE_SIZE);
+    } catch (error) {
+      console.error(error);
+      setLoadFailed(true);
     } finally {
       loadingRef.current = false;
     }
@@ -117,7 +123,7 @@ export function FeedTimeline({ feed, onReadCursorSaved, selectedEntryId, makeEnt
     setHasNewer(false);
   };
 
-  if (loadFailed) return <LoadError message="Entry를 불러오지 못했습니다." onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />;
+  if (loadFailed) return <LoadError message="Entry를 불러오지 못했습니다." onRetry={() => { setLoadFailed(false); setLoadAttempt((attempt) => attempt + 1); }} />;
   if (!entries) return <EntryListSkeleton />;
   if (entries.length === 0)
     return (
@@ -170,7 +176,7 @@ export function FeedTimeline({ feed, onReadCursorSaved, selectedEntryId, makeEnt
       {feed.unreadCount > 0 && (
         <Button
           className="absolute right-4 bottom-4 h-10 rounded-full px-4 text-button-md shadow-md md:right-6 md:bottom-6"
-          onClick={jumpToLatest}
+          onClick={() => { jumpToLatest().catch(() => setLoadFailed(true)); }}
         >
           <ArrowDown strokeWidth={1.5} aria-hidden />
           안 읽음 <span className="font-mono tabular-nums">{feed.unreadCount}</span>개
@@ -181,10 +187,12 @@ export function FeedTimeline({ feed, onReadCursorSaved, selectedEntryId, makeEnt
 }
 
 /** 스크롤 영역 끝에 두는 보이지 않는 표식. 화면에 들어오면 다음 페이지를 불러온다. */
-function LoadTrigger({ scrollAreaRef, onVisible }: { scrollAreaRef: React.RefObject<HTMLDivElement | null>; onVisible: () => void }) {
+function LoadTrigger({ scrollAreaRef, onVisible }: { scrollAreaRef: React.RefObject<HTMLDivElement | null>; onVisible: () => Promise<void> }) {
   const triggerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const observer = new IntersectionObserver(([observation]) => observation.isIntersecting && onVisible(), {
+    const observer = new IntersectionObserver(([observation]) => {
+      if (observation.isIntersecting) void onVisible();
+    }, {
       root: scrollAreaRef.current,
       rootMargin: '200px',
     });

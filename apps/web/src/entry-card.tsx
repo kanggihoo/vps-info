@@ -3,6 +3,7 @@
  * 제목·Bookmark·요약은 모든 카드가 같고, 제목 아래 메타 줄은 카드 종류(글, 저장소, 모델, 논문, 릴리스)에 따라 다르다.
  * 번역한 Entry는 번역 제목만 보여 준다.
  */
+import { useState } from 'react';
 import { Star } from 'lucide-react';
 import type { EntryView } from '@trendboda/api-types';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ export function EntryCard({ entry: loadedEntry, cardKind = 'article', feedTitle,
   const { withChanges, publishChange } = useEntryChanges();
   const entry = withChanges(loadedEntry);
   const bookmarked = Boolean(entry.bookmarkedAt);
+  const [bookmarkFailed, setBookmarkFailed] = useState(false);
 
   const toggleBookmark = async () => {
     await apiClient.setBookmarked(entry.id, !bookmarked);
@@ -73,13 +75,14 @@ export function EntryCard({ entry: loadedEntry, cardKind = 'article', feedTitle,
             'relative z-10 -mt-1 -mr-2 shrink-0 rounded-full max-md:size-11',
             bookmarked ? 'text-brand-ink hover:text-brand-ink' : 'text-subtle-foreground',
           )}
-          onClick={toggleBookmark}
+          onClick={() => { setBookmarkFailed(false); toggleBookmark().catch(() => setBookmarkFailed(true)); }}
           aria-pressed={bookmarked}
           aria-label={bookmarked ? 'Bookmark 해제' : 'Bookmark'}
         >
           <Star className={cn('size-4.5', bookmarked && 'fill-current')} strokeWidth={1.5} />
         </Button>
       </div>
+      {bookmarkFailed && <p role="alert" className="mt-2 text-caption text-destructive">Bookmark를 변경하지 못했습니다. 다시 시도하세요.</p>}
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
         {feedTitle && <span className="text-foreground">{feedTitle}</span>}
         <EntryMeta entry={entry} cardKind={cardKind} metricChange={metricChange} />
