@@ -11,7 +11,7 @@ import { buildServer } from './build-server.ts';
 
 let server: FastifyInstance;
 const geeknews = feedDefinitions.find((definition) => definition.id === 'geeknews')!;
-const producthunt = feedDefinitions.find((definition) => definition.id === 'producthunt')!;
+const openaiNews = feedDefinitions.find((definition) => definition.id === 'openai-news')!;
 const patch = (feedId: string, payload: Record<string, unknown>) => server.inject({ method: 'PATCH', url: `/api/admin/feeds/${feedId}`, payload });
 const requestFetch = (feedId = 'geeknews') => server.inject({ method: 'POST', url: `/api/admin/feeds/${feedId}/fetch` });
 const collect = () => runDueFeeds([geeknews], async () => [{ title: '글', url: 'https://example.com/1', raw: {} }]);
@@ -20,7 +20,7 @@ beforeAll(async () => { server = await buildServer({ logger: false, readDeepLUsa
 beforeEach(async () => {
   await resetDatabase();
   await database.insert(feed).values([
-    { id: 'geeknews', intervalMinutes: 60 }, { id: 'producthunt', intervalMinutes: 180 },
+    { id: 'geeknews', intervalMinutes: 60 }, { id: 'openai-news', intervalMinutes: 180 },
     { id: 'wanted-backend', intervalMinutes: 525600 }, { id: 'removed', intervalMinutes: 60 },
   ]);
 });
@@ -61,8 +61,8 @@ describe('관리 API와 collector', () => {
 
   it('한 바퀴의 대기 목록에 있더라도 실행 직전에 바뀐 일시정지 상태를 확인한다', async () => {
     await database.update(feed).set({ nextRunAt: sql`now() - interval '1 minute'` }).where(eq(feed.id, 'geeknews'));
-    const attempted = await runDueFeeds([geeknews, producthunt], async () => {
-      await patch('producthunt', { paused: true });
+    const attempted = await runDueFeeds([geeknews, openaiNews], async () => {
+      await patch('openai-news', { paused: true });
       return [{ title: '글', url: 'https://example.com/1', raw: {} }];
     });
     expect(attempted).toEqual(['geeknews']);
@@ -83,7 +83,7 @@ describe('관리 API와 collector', () => {
     await database.insert(fetchAttempt).values({ feedId: 'geeknews', status: 'failed', finishedAt: new Date(), errorMessage: 'HTTP 403' });
     const overview = (await server.inject('/api/admin/overview')).json<AdminOverview>();
     expect(overview.collector.status).toBe('alive');
-    expect(overview.feeds.map((item) => item.id)).toEqual(['geeknews', 'producthunt', 'wanted-backend']);
+    expect(overview.feeds.map((item) => item.id)).toEqual(['geeknews', 'openai-news', 'wanted-backend']);
     expect(overview.feeds[0].lastSuccessAt).not.toBeNull();
     expect(overview.feeds[0].latestAttempt?.errorMessage).toBe('HTTP 403');
     expect(JSON.stringify(overview)).not.toContain('raw');
@@ -91,7 +91,7 @@ describe('관리 API와 collector', () => {
 
   it('이력은 50건 페이지로 나누고 필터·Feed 범위를 유지한다', async () => {
     await database.insert(fetchAttempt).values(Array.from({ length: 52 }, (_, index): typeof fetchAttempt.$inferInsert => ({ feedId: 'geeknews', status: index % 2 ? 'success' : 'failed' })));
-    await database.insert(fetchAttempt).values({ feedId: 'producthunt', status: 'failed' });
+    await database.insert(fetchAttempt).values({ feedId: 'openai-news', status: 'failed' });
     const first = (await server.inject('/api/admin/feeds/geeknews/attempts')).json<AdminAttemptPage>();
     expect(first.attempts).toHaveLength(50);
     const second = (await server.inject(`/api/admin/feeds/geeknews/attempts?before=${first.nextBefore}`)).json<AdminAttemptPage>();
