@@ -1,9 +1,10 @@
+import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ApiErrorBody, BookmarkedEntryView, EntryView, FeedTitledEntryView, ReaderView, TranslationView } from '@trendboda/api-types';
 import { runFetchAttempt } from '../collector/fetch-attempt.ts';
 import { connectionPool, database } from '../db/database-client.ts';
-import { entry, entryTranslation, feed } from '../db/schema.ts';
+import { entry, entryContent, entryTranslation, feed } from '../db/schema.ts';
 import { feedDefinitions } from '../feed-definitions.ts';
 import { resetDatabase } from '../test-support/reset-database.ts';
 import { buildServer } from './build-server.ts';
@@ -89,12 +90,63 @@ describe('GET /api/entries/:entryId/reader (ADR-0011)', () => {
     expect(reader.markdown).not.toContain('Copyright');
   });
 
-  it('부를 때마다 원문을 다시 가져온다(저장하지 않는다)', async () => {
+  it('부를 때마다 원문을 다시 가져온다', async () => {
     const fetchOriginalPage = vi.fn<OriginalPageFetcher>(async () => page());
     const app = await useServer({ fetchOriginalPage });
     await app.inject('/api/entries/1/reader');
     await app.inject('/api/entries/1/reader');
     expect(fetchOriginalPage).toHaveBeenCalledTimes(2);
+  });
+
+  it('본문을 entry_content에 저장하고 읽음 신호(reader_fetched_at)를 남긴다 (ADR-0019)', async () => {
+    const app = await useServer({});
+    const reader = (await app.inject('/api/entries/1/reader')).json<ReaderView>();
+
+    const [content] = await database.select().from(entryContent).where(eq(entryContent.entryId, 1));
+    expect(content?.markdown).toBe(reader.markdown);
+    const [stored] = await database.select({ readerFetchedAt: entry.readerFetchedAt, openedAt: entry.openedAt }).from(entry).where(eq(entry.id, 1));
+    expect(stored?.readerFetchedAt).toBeInstanceOf(Date);
+    // 읽음 신호는 Opened At과 따로 기록한다.
+    expect(stored?.openedAt).toBeNull();
+  });
+
+  it('다시 가져오면 본문은 최신으로 덮어쓰고 처음 가져온 시각은 유지한다', async () => {
+    const first = await useServer({});
+    await first.inject('/api/entries/1/reader');
+    const [{ readerFetchedAt: firstFetchedAt }] = await database.select({ readerFetchedAt: entry.readerFetchedAt }).from(entry).where(eq(entry.id, 1));
+
+    const app = await useServer({ fetchOriginalPage: async () => page({ html: '<html><body><p>Updated body of the article.</p></body></html>' }) });
+    await app.inject('/api/entries/1/reader');
+
+    const contents = await database.select().from(entryContent).where(eq(entryContent.entryId, 1));
+    expect(contents).toHaveLength(1);
+    expect(contents[0]?.markdown).toContain('Updated body of the article.');
+    const [{ readerFetchedAt }] = await database.select({ readerFetchedAt: entry.readerFetchedAt }).from(entry).where(eq(entry.id, 1));
+    expect(readerFetchedAt?.getTime()).toBe(firstFetchedAt?.getTime());
+  });
+
+  it('가져오지 못했으면 본문도 읽음 신호도 남기지 않는다', async () => {
+    const app = await useServer({ fetchOriginalPage: async () => page({ status: 403 }) });
+    expect((await app.inject('/api/entries/1/reader')).statusCode).toBe(502);
+
+    expect(await database.select().from(entryContent)).toHaveLength(0);
+    const [stored] = await database.select({ readerFetchedAt: entry.readerFetchedAt }).from(entry).where(eq(entry.id, 1));
+    expect(stored?.readerFetchedAt).toBeNull();
+  });
+
+  it('목록에서 지나간 Entry는 저장하지 않고, Entry 응답에는 본문이 섞이지 않는다', async () => {
+    const app = await useServer({});
+    await app.inject('/api/entries/1/reader');
+
+    expect(await database.select().from(entryContent).where(eq(entryContent.entryId, 2))).toHaveLength(0);
+    expect((await app.inject('/api/entries/1')).body).not.toContain('queues can live inside PostgreSQL');
+  });
+
+  it('Entry가 지워지면 본문도 함께 지워진다', async () => {
+    const app = await useServer({});
+    await app.inject('/api/entries/1/reader');
+    await database.delete(entry).where(eq(entry.id, 1));
+    expect(await database.select().from(entryContent)).toHaveLength(0);
   });
 
   it.each([
@@ -146,7 +198,7 @@ describe('GET /api/entries/:entryId/reader: 원티드 공고의 마감일 (ADR-0
       })}</script></body></html>`,
     });
 
-  it('마감일이 있으면 응답에 주고 Entry의 extra에 남기며, 기존 extra는 지키고 본문은 저장하지 않는다', async () => {
+  it('마감일이 있으면 응답에 주고 Entry의 extra에 남기며, 기존 extra는 지킨다', async () => {
     const app = await useServer({ fetchOriginalPage: async () => wantedPage('2026-10-31T00:00:00') });
     const response = await app.inject('/api/entries/3/reader');
     expect(response.statusCode).toBe(200);
@@ -156,6 +208,16 @@ describe('GET /api/entries/:entryId/reader: 원티드 공고의 마감일 (ADR-0
     const stored = (await app.inject('/api/entries/3')).json<EntryView>();
     expect(stored.extra).toEqual({ career: '신입', tags: ['서버 개발자'], deadline: '2026-10-31' });
     expect(response.body).not.toContain('secret');
+  });
+
+  it('원티드 공고 본문도 같은 경로로 저장한다 (ADR-0019)', async () => {
+    const app = await useServer({ fetchOriginalPage: async () => wantedPage('2026-10-31T00:00:00') });
+    const reader = (await app.inject('/api/entries/3/reader')).json<ReaderView>();
+
+    const [content] = await database.select().from(entryContent).where(eq(entryContent.entryId, 3));
+    expect(content?.markdown).toBe(reader.markdown);
+    const [stored] = await database.select({ readerFetchedAt: entry.readerFetchedAt }).from(entry).where(eq(entry.id, 3));
+    expect(stored?.readerFetchedAt).toBeInstanceOf(Date);
   });
 
   it('마감이 연장되면 다음에 열 때 최신 값으로 바뀐다', async () => {

@@ -80,6 +80,8 @@ export const entry = pgTable(
     firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
     /** Opened At. 앱에서 Entry를 펼치거나 원문 링크를 처음 연 시각(CONTEXT.md). */
     openedAt: timestamp('opened_at', { withTimezone: true }),
+    /** Reader Fetched At. 읽기 버튼으로 본문을 처음 가져온 시각. 비어 있으면 읽지 않았거나 기록하기 전이다(ADR-0019). */
+    readerFetchedAt: timestamp('reader_fetched_at', { withTimezone: true }),
     /** Bookmark한 시각. 비어 있으면 Bookmark가 아니다. */
     bookmarkedAt: timestamp('bookmarked_at', { withTimezone: true }),
   },
@@ -101,6 +103,20 @@ export const entryTranslation = pgTable('entry_translation', {
   /** 원문 요약이 없으면 비어 있다. */
   summary: text('summary'),
   translatedAt: timestamp('translated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * 읽기 버튼으로 가져온 본문의 Markdown(ADR-0019). Entry와 1:1이고, 읽기 버튼을 누른 Entry에만 행이 있다.
+ * 가져올 때마다 최신 본문으로 덮어쓴다. 우리가 만든 파생 데이터라 정보원에서 가져온 `entry`와 나눠 두며,
+ * 목록 조회에는 섞지 않고 본문이 필요한 곳에서만 읽는다.
+ */
+export const entryContent = pgTable('entry_content', {
+  entryId: bigint('entry_id', { mode: 'number' })
+    .primaryKey()
+    .references(() => entry.id, { onDelete: 'cascade' }),
+  markdown: text('markdown').notNull(),
+  /** 이 본문을 가져온 시각. 다시 가져오면 갱신한다. */
+  fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 /** Fetch Attempt의 상태. */

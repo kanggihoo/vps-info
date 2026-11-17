@@ -1,11 +1,11 @@
 /**
- * Entry 단위 API: Entry 하나 조회, Opened At 기록, Bookmark 토글, Bookmark 목록, 원문 읽기, 번역(ADR-0011).
+ * Entry 단위 API: Entry 하나 조회, Opened At 기록, Bookmark 토글, Bookmark 목록, 원문 읽기, 번역(ADR-0011, ADR-0019).
  */
 import { desc, eq, isNotNull, sql } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { ApiErrorBody, BookmarkedEntryView, FeedTitledEntryView, ReaderView, TranslationView } from '@trendboda/api-types';
 import { database } from '../db/database-client.ts';
-import { entry, entryTranslation } from '../db/schema.ts';
+import { entry, entryContent, entryTranslation } from '../db/schema.ts';
 import { feedDefinitions } from '../feed-definitions.ts';
 import { type TextTranslator, TranslationFailure } from './deepl-translator.ts';
 import { entryViewColumns, toEntryView, translationJoin } from './entry-view.ts';
@@ -99,25 +99,35 @@ export async function registerEntryRoutes(server: FastifyInstance, options: Entr
   });
 
   /**
-   * 원문 페이지를 가져와 본문을 Markdown으로 뽑아 돌려준다. 본문은 저장하지 않으므로 부를 때마다 원문을 다시 가져온다.
-   * 채용 공고의 마감일을 찾았으면 Entry의 `extra.deadline`에는 저장한다.
-   * 받지 못했거나 본문이 비었으면 502와 실패 이유를 준다.
+   * 원문 페이지를 가져와 본문을 Markdown으로 뽑아 돌려준다. 부를 때마다 원문을 다시 가져온다.
+   * 성공하면 본문을 `entry_content`에 최신으로 덮어쓰고, 처음 가져온 시각을 `reader_fetched_at`에 남긴다(ADR-0019).
+   * 채용 공고의 마감일을 찾았으면 Entry의 `extra.deadline`에도 저장한다.
+   * 받지 못했거나 본문이 비었으면 502와 실패 이유를 주고 아무것도 저장하지 않는다.
    */
   server.get<EntryIdRequest>(
     '/api/entries/:entryId/reader',
     { schema: { params: entryIdParamsSchema } },
     async (request, reply): Promise<ReaderView> => {
-      const [row] = await database.select({ url: entry.url }).from(entry).where(eq(entry.id, request.params.entryId));
+      const { entryId } = request.params;
+      const [row] = await database.select({ url: entry.url }).from(entry).where(eq(entry.id, entryId));
       if (!row) return reply.code(404).send(entryNotFound);
       try {
         const view = await readOriginal(row.url, options.fetchOriginalPage);
-        // 마감일은 목록 카드에도 보이도록 Entry에 남긴다. 마감이 연장될 수 있어 열 때마다 최신 값으로 덮어쓴다(ADR-0013).
-        if (view.deadline) {
-          await database
+        await database.transaction(async (transaction) => {
+          // 처음 가져온 시각만 남기므로 여러 번 불러도 값이 바뀌지 않는다. 마감일은 목록 카드에도 보이도록 Entry에 남기고,
+          // 마감이 연장될 수 있어 열 때마다 최신 값으로 덮어쓴다(ADR-0013).
+          await transaction
             .update(entry)
-            .set({ extra: sql`coalesce(${entry.extra}, '{}'::jsonb) || ${JSON.stringify({ deadline: view.deadline })}::jsonb` })
-            .where(eq(entry.id, request.params.entryId));
-        }
+            .set({
+              readerFetchedAt: sql`coalesce(${entry.readerFetchedAt}, now())`,
+              ...(view.deadline && { extra: sql`coalesce(${entry.extra}, '{}'::jsonb) || ${JSON.stringify({ deadline: view.deadline })}::jsonb` }),
+            })
+            .where(eq(entry.id, entryId));
+          await transaction
+            .insert(entryContent)
+            .values({ entryId, markdown: view.markdown })
+            .onConflictDoUpdate({ target: entryContent.entryId, set: { markdown: view.markdown, fetchedAt: sql`now()` } });
+        });
         return view;
       } catch (error) {
         if (!(error instanceof ReaderFailure)) throw error;

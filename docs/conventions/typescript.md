@@ -88,7 +88,7 @@ npx shadcn@latest info                  # components.json·별칭 등 프로젝�
 
 ## 테스트
 
-- 테스트는 Vitest로 작성하고, 테스트 대상 파일 옆에 `<파일명>.test.ts`로 둔다. Vitest 설정은 워크스페이스마다 있고, 루트 `npm test`가 모두 돌린다.
+- 테스트는 Vitest로 작성하고, 테스트 대상 파일 옆에 `<파일명>.test.ts`로 둔다. JSX가 필요한 React 테스트는 `<파일명>.test.tsx`로 둔다. Vitest 설정은 워크스페이스마다 있고, 루트 `npm test`가 모두 돌린다.
 
 ## Lint
 
