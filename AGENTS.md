@@ -17,3 +17,5 @@
 사용자가 반복 적용 가능한 코드 구조나 스타일 변경을 요청하면 코드와 convention 문서를 함께 갱신한다. 특정 기능에만 해당하는 일회성 지시는 convention으로 기록하지 않는다.
 
 변경으로 도메인 용어나 아키텍처 결정이 달라지면 `CONTEXT.md` 또는 관련 ADR도 함께 갱신한다.
+
+Read [CONSTRAINTS.md](./CONSTRAINTS.md) before writing code. Do not weaken it to make a change pass.

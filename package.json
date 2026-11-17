@@ -19,6 +19,14 @@
     "design:lint": "npm run design:lint -w @trendboda/web",
     "test:db": "docker compose -f compose.yml -f compose.local.yml run --rm --build test",
     "lint": "npm run lint --workspaces --if-present",
-    "lint:fix": "npm run lint:fix --workspaces --if-present"
+    "lint:fix": "npm run lint:fix --workspaces --if-present",
+    "check:floor": "node scripts/floor-guard.mjs --base origin/main",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "test:coverage": "npm run test:coverage --workspaces --if-present && node scripts/merge-coverage.mjs",
+    "check:coverage": "node scripts/wf-artifacts/diff-coverage.mjs coverage/lcov.info --base origin/main --min 80",
+    "check:fast": "npm run typecheck && npm run lint",
+    "check:task": "npm run check:fast && npm run check:secrets && npm run check:floor && npm run test:guards && npm run test:coverage && npm run check:coverage",
+    "check:full": "npm run check:task && npm run test:db",
+    "test:guards": "node --test scripts/floor-guard.test.mjs"
   }
 }
