@@ -1,6 +1,6 @@
 # Constraints
 
-검토일: 2026-11-17. 소유자: @kanggihoo. 범위: Trendboda npm workspaces.
+검토일: 2026-11-18. 소유자: @kanggihoo. 범위: Trendboda npm workspaces.
 
 이 파일이 품질 기준의 원본이다. `package.json`의 `check:*`는 아래 명령을 묶는 실행 수단이다.
 이번에는 기존 타입·lint·테스트에 변경 코드 Coverage, Gitleaks, Floor guard만 추가한다.
@@ -42,8 +42,8 @@
 - Node로 직접 실행하는 저장소 관리용 `scripts/*.mjs`와 vendored wf 도구는 제품 Coverage 대상이 아니다. guard는 별도 `npm run test:guards`로 계약을 검사한다.
 - `scripts/merge-coverage.mjs`는 workspace별 SF 경로만 repo 기준으로 정리한다. 검사 판정은 wf 원본 `scripts/wf-artifacts/diff-coverage.mjs`가 한다.
 - unit suite의 lcov를 한 번 만들고 재사용한다. DB 코드의 실제 실행 Coverage가 필요하면 backend를 `RUN_DB_TESTS=1`로 같은 Coverage 명령으로 실행한다.
-- 일반 작업의 기준은 `origin/main`이다. wf에서는 spec 승인 commit을 `--base`로 넘긴다. 없는 ref나 lcov를 성공으로 취급하지 않는다.
-- 2026-11-17에 origin/main(42dcbfa)을 갱신한 뒤 측정한 변경 Coverage는 28.7%(31/108)다. 현재 로컬과 원격 main은 서로 다른 추가 commit이 있고, 로컬의 이전 두 commit도 비교에 포함된다. 이전 작업의 assertion 교체도 Floor에서 8건 탐지된다. 이를 새 기준에 맞췄다고 보고하거나 임의로 예외 처리하지 않는다. 도입 전 변경의 검토와 baseline 반영을 마친 다음 새 작업부터 위 기준을 적용한다.
+- 로컬 기본 기준은 `origin/main`이다. CI에서는 PR의 대상 브랜치(`origin/$CHANGE_TARGET`)를 `CHECK_BASE`로 전달한다. 단계별 PR은 실제 대상 브랜치와 비교하고, 없는 ref는 실패한다. wf에서는 spec 승인 commit을 `--base`로 넘긴다. 없는 ref나 lcov를 성공으로 취급하지 않는다.
+- 최초 도입은 기존 기능 수정 PR과 분리한다. Feed·lint 수정 PR을 먼저 검증하고, 이 설정 PR은 그 브랜치를 대상으로 한다. 첫 PR 병합 후 이 PR의 대상을 main으로 바꾼다. 도입 전 변경을 새 기준으로 소급 평가하거나 해당 변경을 위해 threshold를 낮추지 않는다. 이 설정 PR은 application 실행 코드를 변경하지 않으므로 변경 Coverage의 실행 라인 분모는 0이며, 기존 전체 Coverage가 80%라는 뜻은 아니다.
 
 ## 실행 시점과 비용
 
@@ -57,12 +57,12 @@
 
 ## Measured, not yet enforced
 
-2026-11-17 단위 테스트 기준. 전체 Coverage는 과거 코드의 현황이며 이번에 전체 80%를 강제하지 않는다.
+2026-11-18 단위 테스트 기준. 전체 Coverage는 과거 코드의 현황이며 이번에 전체 80%를 강제하지 않는다.
 
 | Metric | Today | Direction | 측정 |
 |---|---|---|---|
-| backend line coverage | 43.15% (353/818) | 테스트 보강으로 올린다 | `npm run test:coverage -w @trendboda/backend` |
-| web line coverage | 13.06% (128/980) | 사용자 흐름 테스트를 추가하며 올린다 | `npm run test:coverage -w @trendboda/web` |
+| backend line coverage | 42.94% (353/822) | 테스트 보강으로 올린다 | `npm run test:coverage -w @trendboda/backend` |
+| web line coverage | 13.64% (134/982) | 사용자 흐름 테스트를 추가하며 올린다 | `npm run test:coverage -w @trendboda/web` |
 | llm line coverage | 67.96% (70/103) | 테스트 보강으로 올린다 | `npm run test:coverage -w @trendboda/llm` |
 | dependency vulnerabilities | critical 0, high 9, moderate 19, low 1 | high·critical 우선 분류·해소 후 차단 기준을 별도 승인한다 | `npm audit` |
 
