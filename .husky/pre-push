@@ -1,0 +1,28 @@
+#!/bin/sh
+# push 직전 검사. 하나라도 실패하면 push가 중단된다. DB 테스트를 제외하면 약 25초다.
+# Jenkins(`check:task`)가 실패할 변경을 push 전에 거른다. 건너뛰려면 `git push --no-verify`를 쓴다.
+base="${CHECK_BASE:-origin/main}"
+
+echo "[pre-push] Floor guard (기준 $base)"
+node scripts/floor-guard.mjs --base "$base" || exit 1
+
+echo "[pre-push] 타입 검사와 lint"
+npm run check:fast || exit 1
+
+echo "[pre-push] 단위·컴포넌트 테스트"
+npm test || exit 1
+
+# DB 통합 테스트는 apps/backend가 바뀐 push에서만 돌린다(CONSTRAINTS.md). 실행 기준이 되는 ref가 없으면 실패한다.
+changed=$(git diff --name-only "$base"...HEAD -- apps/backend) || {
+  echo "[pre-push] 기준 $base 를 찾을 수 없습니다. git fetch 후 다시 시도하세요."
+  exit 1
+}
+if [ -n "$changed" ]; then
+  docker info >/dev/null 2>&1 || {
+    echo "[pre-push] apps/backend가 바뀌어 DB 통합 테스트가 필요하지만 Docker가 실행 중이 아닙니다."
+    echo "[pre-push] Docker를 켜고 다시 push하세요."
+    exit 1
+  }
+  echo "[pre-push] DB 통합 테스트 (apps/backend 변경, 첫 실행은 image build로 오래 걸립니다)"
+  npm run test:db || exit 1
+fi
