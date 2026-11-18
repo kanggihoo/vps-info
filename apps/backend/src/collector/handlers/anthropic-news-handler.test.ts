@@ -16,6 +16,27 @@ describe('parseNewsListPage', () => {
       extra: { subject: 'Announcements' },
     });
     expect(drafts.every((draft) => draft.title && draft.publishedAt)).toBe(true);
+    // 위 검증은 일부 항목만 본다. fixture가 주는 결과 전체를 고정해 목록이 줄거나 순서가 바뀌면 실패하게 한다.
+    expect(drafts.map(({ url, title, publishedAt, extra }) => ({ url, title, publishedAt, extra }))).toEqual([
+      {
+        url: 'https://www.anthropic.com/news/public-benefit-fund',
+        title: 'Investing in the public benefit',
+        publishedAt: new Date('2026-10-18T00:00:00Z'),
+        extra: { subject: 'Announcements' },
+      },
+      {
+        url: 'https://www.anthropic.com/news/roadshow-launch',
+        title: 'Anthropic launches roadshow for proposed initial public offering',
+        publishedAt: new Date('2026-11-10T00:00:00Z'),
+        extra: { subject: 'Announcements' },
+      },
+      {
+        url: 'https://www.anthropic.com/claude-fable-and-mythos-5-2',
+        title: 'Introducing Claude Fable 5.2 and Claude Mythos 5.2',
+        publishedAt: new Date('2026-11-09T00:00:00Z'),
+        extra: { subject: 'Announcements' },
+      },
+    ]);
   });
 
   it('같은 글의 카드·목록 중복은 제거하고 분류·이미지·날짜 없는 링크는 제외한다', () => {
