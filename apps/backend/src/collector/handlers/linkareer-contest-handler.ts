@@ -10,11 +10,11 @@ const GRAPHQL_URL = 'https://api.linkareer.com/graphql';
 
 /**
  * 활동 유형 3은 공모전이다(1 대외활동, 2 동아리, 5 채용, 6 인턴). 진행 중인 것만, 최신순.
- * 하루 20~30개가 올라와서 하루 1회 수집에 100개면 며칠 밀려도 놓치지 않는다.
+ * 하루 10~30개가 올라와서(2026-11-13~19 확인) 하루 1회 수집에 100개면 며칠 밀려도 놓치지 않는다.
  */
 const ACTIVITIES_QUERY = `query ($filterBy: ActivityFilter, $orderBy: ActivityOrder, $pagination: Pagination) {
   activities(filterBy: $filterBy, orderBy: $orderBy, pagination: $pagination) {
-    nodes { id title organizationName recruitStartAt recruitCloseAt createdAt awards categories { name } }
+    nodes { id title organizationName recruitType recruitStartAt recruitCloseAt createdAt awards categories { name } }
   }
 }`;
 const ACTIVITIES_VARIABLES = {
@@ -28,6 +28,11 @@ type LinkareerContest = {
   id: string;
   title: string;
   organizationName: string;
+  /**
+   * `NORMAL`(마감일 있음), `ASAP`(모집 시 마감), `ALWAYS`(상시모집).
+   * ASAP·ALWAYS도 `recruitCloseAt`을 주지만 링커리어 화면은 그 날짜를 보이지 않고 "모집 시 마감"·"상시모집"으로 적는다.
+   */
+  recruitType: string;
   /** 접수 시작·마감 시각(epoch 밀리초). */
   recruitStartAt?: number | null;
   recruitCloseAt?: number | null;
@@ -47,8 +52,8 @@ export const linkareerContestHandler = defineHandler<Record<string, never>>({
     return data.activities.nodes
       .filter((contest) => contest.id && contest.title)
       .map((contest) => {
-        // 조기 마감(ASAP)도 마감 시각을 주므로 그 날짜를 마감일로 쓴다. 마감 시각이 없을 때만 상시로 본다.
-        const deadline = contest.recruitCloseAt ? toKoreanDateString(new Date(contest.recruitCloseAt)) : undefined;
+        // 채용 Handler와 같이 마감일이 있는 공모전(NORMAL)만 마감일을 쓰고, 모집 시 마감·상시모집은 상시로 본다.
+        const deadline = contest.recruitType === 'NORMAL' && contest.recruitCloseAt ? toKoreanDateString(new Date(contest.recruitCloseAt)) : undefined;
         const awards = Number(contest.awards);
         return {
           url: `https://linkareer.com/activity/${contest.id}`,

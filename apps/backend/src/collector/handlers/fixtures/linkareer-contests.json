@@ -49,6 +49,21 @@
               "name": "기타"
             }
           ]
+        },
+        {
+          "id": "352396",
+          "title": "[국토연구원] 연구과제 상시 제안 이벤트",
+          "organizationName": "국토연구원",
+          "recruitType": "ALWAYS",
+          "recruitStartAt": 1790089200000,
+          "recruitCloseAt": 1797951599999,
+          "createdAt": 1789979860000,
+          "awards": "0",
+          "categories": [
+            {
+              "name": "기획/아이디어"
+            }
+          ]
         }
       ]
     }

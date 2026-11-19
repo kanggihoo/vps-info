@@ -11,7 +11,10 @@ import { toKoreanDateString } from './job-posting.ts';
 const LIST_URL = 'https://www.wevity.com/';
 const LIST_QUERY = { c: 'find', s: 1, gub: 1 };
 
-/** 1페이지는 SPECIAL 14개 + 일반 1개라서, 하루 등록분(일반 공모전)을 덮으려면 3페이지(일반 31개)까지 본다. */
+/**
+ * 페이지당 15행이고 1페이지는 SPECIAL 14개 + 일반 1개라서, 3페이지면 일반 공모전 31개다.
+ * 일반 공모전은 하루 15~20개 꼴이라(2026-11-14~19 측정, docs/feeds.md) 31개는 약 2일 치다.
+ */
 const PAGE_COUNT = 3;
 
 /** 같은 호스트에 연달아 요청하지 않도록 페이지 사이에 두는 간격. */
@@ -43,12 +46,12 @@ export function parseContestListPage(html: string, now: Date) {
       const item = $(element);
       const anchor = item.find('.tit > a');
       const id = anchor.attr('href')?.match(/[?&]ix=(\d+)/)?.[1];
-      // 제목 뒤의 SPECIAL·IDEA·신규 표시(span)는 제목이 아니다.
-      const title = anchor.clone().children().remove().end().text().replace(/\s+/g, ' ').trim();
+      // 제목 뒤의 SPECIAL·IDEA·신규 표시(span.stat)는 제목이 아니다. 다른 자식 요소는 제목의 일부로 둔다.
+      const title = anchor.clone().find('span.stat').remove().end().text().replace(/\s+/g, ' ').trim();
       if (!id || !title) return [];
       const fieldText = item.find('.sub-tit').text().replace(/^\s*분야\s*:\s*/, '').trim();
       const dayText = item.find('.day').text().replace(/\s+/g, ' ').trim();
-      const badges = anchor.find('span').map((__, span) => $(span).text().trim()).get();
+      const badges = anchor.find('span.stat').map((__, span) => $(span).text().trim()).get();
       return {
         url: `https://www.wevity.com/?c=find&s=1&gub=1&gbn=view&ix=${id}`,
         title,
