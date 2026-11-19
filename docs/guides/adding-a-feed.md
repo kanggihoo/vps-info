@@ -72,7 +72,7 @@ Feed의 카드 종류는 화면 쪽 표 `apps/web/src/card-kind.ts`에 Feed id(�
 | `model` | LLM 모델 | `contextLength`, `promptPricePerToken`·`completionPricePerToken`(토큰 1개당 달러, 문자열) |
 | `paper` | 논문 | `score`(추천수), `commentCount`, `arxivUrl` |
 | `release` | 버전 릴리스 | 따로 읽는 필드 없음. 요약을 4줄까지 보인다 |
-| `job` | 채용 공고 | `author`(회사), `location`, `career`, `deadline`(`YYYY-MM-DD`), `alwaysOpen`, `tags`(기술스택·직무). 채용 Handler는 `job-posting.ts`의 변환을 함께 쓴다 |
+| `job` | 채용 공고·공모전(마감이 있는 모집 글) | `author`(회사), `location`, `career`, `deadline`(`YYYY-MM-DD`), `alwaysOpen`, `tags`(기술스택·직무). 채용 Handler는 `job-posting.ts`의 변환을 함께 쓴다 |
 
 Stream Feed는 `extra`와 `metrics`가 합쳐진 처음 값을, Ranked Feed 순위표는 최신 Snapshot의 `metrics`를 보여 준다.
 순위표의 직전 대비 증감은 저장소 카드면 `starsGained`, 나머지는 `score`로 계산한다.
@@ -107,6 +107,8 @@ Stream Feed는 `extra`와 `metrics`가 합쳐진 처음 값을, Ranked Feed 순�
 | `linkareer` | `linkareer-handler.ts` | `{}` | 링커리어 백엔드 신입 공고 GraphQL |
 | `producthunt` | `producthunt-handler.ts` | `{ period: 'weekly' \| 'monthly' \| 'yearly' }` | Product Hunt 공식 GraphQL API. 이번 주·달·해 Featured 제품의 추천수 순위. 토큰이 필요하다 |
 | `starhistory` | `starhistory-handler.ts` | `{}` | Star History 홈의 주간 급상승 저장소 20개. HTML 순위표를 파싱한다. 정보원이 주 1회만 바뀌어 주기를 7일로 둔다 |
+| `wevity` | `wevity-handler.ts` | `{}` | 위비티 공모전 목록 HTML 3페이지. 페이지 사이에 2초를 쉰다 |
+| `linkareer-contest` | `linkareer-contest-handler.ts` | `{}` | 링커리어 진행 중 공모전 GraphQL(`activityTypeID=3`) 최신 100개 |
 
 RSS가 없는 사이트는 RSSHub 라우트(`lib/routes/<site>/`)를 열어 **어떤 주소를 호출하는지만** 참고한다.
 RSSHub는 AGPL-3.0이므로 코드를 복사하지 않는다(ADR-0006). 공식 RSS가 있으면 RSSHub를 거치지 말고 그것을 쓴다.

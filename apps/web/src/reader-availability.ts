@@ -16,6 +16,7 @@ const READER_HIDDEN_IDS = new Set([
   'jumpit-backend',
   'saramin-backend',
   'linkareer-backend',
+  'linkareer-contests',
 ]);
 
 /**

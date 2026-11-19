@@ -5,7 +5,7 @@
 
 export type CardKind = 'article' | 'repository' | 'model' | 'paper' | 'release' | 'job';
 
-/** Feed id 또는 Feed Group id → 카드 종류. 여기 없는 Feed는 `article`이다. Group으로 적으면 그 Group의 Feed 모두에 쓴다. */
+/** Feed id 또는 Feed Group id → 카드 종류. `job`은 마감이 있는 모집 글(채용 공고·공모전)에 쓴다. 여기 없는 Feed는 `article`이다. Group으로 적으면 그 Group의 Feed 모두에 쓴다. */
 const CARD_KINDS: Record<string, CardKind> = {
   trendshift: 'repository',
   hellogithub: 'repository',
@@ -18,6 +18,9 @@ const CARD_KINDS: Record<string, CardKind> = {
   'jumpit-backend': 'job',
   'saramin-backend': 'job',
   'linkareer-backend': 'job',
+  // 공모전도 주최·마감·분야 태그가 채용 공고와 같은 자리에 들어간다.
+  'wevity-contests': 'job',
+  'linkareer-contests': 'job',
 };
 
 /**

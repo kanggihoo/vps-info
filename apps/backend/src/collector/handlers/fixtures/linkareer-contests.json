@@ -1,0 +1,56 @@
+{
+  "data": {
+    "activities": {
+      "nodes": [
+        {
+          "id": "365788",
+          "title": "제30회 보령머드축제 공식 포스터 디자인 공모전",
+          "organizationName": "보령축제관광재단",
+          "recruitType": "NORMAL",
+          "recruitStartAt": 1794927600000,
+          "recruitCloseAt": 1797605999999,
+          "createdAt": 1795076234000,
+          "awards": "450",
+          "categories": [
+            {
+              "name": "사진/영상/UCC"
+            },
+            {
+              "name": "디자인/순수미술/공예"
+            }
+          ]
+        },
+        {
+          "id": "365787",
+          "title": "신청주의 개선 정책 브랜드 명칭 공모전",
+          "organizationName": "보건복지부",
+          "recruitType": "NORMAL",
+          "recruitStartAt": 1795100400000,
+          "recruitCloseAt": 1796396399999,
+          "createdAt": 1795076178000,
+          "awards": "0",
+          "categories": [
+            {
+              "name": "사진/영상/UCC"
+            }
+          ]
+        },
+        {
+          "id": "364948",
+          "title": "2026 아이디어스테이션 | 11.19.~20. 원광대학교",
+          "organizationName": "주식회사 아이디어파트너스",
+          "recruitType": "ASAP",
+          "recruitStartAt": 1795014000000,
+          "recruitCloseAt": 1802876399999,
+          "createdAt": 1794878386000,
+          "awards": "0",
+          "categories": [
+            {
+              "name": "기타"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

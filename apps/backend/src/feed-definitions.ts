@@ -330,4 +330,8 @@ export const feedDefinitions: FeedDefinition[] = [
   { id: 'jumpit-backend', title: '점핏 백엔드 신입', handler: 'jumpit', params: {}, intervalMinutes: 360 },
   { id: 'saramin-backend', title: '사람인 백엔드 신입', handler: 'saramin', params: {}, intervalMinutes: 360 },
   { id: 'linkareer-backend', title: '링커리어 백엔드 신입', handler: 'linkareer', params: {}, intervalMinutes: 360 },
+  // 공모전은 하루 수십 개씩 천천히 올라오고 목록이 며칠 치를 덮으므로 하루 1회 수집한다.
+  // 두 사이트에 함께 올라온 공모전은 Feed마다 Entry가 따로 생긴다(ADR-0002). 분야로 Feed를 나누지 않는다.
+  { id: 'wevity-contests', title: '위비티 공모전', handler: 'wevity', params: {}, intervalMinutes: 1440 },
+  { id: 'linkareer-contests', title: '링커리어 공모전', handler: 'linkareer-contest', params: {}, intervalMinutes: 1440 },
 ];
