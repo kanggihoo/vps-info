@@ -1,18 +1,21 @@
-# PR 검증. 결과 check가 main branch protection의 필수 check다.
-# main 배포는 아직 VPS Jenkins가 한다(vps-infra ADR 0018). Jenkins main 빌드도 배포 직전에 같은 검사를 한 번 더 돈다.
+# PR 검증과 main 이미지 빌드. check:task 결과가 main branch protection의 필수 check다.
+# main push는 검사 뒤 이미지를 GHCR에 올린다. 배포는 아직 VPS Jenkins가 한다(vps-infra ADR 0018).
 name: CI
 
 on:
   # 대상 브랜치를 main으로 제한하지 않는다. 단계별 PR은 실제 대상 브랜치와 비교한다(CONSTRAINTS.md).
   pull_request:
+  # squash 병합이면 main 커밋이 PR에서 검사한 커밋과 다르므로 main에서 한 번 더 검사한다.
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
-# 같은 PR에 새 push가 오면 이전 실행을 취소한다.
+# PR은 새 push가 오면 이전 실행을 취소한다. main은 취소하지 않고 순서대로 돈다(이미지 push 도중에 끊지 않는다).
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
@@ -34,9 +37,10 @@ jobs:
       # .dockerignore로 뺀 tracked 파일(docs 등)과 .git은 이미지에 넣지 않고 검사 컨테이너에만 복사한다.
       # bind mount를 쓰지 않는 이유: 이미지의 /app/node_modules를 가리게 된다.
       # DB 통합 테스트는 DB 서비스가 없어 여기서 돌리지 않는다(로컬 check:full, pre-push).
+      # main push에서는 base_ref가 비어 origin/main(자기 자신)과 비교하므로 floor·변경 Coverage 대상이 없다(Jenkins main 빌드와 같다).
       - name: npm run check:task
         env:
-          CHECK_BASE: origin/${{ github.base_ref }}
+          CHECK_BASE: origin/${{ github.base_ref || 'main' }}
         run: |
           set -eu
           docker create --name check -e CHECK_BASE vps-info-test npm run check:task >/dev/null
@@ -44,12 +48,45 @@ jobs:
           docker cp .git check:/app/.git
           docker start -a check
 
-  # 결과를 Mattermost로 알린다(vps-infra ADR 0012). secret이 없으면 건너뛴다.
+  # main 커밋의 이미지를 GHCR에 올린다. 태그는 커밋 SHA이고 서비스는 접미사로 구분한다(compose.yml의 image).
+  # 패키지 하나(ghcr.io/kanggihoo/vps-info)라 public 전환도 한 번이면 된다. VPS는 로그인 없이 pull한다.
+  image:
+    if: github.event_name == 'push'
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      # 네 target이 Dockerfile 하나의 stage를 공유하므로 bake로 한 번에 빌드한다.
+      # source label은 패키지를 이 레포에 연결한다. 빌드 캐시는 아직 두지 않는다(느려지면 type=gha를 붙인다).
+      - name: Build and push
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: >-
+          docker buildx bake -f compose.yml --push
+          --set "*.labels.org.opencontainers.image.source=https://github.com/${{ github.repository }}"
+          migrate app collector llm
+
+  # PR 결과를 Mattermost로 알린다(vps-infra ADR 0012). secret이 없으면 건너뛴다.
   # fork PR에는 secret이 전달되지 않으므로 같은 레포 PR만 알린다. 새 push로 취소된 실행은 알리지 않는다.
   notify:
     needs: check
     if: >-
       always() &&
+      github.event_name == 'pull_request' &&
       needs.check.result != 'cancelled' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
