@@ -1,6 +1,9 @@
 # 배포용 구성. PostgreSQL과 네트워크는 vps-infra가 소유한다.
-# 프로젝트 이름을 고정한다. 없으면 Jenkins workspace 디렉터리 이름이 프로젝트 이름이 된다.
+# 프로젝트 이름을 고정한다. 없으면 checkout 디렉터리 이름이 프로젝트 이름이 되어, 배포 위치가 바뀌면 컨테이너와 볼륨을 새로 만든다.
 name: vps-info
+
+# 이미지는 GitHub Actions가 main 커밋마다 빌드해 GHCR에 올린다. 패키지 하나에 서비스를 태그로 구분한다(<sha>-app 등).
+# 운영은 scripts/deploy.sh가 IMAGE_TAG=<배포 커밋 SHA>로 pull만 한다. 로컬 `up --build`는 그대로 빌드하고 local-* 태그를 붙인다.
 
 x-database-env: &database-env
   environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD]
@@ -9,12 +12,14 @@ services:
   # 마이그레이션을 적용하고 종료한다. 성공해야 app과 collector가 뜬다.
   migrate:
     build: { context: ., target: base }
+    image: ghcr.io/kanggihoo/vps-info:${IMAGE_TAG:-local}-migrate
     command: ["node", "src/db/run-migrations.ts"]
     <<: *database-env
     networks: [vps_data]
 
   app:
     build: { context: ., target: app }
+    image: ghcr.io/kanggihoo/vps-info:${IMAGE_TAG:-local}-app
     # DB 환경 변수에 더해 번역 버튼용 DeepL 키를 받는다(ADR-0011). 비어 있으면 번역만 꺼진다.
     # LLM_URL은 Entry 대화를 넘길 llm 서비스 주소다(ADR-0015). 비우면 대화만 꺼진다.
     environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, DEEPL_API_KEY, "WANTED_PROXY_URL=${WANTED_PROXY_URL-http://100.66.95.61:18888}", "LLM_URL=${LLM_URL-http://llm:8100}"]
@@ -35,6 +40,7 @@ services:
 
   collector:
     build: { context: ., target: collector }
+    image: ghcr.io/kanggihoo/vps-info:${IMAGE_TAG:-local}-collector
     # 원티드는 VPS IP를 막아서 한국 IP의 프록시를 거친다(docs/sources/wanted.md). 비우면 직접 나간다.
     environment: [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, PRODUCT_HUNT_CLIENT_ID, PRODUCT_HUNT_CLIENT_SECRET, "WANTED_PROXY_URL=${WANTED_PROXY_URL-http://100.66.95.61:18888}"]
     restart: unless-stopped
@@ -47,6 +53,7 @@ services:
   # Claude·OpenAI 구독 로그인(llm_auth 볼륨의 auth.json): bash scripts/llm-login.sh anthropic|openai
   llm:
     build: { context: ., target: llm }
+    image: ghcr.io/kanggihoo/vps-info:${IMAGE_TAG:-local}-llm
     environment: [OPENROUTER_API_KEY, LLM_AUTH_FILE=/llm-auth/auth.json]
     restart: unless-stopped
     read_only: true
