@@ -1,0 +1,5 @@
+#!/bin/sh
+# 커밋 직전 검사. 검사 기준을 낮추는 변경(suppression, test skip, assertion 삭제 등)을 diff로 찾는다. 약 1초.
+# 정규식 기반이라 정당한 교체도 탐지될 수 있다. 그때는 diff를 직접 검토한다(CONSTRAINTS.md Floor).
+# npm script(`check:floor`)는 Windows의 cmd.exe에서 `${CHECK_BASE:-origin/main}`이 확장되지 않아 쓰지 않는다.
+node scripts/floor-guard.mjs --base "${CHECK_BASE:-origin/main}"

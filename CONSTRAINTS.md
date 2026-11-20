@@ -52,6 +52,8 @@
 - `npm run test:guards`: floor guard의 임시 Git 저장소 기반 회귀 검사.
 - `npm run check:task`: fast → secret → floor → guard 회귀 검사 → 테스트+Coverage → 변경 Coverage.
 - `npm run check:full`: task 검사 후 DB 통합 테스트. Docker가 실행 중이어야 한다.
+- Git hook: `npm install`의 `prepare`가 `git config core.hooksPath .husky`를 설정해 `.husky/`의 hook을 켠다. husky 패키지는 쓰지 않는다. `pre-commit`은 Floor guard(약 1초), `pre-push`는 Floor guard, `check:fast`, `npm test`(합쳐서 약 25초)를 돌리고 `apps/backend`가 바뀐 push에서는 `test:db`도 돌린다. Docker가 꺼져 있으면 그 push는 실패한다.
+  hook은 로컬 피드백이다. `--no-verify`로 건너뛸 수 있으므로 강제는 Jenkins `check:task`와 `main` branch protection이 맡는다. Coverage와 Gitleaks는 시간과 환경 의존 때문에 hook에 넣지 않는다. hook은 Windows의 `cmd.exe`에서 `${CHECK_BASE:-origin/main}`이 확장되지 않는 문제를 피하려고 `check:floor` 대신 `node scripts/floor-guard.mjs`를 직접 호출한다.
 - 로컬 작업 종료 검사 예산은 90초를 목표로 한다. Docker 최초 pull·build와 CI는 이 예산에서 제외한다. 시간 초과를 검사 생략·성공으로 바꾸지 않는다.
 - Jenkins Test stage에서 `check:task`를 실행한다. 현재 CI에는 DB 서비스가 없으므로 DB 통합 테스트는 별도로 실행한다.
 
