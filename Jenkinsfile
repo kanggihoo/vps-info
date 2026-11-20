@@ -1,5 +1,5 @@
-// VPS Jenkins multibranch job이 PR과 main을 빌드한다. Job 정의는 vps-infra/jenkins/casc/jobs.groovy에 있다.
-// PR은 Test만 돌려 GitHub status로 보고하고(병합 조건), main은 Test 뒤에 배포까지 한다.
+// VPS Jenkins multibranch job이 main만 빌드해 배포한다. Job 정의는 vps-infra/jenkins/casc/jobs.groovy에 있다.
+// PR 검증은 GitHub Actions(.github/workflows/ci.yml)가 한다(vps-infra ADR 0018). main의 Test는 배포 직전 재검증이다.
 // 이미지는 VPS에서 빌드한다(ADR-0001). PostgreSQL과 nginx는 vps-infra가 소유한다.
 pipeline {
     agent any
@@ -25,7 +25,7 @@ pipeline {
                     name="vps-info-test-$branch-$BUILD_NUMBER"
                     docker build --target test -t "$name" .
                     status=0
-                    base="origin/${CHANGE_TARGET:-main}"
+                    base="origin/main"
                     # docs 등 빌드 문맥에서 제외한 tracked 파일도 검사할 커밋과 일치시킨다.
                     # .git은 이미지에 넣지 않고 임시 검사 컨테이너에만 복사한다.
                     docker create --name "$name" -e CHECK_BASE="$base" -e JUNIT_OUTPUT_DIR=/app/test-results "$name" npm run check:task >/dev/null
@@ -47,7 +47,7 @@ pipeline {
         }
 
         // 운영 접속 정보를 SOPS로 복호화한다. key는 JCasC가 등록한 sops-age-key credential이다.
-        // 배포 stage는 main에서만 돈다. PR 빌드가 운영 secret을 만지거나 배포하면 안 된다.
+        // 배포 stage는 main에서만 돈다. Job이 main만 발견하지만, 다른 브랜치가 빌드되더라도 운영 secret을 만지거나 배포하지 않게 남긴다.
         stage('Decrypt') {
             when { branch 'main' }
             steps {
@@ -115,14 +115,8 @@ pipeline {
         // notifyMattermost는 vps-infra가 JCasC로 등록한 implicit 라이브러리에 있다.
         always {
             sh 'rm -f .env'
-            // PR 빌드는 CI, main 빌드는 CD로 알린다(ADR 0014). CHANGE_ID는 PR 빌드에만 있다.
-            script {
-                if (env.CHANGE_ID) {
-                    notifyMattermost(kind: 'CI', fields: ['PR': "[#${env.CHANGE_ID}](${env.CHANGE_URL})"])
-                } else if (env.BRANCH_NAME == 'main') {
-                    notifyMattermost(kind: 'CD')
-                }
-            }
+            // main 빌드는 CD로 알린다. PR 검증(CI) 알림은 GitHub Actions workflow가 보낸다(vps-infra ADR 0018).
+            notifyMattermost(kind: 'CD')
         }
     }
 }
