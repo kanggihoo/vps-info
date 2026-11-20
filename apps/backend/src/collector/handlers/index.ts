@@ -9,6 +9,7 @@ import { hellogithubHandler } from './hellogithub-handler.ts';
 import { huggingfacePapersHandler } from './huggingface-papers-handler.ts';
 import { indiehackersHandler } from './indiehackers-handler.ts';
 import { jumpitHandler } from './jumpit-handler.ts';
+import { linkareerContestHandler } from './linkareer-contest-handler.ts';
 import { linkareerHandler } from './linkareer-handler.ts';
 import { openrouterModelsHandler } from './openrouter-models-handler.ts';
 import { producthuntHandler } from './producthunt-handler.ts';
@@ -17,6 +18,7 @@ import { saraminHandler } from './saramin-handler.ts';
 import { starhistoryHandler } from './starhistory-handler.ts';
 import { trendshiftHandler } from './trendshift-handler.ts';
 import { wantedHandler } from './wanted-handler.ts';
+import { wevityHandler } from './wevity-handler.ts';
 
 export const handlers = {
   rss: rssHandler,
@@ -34,6 +36,8 @@ export const handlers = {
   linkareer: linkareerHandler,
   producthunt: producthuntHandler,
   starhistory: starhistoryHandler,
+  wevity: wevityHandler,
+  'linkareer-contest': linkareerContestHandler,
 };
 
 /** 등록된 Handler 이름. Feed 선언의 `handler` 값이 된다. */

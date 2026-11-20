@@ -1,5 +1,5 @@
 /**
- * 채용 공고 Handler들이 함께 쓰는 변환. 채용 Feed의 `extra`는 모두 같은 필드 이름을 쓴다
+ * 화면의 `job` 카드로 보이는 Feed(채용 공고·공모전)의 Handler들이 함께 쓰는 변환. 이 Feed들의 `extra`는 모두 같은 필드 이름을 쓴다
  * (`location`, `career`, `deadline`, `alwaysOpen`, `tags`). 화면의 `job` 카드가 이 이름으로 읽는다.
  */
 
