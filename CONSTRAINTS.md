@@ -57,7 +57,7 @@
   hook은 로컬 피드백이다. `--no-verify`로 건너뛸 수 있으므로 강제는 GitHub Actions의 `check:task` check와 `main` branch protection이 맡는다. Coverage와 Gitleaks는 시간과 환경 의존 때문에 hook에 넣지 않는다. hook은 Windows의 `cmd.exe`에서 `${CHECK_BASE:-origin/main}`이 확장되지 않는 문제를 피하려고 `check:floor` 대신 `node scripts/floor-guard.mjs`를 직접 호출한다.
 - 로컬 작업 종료 검사 예산은 90초를 목표로 한다. Docker 최초 pull·build와 CI는 이 예산에서 제외한다. 시간 초과를 검사 생략·성공으로 바꾸지 않는다.
 - Jenkins Test stage에서 `check:task`를 실행한다. 현재 CI에는 DB 서비스가 없으므로 DB 통합 테스트는 별도로 실행한다.
-  PR 검증은 GitHub Actions(`.github/workflows/ci.yml`)가 같은 `check:task`를 실행하고, 그 결과가 `main` 병합의 필수 check다. Jenkins Test stage는 main 배포 직전 재검증으로 남는다.
+  Jenkins는 ADR-0020으로 없어졌다. PR과 main 모두 GitHub Actions(`.github/workflows/ci.yml`)가 같은 `check:task`를 실행한다. PR에서는 `main` 병합의 필수 check이고, main에서는 통과해야 이미지 빌드와 배포로 넘어간다. 위 rule 문장은 floor guard가 rule 이름으로 쓰므로 고치지 않았다.
 
 ## Measured, not yet enforced
 

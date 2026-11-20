@@ -49,7 +49,7 @@ FROM workspace-manifests AS test
 RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 COPY --from=secrets-scanner /usr/bin/gitleaks /usr/local/bin/gitleaks
 RUN npm ci
-# CI(GitHub Actions, Jenkins)가 docker cp로 넣은 .git의 UID가 달라도 이 테스트 경로만 신뢰한다.
+# CI(GitHub Actions)가 docker cp로 넣은 .git의 UID가 달라도 이 테스트 경로만 신뢰한다.
 RUN git config --global --add safe.directory /app
 COPY . .
 CMD ["npm", "test"]

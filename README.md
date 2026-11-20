@@ -42,9 +42,13 @@ docker compose -f compose.yml -f compose.local.yml up --build
 
 ## 배포
 
-`main`에 push하면 VPS Jenkins의 `vps-info` Job이 테스트 → `.env` 복호화 → `docker compose up --wait` 순으로 배포합니다.
-Job 정의와 nginx(`info.kkh-hub.tech`, Basic Auth)는 `vps-infra`가 소유합니다.
+`main`에 push하면 GitHub Actions(`.github/workflows/ci.yml`)가 `check:task` → 이미지 빌드(`ghcr.io/kanggihoo/vps-info:<sha>-<서비스>`) → VPS 배포 순으로 진행합니다(ADR-0020).
+배포는 SSH로 VPS의 `~/app/vps-info/scripts/deploy.sh <sha>`를 실행합니다. 이 스크립트가 checkout을 그 커밋으로 맞추고 `.env`를 복호화한 뒤 `docker compose pull`과 `up --wait`를 합니다.
+nginx(`info.kkh-hub.tech`, Basic Auth)와 공용 PostgreSQL은 `vps-infra`가 소유합니다.
 운영 접속 정보는 `secrets/env.prod.sops.env`에 SOPS로 암호화해 둡니다(`sops edit secrets/env.prod.sops.env`).
+
+- 수동 재배포·ERD 재생성: Actions에서 `CI` workflow를 main으로 실행합니다(`erd` 옵션).
+- 롤백: VPS에서 `~/app/vps-info/scripts/deploy.sh <이전 main 커밋 SHA>`를 실행합니다. 그 SHA의 이미지를 GHCR에서 다시 받습니다.
 
 ### Entry 대화 인증 (ADR-0018)
 
@@ -69,12 +73,11 @@ access 토큰이 만료되기 전에 pi-ai가 refresh 토큰으로 갱신하고 
 
 - **OpenRouter**: API 키를 `OPENROUTER_API_KEY`로 넣습니다(운영은 sops 파일, 로컬은 `.env`).
 
-운영 VPS에는 저장소 체크아웃이 없습니다(Jenkins workspace는 named volume 안에 있습니다). 그래서 SSH로 들어가 배포된 이미지와 볼륨으로 직접 실행합니다.
-compose 프로젝트 이름이 `vps-info`라서 이미지는 `vps-info-llm`, 볼륨은 `vps-info_llm_auth`입니다.
+운영 VPS에서는 SSH로 들어가 배포 checkout(`~/app/vps-info`)에서 같은 스크립트를 실행합니다. `.env`의 `IMAGE_TAG`가 배포된 이미지를 가리킵니다.
 
 ```bash
-docker run --rm -it -v vps-info_llm_auth:/llm-auth -w /llm-auth vps-info-llm /app/node_modules/.bin/pi-ai login anthropic
-docker run --rm -it -v vps-info_llm_auth:/llm-auth -w /llm-auth vps-info-llm /app/node_modules/.bin/pi-ai login openai
+cd ~/app/vps-info && bash scripts/llm-login.sh anthropic
+cd ~/app/vps-info && bash scripts/llm-login.sh openai
 # 엔진별 인증 상태 확인(재시작 없이 바로 반영된다)
 docker exec vps-info-llm-1 node -e "fetch('http://localhost:8100/models').then(r => r.json()).then(d => d.engines.forEach(e => console.log(e.engine, e.available)))"
 ```
