@@ -12,5 +12,8 @@ export default defineConfig({
       exclude: ['**/*.test.{ts,tsx}', 'src/components/ui/**', 'src/styles/design-token-names.ts'],
     },
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
+    setupFiles: ['./test-setup.ts'],
+    // findBy*·waitFor 대기를 5초로 늘렸으므로(test-setup.ts) 한 테스트가 대기를 여러 번 거치면 기본 5초를 넘는다.
+    testTimeout: 15_000,
   },
 });

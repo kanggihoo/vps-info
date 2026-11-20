@@ -175,8 +175,11 @@ describe('EntryPanel 복사 버튼', () => {
     renderPanel({ withSelection: true });
 
     await user.click(screen.getByRole('button', { name: '복사' }));
+    // "복사됨"은 1.5초 뒤 사라진다. findBy*로 polling하면 느린 CI에서 찾기 전에 사라지므로,
+    // act로 클립보드 쓰기 뒤의 상태 변경을 끝낸 다음 기다리지 않고 바로 찾는다.
+    await act(async () => {});
 
-    await screen.findByRole('button', { name: '복사됨' });
+    screen.getByRole('button', { name: '복사됨' });
     expect(screen.getByRole('status').textContent).toBe('복사됨');
     const [copiedText] = writeText.mock.calls[0];
     expect(copiedText).toContain('title: "펼친 Entry 제목"');
