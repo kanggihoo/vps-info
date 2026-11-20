@@ -16,6 +16,8 @@ const READER_HIDDEN_IDS = new Set([
   // 링커리어는 서버가 그린 상세 HTML에 본문이 있어 추출이 된다(2026-11-20 확인). 그래서 이 목록에 없다.
   'jumpit-backend',
   'saramin-backend',
+  // DACON은 dacon.io가 브라우저가 아닌 요청에 AWS WAF 챌린지 페이지를 줄 때가 있다(2026-11-20 목록 페이지에서 확인). 본문을 받는다고 기대할 수 없다.
+  'dacon-competitions',
 ]);
 
 /**

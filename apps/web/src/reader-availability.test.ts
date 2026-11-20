@@ -3,7 +3,7 @@ import { isReaderAvailable, READER_UNAVAILABLE_MESSAGE } from './reader-availabi
 
 describe('isReaderAvailable', () => {
   it('제품·대시보드·지원 화면으로 가는 Feed는 읽기 버튼을 비활성으로 둔다', () => {
-    for (const feedId of ['openrouter-models', 'jumpit-backend', 'saramin-backend']) {
+    for (const feedId of ['openrouter-models', 'jumpit-backend', 'saramin-backend', 'dacon-competitions']) {
       expect(isReaderAvailable(feedId)).toBe(false);
     }
   });

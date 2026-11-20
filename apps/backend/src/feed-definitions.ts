@@ -334,4 +334,6 @@ export const feedDefinitions: FeedDefinition[] = [
   // 두 사이트에 함께 올라온 공모전은 Feed마다 Entry가 따로 생긴다(ADR-0002). 분야로 Feed를 나누지 않는다.
   { id: 'wevity-contests', title: '위비티 공모전', handler: 'wevity', params: {}, intervalMinutes: 1440 },
   { id: 'linkareer-contests', title: '링커리어 공모전', handler: 'linkareer-contest', params: {}, intervalMinutes: 1440 },
+  // DACON은 AI·데이터 경진대회만 올라오고 한 달에 몇 개 수준이라 하루 1회면 충분하다.
+  { id: 'dacon-competitions', title: 'DACON 경진대회', handler: 'dacon', params: {}, intervalMinutes: 1440 },
 ];

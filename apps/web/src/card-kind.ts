@@ -21,6 +21,7 @@ const CARD_KINDS: Record<string, CardKind> = {
   // 공모전도 주최·마감·분야 태그가 채용 공고와 같은 자리에 들어간다.
   'wevity-contests': 'job',
   'linkareer-contests': 'job',
+  'dacon-competitions': 'job',
 };
 
 /**

@@ -3,6 +3,7 @@
  * 디렉터리를 스캔하지 않는 이유는 Feed 선언의 파라미터를 타입으로 검사하기 위해서다.
  */
 import { anthropicNewsHandler } from './anthropic-news-handler.ts';
+import { daconHandler } from './dacon-handler.ts';
 import { devtoHandler } from './devto-handler.ts';
 import { hackernewsHandler } from './hackernews-handler.ts';
 import { hellogithubHandler } from './hellogithub-handler.ts';
@@ -38,6 +39,7 @@ export const handlers = {
   starhistory: starhistoryHandler,
   wevity: wevityHandler,
   'linkareer-contest': linkareerContestHandler,
+  dacon: daconHandler,
 };
 
 /** 등록된 Handler 이름. Feed 선언의 `handler` 값이 된다. */
