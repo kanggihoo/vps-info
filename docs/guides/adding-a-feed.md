@@ -109,6 +109,7 @@ Stream Feed는 `extra`와 `metrics`가 합쳐진 처음 값을, Ranked Feed 순�
 | `starhistory` | `starhistory-handler.ts` | `{}` | Star History 홈의 주간 급상승 저장소 20개. HTML 순위표를 파싱한다. 정보원이 주 1회만 바뀌어 주기를 7일로 둔다 |
 | `wevity` | `wevity-handler.ts` | `{}` | 위비티 공모전 목록 HTML 3페이지. 페이지 사이에 2초를 쉰다 |
 | `linkareer-contest` | `linkareer-contest-handler.ts` | `{}` | 링커리어 진행 중 공모전 GraphQL(`activityTypeID=3`) 최신 100개 |
+| `dacon` | `dacon-handler.ts` | `{}` | DACON 경진대회 목록 JSON API 첫 페이지(최신 15개) |
 
 RSS가 없는 사이트는 RSSHub 라우트(`lib/routes/<site>/`)를 열어 **어떤 주소를 호출하는지만** 참고한다.
 RSSHub는 AGPL-3.0이므로 코드를 복사하지 않는다(ADR-0006). 공식 RSS가 있으면 RSSHub를 거치지 말고 그것을 쓴다.

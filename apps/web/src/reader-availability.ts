@@ -13,10 +13,11 @@ const READER_HIDDEN_IDS = new Set([
   // 원문이 가격표·가동률 대시보드다.
   'openrouter-models',
   // 원문이 지원 화면이 붙은 SPA·이미지 공고라 본문을 추출해도 쓸모가 없다. 원티드는 서버가 공고 데이터를 직접 읽어 준다(ADR-0013).
+  // 링커리어는 서버가 그린 상세 HTML에 본문이 있어 추출이 된다(2026-11-20 확인). 그래서 이 목록에 없다.
   'jumpit-backend',
   'saramin-backend',
-  'linkareer-backend',
-  'linkareer-contests',
+  // DACON은 dacon.io가 브라우저가 아닌 요청에 AWS WAF 챌린지 페이지를 줄 때가 있다(2026-11-20 목록 페이지에서 확인). 본문을 받는다고 기대할 수 없다.
+  'dacon-competitions',
 ]);
 
 /**
