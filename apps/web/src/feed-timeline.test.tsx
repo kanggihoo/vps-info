@@ -20,8 +20,13 @@ class FakeIntersectionObserver {
   }
 }
 
-/** 지금 관찰 중인 표식이 화면에 들어오거나 나갔다고 알린다. */
-function reportVisibility(isIntersecting: boolean) {
+/**
+ * 지금 관찰 중인 표식이 화면에 들어오거나 나갔다고 알린다.
+ * observer는 LoadTrigger의 effect가 목록을 그린 뒤에 만든다. 느린 환경(VPS Jenkins, 병렬 suite)에서는 글이 보인 직후에도
+ * 아직 없을 수 있으므로, 정확히 하나가 될 때까지 먼저 기다린다.
+ */
+async function reportVisibility(isIntersecting: boolean) {
+  await waitFor(() => expect(FakeIntersectionObserver.instances.filter((observer) => !observer.disconnected)).toHaveLength(1));
   const active = FakeIntersectionObserver.instances.filter((observer) => !observer.disconnected);
   expect(active).toHaveLength(1);
   act(() => active[0].callback([{ isIntersecting }]));
@@ -152,7 +157,7 @@ describe('FeedTimeline 위아래로 더 불러오기', () => {
     renderTimeline({ readCursorEntryId: 20 });
     await screen.findByText('글 21');
 
-    reportVisibility(true);
+    await reportVisibility(true);
 
     await screen.findByText('글 1');
     expect(apiClient.listEntriesBefore).toHaveBeenLastCalledWith(feed.id, 11, 50);
@@ -165,7 +170,7 @@ describe('FeedTimeline 위아래로 더 불러오기', () => {
     await screen.findByText('글 21');
     expect(listEntriesBefore).toHaveBeenCalledTimes(1);
 
-    reportVisibility(false);
+    await reportVisibility(false);
 
     expect(listEntriesBefore).toHaveBeenCalledTimes(1);
   });
@@ -180,7 +185,7 @@ describe('FeedTimeline 위아래로 더 불러오기', () => {
     renderTimeline({ readCursorEntryId: 20 });
     await screen.findByText('글 21');
 
-    reportVisibility(true);
+    await reportVisibility(true);
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Entry를 불러오지 못했습니다.');
@@ -201,7 +206,7 @@ describe('FeedTimeline 위아래로 더 불러오기', () => {
     renderTimeline();
     await screen.findByText('글 50');
 
-    reportVisibility(true);
+    await reportVisibility(true);
 
     await screen.findByText('글 52');
     expect(apiClient.listEntriesAfter).toHaveBeenLastCalledWith(feed.id, 50, 50);
@@ -217,7 +222,7 @@ describe('FeedTimeline 위아래로 더 불러오기', () => {
     renderTimeline();
     await screen.findByText('글 50');
 
-    reportVisibility(true);
+    await reportVisibility(true);
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Entry를 불러오지 못했습니다.');
