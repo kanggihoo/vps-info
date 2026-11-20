@@ -1,5 +1,5 @@
-# PR 검증과 main 이미지 빌드. check:task 결과가 main branch protection의 필수 check다.
-# main push는 검사 뒤 이미지를 GHCR에 올린다. 배포는 아직 VPS Jenkins가 한다(vps-infra ADR 0018).
+# CI/CD. PR은 검사만, main은 검사 → 이미지 빌드(GHCR) → VPS 배포(SSH) 순으로 돈다(docs/adr/0020, vps-infra ADR 0019).
+# check:task 결과가 main branch protection의 필수 check다.
 name: CI
 
 on:
@@ -8,14 +8,27 @@ on:
   # squash 병합이면 main 커밋이 PR에서 검사한 커밋과 다르므로 main에서 한 번 더 검사한다.
   push:
     branches: [main]
+  # 수동 재배포. main을 골라 실행한다. erd를 켜면 마이그레이션 변경이 없어도 ERD를 다시 만든다.
+  workflow_dispatch:
+    inputs:
+      erd:
+        description: ERD를 다시 만든다
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
-# PR은 새 push가 오면 이전 실행을 취소한다. main은 취소하지 않고 순서대로 돈다(이미지 push 도중에 끊지 않는다).
+# PR은 새 push가 오면 이전 실행을 취소한다. main은 취소하지 않고 순서대로 돈다(이미지 push나 배포 도중에 끊지 않는다).
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # 배포 대상. host key를 고정해 다른 서버에 접속하지 않는다(키가 바뀌면 배포가 실패한다).
+  VPS_HOST: 187.77.114.68
+  VPS_USER: kkh
+  VPS_HOST_KEY: 187.77.114.68 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkuL3u1JaTmO9cAZIcgiYyLJLIdDENedbywa+/YOsfo
 
 jobs:
   check:
@@ -25,7 +38,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      # PR 이벤트의 기본 checkout은 대상 브랜치와 병합한 커밋이다(Jenkins pr-merge와 같다).
+      # PR 이벤트의 기본 checkout은 대상 브랜치와 병합한 커밋이다.
       # floor와 변경 Coverage가 origin/<대상 브랜치>와 diff를 뜨므로 전체 이력이 필요하다.
       - uses: actions/checkout@v4
         with:
@@ -37,7 +50,7 @@ jobs:
       # .dockerignore로 뺀 tracked 파일(docs 등)과 .git은 이미지에 넣지 않고 검사 컨테이너에만 복사한다.
       # bind mount를 쓰지 않는 이유: 이미지의 /app/node_modules를 가리게 된다.
       # DB 통합 테스트는 DB 서비스가 없어 여기서 돌리지 않는다(로컬 check:full, pre-push).
-      # main push에서는 base_ref가 비어 origin/main(자기 자신)과 비교하므로 floor·변경 Coverage 대상이 없다(Jenkins main 빌드와 같다).
+      # main에서는 base_ref가 비어 origin/main(자기 자신)과 비교하므로 floor·변경 Coverage 대상이 없다.
       - name: npm run check:task
         env:
           CHECK_BASE: origin/${{ github.base_ref || 'main' }}
@@ -49,9 +62,9 @@ jobs:
           docker start -a check
 
   # main 커밋의 이미지를 GHCR에 올린다. 태그는 커밋 SHA이고 서비스는 접미사로 구분한다(compose.yml의 image).
-  # 패키지 하나(ghcr.io/kanggihoo/vps-info)라 public 전환도 한 번이면 된다. VPS는 로그인 없이 pull한다.
+  # 패키지 하나(ghcr.io/kanggihoo/vps-info)를 public으로 두어 VPS는 로그인 없이 pull한다.
   image:
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: check
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -80,50 +93,80 @@ jobs:
           --set "*.labels.org.opencontainers.image.source=https://github.com/${{ github.repository }}"
           migrate app collector llm
 
-  # PR 결과를 Mattermost로 알린다(vps-infra ADR 0012). secret이 없으면 건너뛴다.
+  # VPS에서 scripts/deploy.sh를 실행한다. 이 key는 VPS authorized_keys의 forced command로 묶여 있어
+  # "<sha> [erd]" 말고는 아무것도 실행할 수 없다. 배포 내용(checkout, .env 복호화, pull, up --wait, ERD)은 그 스크립트에 있다.
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Deploy over SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          MODE: ${{ inputs.erd && 'erd' || '' }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$VPS_HOST_KEY" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes -o ServerAliveInterval=30 \
+            "$VPS_USER@$VPS_HOST" "$GITHUB_SHA $MODE"
+
+  # 결과를 Mattermost로 알린다(vps-infra ADR 0012). PR은 CI, main은 CD다. secret이 없으면 건너뛴다.
   # fork PR에는 secret이 전달되지 않으므로 같은 레포 PR만 알린다. 새 push로 취소된 실행은 알리지 않는다.
   notify:
-    needs: check
+    needs: [check, image, deploy]
     if: >-
       always() &&
-      github.event_name == 'pull_request' &&
-      needs.check.result != 'cancelled' &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      !contains(needs.*.result, 'cancelled') &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      # PR 제목 같은 사용자 입력은 env로만 넘긴다. run에 ${{ }}로 넣으면 셸 코드로 해석될 수 있다.
+      # PR 제목, 커밋 메시지 같은 사용자 입력은 env로만 넘긴다. run에 ${{ }}로 넣으면 셸 코드로 해석될 수 있다.
       - name: Send to Mattermost
         env:
           HOOK: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
-          RESULT: ${{ needs.check.result }}
+          EVENT: ${{ github.event_name }}
+          CHECK: ${{ needs.check.result }}
+          IMAGE: ${{ needs.image.result }}
+          DEPLOY: ${{ needs.deploy.result }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          ACTOR: ${{ github.actor }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           if [ -z "$HOOK" ]; then
             echo "[notify] MATTERMOST_WEBHOOK_URL이 없어 알림을 건너뛴다"
             exit 0
           fi
-          if [ "$RESULT" = success ]; then
-            label=성공 color='#2eb886' tail='검증을 통과했습니다. 리뷰 가능합니다.'
+          if [ "$EVENT" = pull_request ]; then
+            ok=$([ "$CHECK" = success ] && echo 1 || echo 0)
+            title="CI $([ "$ok" = 1 ] && echo 성공 || echo 실패) · vps-info PR #${PR_NUMBER}"
+            text="PR #${PR_NUMBER} 「${PR_TITLE}」 $([ "$ok" = 1 ] && echo '검증을 통과했습니다. 리뷰 가능합니다.' || echo "검증 결과: 실패. 로그: ${RUN_URL}")"
+            fields=$(jq -n --arg pr "[#${PR_NUMBER}](${PR_URL})" --arg author "$PR_AUTHOR" --arg branch "${HEAD_REF} → ${BASE_REF}" \
+              '[{short: true, title: "PR", value: $pr}, {short: true, title: "작성자", value: $author}, {short: true, title: "브랜치 → 대상", value: $branch}]')
           else
-            label=실패 color='#d33f3f' tail="검증 결과: 실패. 로그: ${RUN_URL}"
+            ok=$([ "$DEPLOY" = success ] && echo 1 || echo 0)
+            # 먼저 실패한 단계를 적는다. 뒤 단계는 skipped가 된다.
+            stage=$(for s in "check:$CHECK" "image:$IMAGE" "deploy:$DEPLOY"; do [ "${s#*:}" = success ] || { echo "${s%%:*}"; break; }; done)
+            subject="${COMMIT_MESSAGE%%$'\n'*}"
+            title="CD $([ "$ok" = 1 ] && echo 성공 || echo 실패) · vps-info main"
+            text="${subject:-수동 재배포}$([ "$ok" = 1 ] || echo " · 실패 단계: ${stage}. 로그: ${RUN_URL}")"
+            fields=$(jq -n --arg commit "[\`${GITHUB_SHA::7}\`](${COMMIT_URL})" --arg actor "$ACTOR" \
+              '[{short: true, title: "커밋", value: $commit}, {short: true, title: "실행자", value: $actor}]')
           fi
-          jq -n \
-            --arg title "CI ${label} · vps-info PR #${PR_NUMBER}" \
-            --arg link "$RUN_URL" --arg color "$color" \
-            --arg text "PR #${PR_NUMBER} 「${PR_TITLE}」 ${tail}" \
-            --arg pr "[#${PR_NUMBER}](${PR_URL})" --arg author "$PR_AUTHOR" \
-            --arg branch "${HEAD_REF} → ${BASE_REF}" \
-            '{username: "GitHub Actions", attachments: [{color: $color, title: $title, title_link: $link, text: $text,
-              fields: [{short: true, title: "PR", value: $pr},
-                       {short: true, title: "작성자", value: $author},
-                       {short: true, title: "브랜치 → 대상", value: $branch}]}]}' |
+          color=$([ "$ok" = 1 ] && echo '#2eb886' || echo '#d33f3f')
+          jq -n --arg title "$title" --arg link "$RUN_URL" --arg color "$color" --arg text "$text" --argjson fields "$fields" \
+            '{username: "GitHub Actions", attachments: [{color: $color, title: $title, title_link: $link, text: $text, fields: $fields}]}' |
             curl -fsS --max-time 10 -H 'Content-Type: application/json' -d @- "$HOOK" >/dev/null ||
-            echo "[notify] 알림 전송 실패(검증 결과에는 영향 없음)"
+            echo "[notify] 알림 전송 실패(결과에는 영향 없음)"

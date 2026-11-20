@@ -22,7 +22,7 @@ class FakeIntersectionObserver {
 
 /**
  * 지금 관찰 중인 표식이 화면에 들어오거나 나갔다고 알린다.
- * observer는 LoadTrigger의 effect가 목록을 그린 뒤에 만든다. 느린 환경(VPS Jenkins, 병렬 suite)에서는 글이 보인 직후에도
+ * observer는 LoadTrigger의 effect가 목록을 그린 뒤에 만든다. 느린 환경(VPS, 병렬 suite)에서는 글이 보인 직후에도
  * 아직 없을 수 있으므로, 정확히 하나가 될 때까지 먼저 기다린다.
  */
 async function reportVisibility(isIntersecting: boolean) {

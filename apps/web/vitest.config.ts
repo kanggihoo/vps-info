@@ -2,9 +2,6 @@
 import { defineConfig } from 'vitest/config';
 import { WEB_ALIASES } from './vite.config.ts';
 
-// Jenkins가 테스트 결과 그래프를 그리도록 JUnit XML을 남긴다. 설정하지 않으면 콘솔 출력만 한다.
-const junitDirectory = process.env.JUNIT_OUTPUT_DIR;
-
 export default defineConfig({
   resolve: { alias: WEB_ALIASES },
   test: {
@@ -15,7 +12,5 @@ export default defineConfig({
       exclude: ['**/*.test.{ts,tsx}', 'src/components/ui/**', 'src/styles/design-token-names.ts'],
     },
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
-    reporters: junitDirectory ? ['default', 'junit'] : ['default'],
-    outputFile: junitDirectory ? { junit: `${junitDirectory}/web.xml` } : undefined,
   },
 });
