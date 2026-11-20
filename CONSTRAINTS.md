@@ -43,6 +43,7 @@
 - `scripts/merge-coverage.mjs`는 workspace별 SF 경로만 repo 기준으로 정리한다. 검사 판정은 wf 원본 `scripts/wf-artifacts/diff-coverage.mjs`가 한다.
 - unit suite의 lcov를 한 번 만들고 재사용한다. DB 코드의 실제 실행 Coverage가 필요하면 backend를 `RUN_DB_TESTS=1`로 같은 Coverage 명령으로 실행한다.
 - 로컬 기본 기준은 `origin/main`이다. CI에서는 PR의 대상 브랜치(`origin/$CHANGE_TARGET`)를 `CHECK_BASE`로 전달한다. 단계별 PR은 실제 대상 브랜치와 비교하고, 없는 ref는 실패한다. wf에서는 spec 승인 commit을 `--base`로 넘긴다. 없는 ref나 lcov를 성공으로 취급하지 않는다.
+  PR 검증은 GitHub Actions로 옮겼으므로 대상 브랜치는 `origin/${{ github.base_ref }}`로 넘긴다(`$CHANGE_TARGET`은 Jenkins PR 빌드의 변수였다).
 - 최초 도입은 기존 기능 수정 PR과 분리한다. Feed·lint 수정 PR을 먼저 검증하고, 이 설정 PR은 그 브랜치를 대상으로 한다. 첫 PR 병합 후 이 PR의 대상을 main으로 바꾼다. 도입 전 변경을 새 기준으로 소급 평가하거나 해당 변경을 위해 threshold를 낮추지 않는다. 이 설정 PR은 application 실행 코드를 변경하지 않으므로 변경 Coverage의 실행 라인 분모는 0이며, 기존 전체 Coverage가 80%라는 뜻은 아니다.
 
 ## 실행 시점과 비용
@@ -53,9 +54,10 @@
 - `npm run check:task`: fast → secret → floor → guard 회귀 검사 → 테스트+Coverage → 변경 Coverage.
 - `npm run check:full`: task 검사 후 DB 통합 테스트. Docker가 실행 중이어야 한다.
 - Git hook: `npm install`의 `prepare`가 `git config core.hooksPath .husky`를 설정해 `.husky/`의 hook을 켠다. husky 패키지는 쓰지 않는다. `pre-commit`은 Floor guard(약 1초), `pre-push`는 Floor guard, `check:fast`, `npm test`(합쳐서 약 25초)를 돌리고 `apps/backend`가 바뀐 push에서는 `test:db`도 돌린다. Docker가 꺼져 있으면 그 push는 실패한다.
-  hook은 로컬 피드백이다. `--no-verify`로 건너뛸 수 있으므로 강제는 Jenkins `check:task`와 `main` branch protection이 맡는다. Coverage와 Gitleaks는 시간과 환경 의존 때문에 hook에 넣지 않는다. hook은 Windows의 `cmd.exe`에서 `${CHECK_BASE:-origin/main}`이 확장되지 않는 문제를 피하려고 `check:floor` 대신 `node scripts/floor-guard.mjs`를 직접 호출한다.
+  hook은 로컬 피드백이다. `--no-verify`로 건너뛸 수 있으므로 강제는 GitHub Actions의 `check:task` check와 `main` branch protection이 맡는다. Coverage와 Gitleaks는 시간과 환경 의존 때문에 hook에 넣지 않는다. hook은 Windows의 `cmd.exe`에서 `${CHECK_BASE:-origin/main}`이 확장되지 않는 문제를 피하려고 `check:floor` 대신 `node scripts/floor-guard.mjs`를 직접 호출한다.
 - 로컬 작업 종료 검사 예산은 90초를 목표로 한다. Docker 최초 pull·build와 CI는 이 예산에서 제외한다. 시간 초과를 검사 생략·성공으로 바꾸지 않는다.
 - Jenkins Test stage에서 `check:task`를 실행한다. 현재 CI에는 DB 서비스가 없으므로 DB 통합 테스트는 별도로 실행한다.
+  PR 검증은 GitHub Actions(`.github/workflows/ci.yml`)가 같은 `check:task`를 실행하고, 그 결과가 `main` 병합의 필수 check다. Jenkins Test stage는 main 배포 직전 재검증으로 남는다.
 
 ## Measured, not yet enforced
 

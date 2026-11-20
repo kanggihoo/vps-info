@@ -1,0 +1,92 @@
+# PR 검증. 결과 check가 main branch protection의 필수 check다.
+# main 배포는 아직 VPS Jenkins가 한다(vps-infra ADR 0018). Jenkins main 빌드도 배포 직전에 같은 검사를 한 번 더 돈다.
+name: CI
+
+on:
+  # 대상 브랜치를 main으로 제한하지 않는다. 단계별 PR은 실제 대상 브랜치와 비교한다(CONSTRAINTS.md).
+  pull_request:
+
+permissions:
+  contents: read
+
+# 같은 PR에 새 push가 오면 이전 실행을 취소한다.
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # 이 이름이 GitHub branch protection의 필수 check 이름이다. 바꾸면 protection 설정도 바꾼다.
+    name: check:task
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # PR 이벤트의 기본 checkout은 대상 브랜치와 병합한 커밋이다(Jenkins pr-merge와 같다).
+      # floor와 변경 Coverage가 origin/<대상 브랜치>와 diff를 뜨므로 전체 이력이 필요하다.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build test image
+        run: docker build --target test -t vps-info-test .
+
+      # .dockerignore로 뺀 tracked 파일(docs 등)과 .git은 이미지에 넣지 않고 검사 컨테이너에만 복사한다.
+      # bind mount를 쓰지 않는 이유: 이미지의 /app/node_modules를 가리게 된다.
+      # DB 통합 테스트는 DB 서비스가 없어 여기서 돌리지 않는다(로컬 check:full, pre-push).
+      - name: npm run check:task
+        env:
+          CHECK_BASE: origin/${{ github.base_ref }}
+        run: |
+          set -eu
+          docker create --name check -e CHECK_BASE vps-info-test npm run check:task >/dev/null
+          git archive --format=tar HEAD | docker cp - check:/app
+          docker cp .git check:/app/.git
+          docker start -a check
+
+  # 결과를 Mattermost로 알린다(vps-infra ADR 0012). secret이 없으면 건너뛴다.
+  # fork PR에는 secret이 전달되지 않으므로 같은 레포 PR만 알린다. 새 push로 취소된 실행은 알리지 않는다.
+  notify:
+    needs: check
+    if: >-
+      always() &&
+      needs.check.result != 'cancelled' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # PR 제목 같은 사용자 입력은 env로만 넘긴다. run에 ${{ }}로 넣으면 셸 코드로 해석될 수 있다.
+      - name: Send to Mattermost
+        env:
+          HOOK: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          RESULT: ${{ needs.check.result }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "[notify] MATTERMOST_WEBHOOK_URL이 없어 알림을 건너뛴다"
+            exit 0
+          fi
+          if [ "$RESULT" = success ]; then
+            label=성공 color='#2eb886' tail='검증을 통과했습니다. 리뷰 가능합니다.'
+          else
+            label=실패 color='#d33f3f' tail="검증 결과: 실패. 로그: ${RUN_URL}"
+          fi
+          jq -n \
+            --arg title "CI ${label} · vps-info PR #${PR_NUMBER}" \
+            --arg link "$RUN_URL" --arg color "$color" \
+            --arg text "PR #${PR_NUMBER} 「${PR_TITLE}」 ${tail}" \
+            --arg pr "[#${PR_NUMBER}](${PR_URL})" --arg author "$PR_AUTHOR" \
+            --arg branch "${HEAD_REF} → ${BASE_REF}" \
+            '{username: "GitHub Actions", attachments: [{color: $color, title: $title, title_link: $link, text: $text,
+              fields: [{short: true, title: "PR", value: $pr},
+                       {short: true, title: "작성자", value: $author},
+                       {short: true, title: "브랜치 → 대상", value: $branch}]}]}' |
+            curl -fsS --max-time 10 -H 'Content-Type: application/json' -d @- "$HOOK" >/dev/null ||
+            echo "[notify] 알림 전송 실패(검증 결과에는 영향 없음)"

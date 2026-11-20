@@ -11,4 +11,4 @@
 - [ ] 마이그레이션을 추가했다면 테이블·컬럼 `COMMENT`를 넣었다
 - [ ] `apps/web` 디자인 토큰을 바꿨다면 `npm run design:tokens`를 실행했다
 
-> main에 병합되면 Jenkins가 바로 배포한다. 병합 전에 Jenkins `pr-merge` check가 통과했는지 본다.
+> main에 병합되면 Jenkins가 바로 배포한다. 병합 전에 GitHub Actions `check:task` check가 통과했는지 본다.
